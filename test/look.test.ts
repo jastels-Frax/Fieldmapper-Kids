@@ -61,6 +61,22 @@ test('surprise me changes the fun switches and keeps the needs', () => {
   }
 });
 
+import { withTheme } from '../src/look.ts';
+import { existsSync } from 'node:fs';
+
+test('the Field Journal brings storybook letters, but never over letters an explorer chose', () => {
+  assert.equal(withTheme(DEFAULT_LOOK, 'journal').font, 'storybook');
+  assert.equal(withTheme({ ...DEFAULT_LOOK, font: 'easy' }, 'journal').font, 'easy');
+  assert.equal(withTheme(DEFAULT_LOOK, 'ocean').font, DEFAULT_LOOK.font);
+});
+
+test('every Field Journal plate the stylesheet names is in the repo', () => {
+  const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
+  const urls = [...css.matchAll(/url\("\.\/(assets\/journal\/[^"]+)"\)/g)].map(m => m[1]);
+  assert.ok(urls.length >= 10);
+  for (const u of urls) assert.ok(existsSync(new URL(`../src/${u}`, import.meta.url)), u);
+});
+
 import { TIERS, tierOf, MODE_WORDS } from '../src/tiers.ts';
 
 test('tiers: absence reads as Explorer, and every default look is valid', () => {

@@ -7,14 +7,14 @@
  * previews a choice by putting the same tokens on a small sample. Stored on
  * the Profile; absence of any field is the default. Pure.
  */
-export type ThemeId = 'forest' | 'ocean' | 'sunset' | 'berry' | 'candy' | 'autumn' | 'jungle' | 'night' | 'space' | 'snow';
+export type ThemeId = 'journal' | 'forest' | 'ocean' | 'sunset' | 'berry' | 'candy' | 'autumn' | 'jungle' | 'night' | 'space' | 'snow';
 export type ButtonStyleId = 'bubbly' | 'sticker' | 'flat' | 'jelly' | 'outline' | 'pixel' | 'pop';
 export type PatternId = 'plain' | 'dots' | 'stripes' | 'grid' | 'waves' | 'stars' | 'leaves';
 export type HeaderId = 'solid' | 'rainbow' | 'stripes' | 'soft';
 export type PinId = 'drop' | 'bubble' | 'square';
 export type PartyId = 'confetti' | 'stars' | 'leaves' | 'bubbles';
 export type TextSizeId = 'normal' | 'big' | 'bigger';
-export type FontId = 'rounded' | 'plain' | 'easy' | 'handwritten' | 'chunky';
+export type FontId = 'rounded' | 'plain' | 'easy' | 'handwritten' | 'chunky' | 'storybook';
 export type MotionId = 'lively' | 'calm';
 
 export interface Look {
@@ -42,8 +42,13 @@ export interface Choice<T extends string> {
   hint: string;
 }
 
-/** `swatch` is what the picker paints: [background, accent, highlight]. `bar` is the browser's theme colour. */
-export const THEMES: (Choice<ThemeId> & { swatch: [string, string, string]; bar: string; dark?: boolean })[] = [
+/**
+ * `swatch` is what the picker paints: [background, accent, highlight]. `bar` is the browser's theme colour.
+ * `art` marks a theme that is a whole look rather than a palette (the picker shows its picture, and
+ * `suggestedFont` is offered with it).
+ */
+export const THEMES: (Choice<ThemeId> & { swatch: [string, string, string]; bar: string; dark?: boolean; art?: boolean; suggestedFont?: FontId })[] = [
+  { id: 'journal', emoji: '📜', label: 'Field Journal', hint: 'Like a storybook, on old paper', swatch: ['#ecdfbf', '#5e6d38', '#c4652a'], bar: '#4a3826', art: true, suggestedFont: 'storybook' },
   { id: 'forest', emoji: '🌲', label: 'Forest', hint: 'Green and sunny', swatch: ['#fff9db', '#2f9e44', '#f76707'], bar: '#2f9e44' },
   { id: 'ocean', emoji: '🌊', label: 'Ocean', hint: 'Blue like the sea', swatch: ['#e7f5ff', '#1971c2', '#f59f00'], bar: '#1971c2' },
   { id: 'sunset', emoji: '🌅', label: 'Sunset', hint: 'Warm and glowing', swatch: ['#fff4e6', '#d9480f', '#d6336c'], bar: '#d9480f' },
@@ -109,6 +114,7 @@ export const FONT_STACKS: Record<FontId, string> = {
   easy: 'Verdana, "Atkinson Hyperlegible", Tahoma, "Trebuchet MS", system-ui, sans-serif',
   handwritten: '"Chalkboard SE", "Comic Sans MS", "Comic Neue", "Marker Felt", "Segoe Print", cursive',
   chunky: '"Arial Rounded MT Bold", "Arial Black", "Helvetica Neue", Impact, system-ui, sans-serif',
+  storybook: '"Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, "Times New Roman", serif',
 };
 
 export const FONTS: Choice<FontId>[] = [
@@ -117,6 +123,7 @@ export const FONTS: Choice<FontId>[] = [
   { id: 'easy', emoji: '👓', label: 'Easy read', hint: 'Wide, clear letters' },
   { id: 'handwritten', emoji: '🖍️', label: 'Handwritten', hint: 'Like a crayon' },
   { id: 'chunky', emoji: '🧱', label: 'Chunky', hint: 'Big and bold' },
+  { id: 'storybook', emoji: '📖', label: 'Storybook', hint: 'Like an old book' },
 ];
 
 export const MOTIONS: Choice<MotionId>[] = [
@@ -157,6 +164,16 @@ export function lookAttributes(l: Look): Record<string, string> {
 
 export function partyPieces(p: PartyId): string[] {
   return PARTIES.find(x => x.id === p)?.pieces ?? [];
+}
+
+/**
+ * Choosing a theme. A whole-look theme brings its own letters along, but only over the default ones: an
+ * explorer who chose letters (Easy read above all) keeps them.
+ */
+export function withTheme(l: Look, theme: ThemeId): Look {
+  const t = THEMES.find(x => x.id === theme);
+  const font = t?.suggestedFont && l.font === DEFAULT_LOOK.font ? t.suggestedFont : l.font;
+  return { ...l, theme, font };
 }
 
 export function themeBar(t: ThemeId): string {

@@ -1,5 +1,5 @@
 import type { Profile } from './types.ts';
-import { FONT_STACKS, LOOK_KEYS, THEMES, choicesFor, normalizeLook, surpriseLook, type Choice, type Look } from './look.ts';
+import { FONT_STACKS, LOOK_KEYS, THEMES, choicesFor, normalizeLook, surpriseLook, withTheme, type Choice, type Look } from './look.ts';
 import { applyLook } from './lookApply.ts';
 import { h, openSheet } from './ui.ts';
 import { say } from './speech.ts';
@@ -41,6 +41,7 @@ export function openLook(profile: Profile, save: (p: Profile) => Promise<void>):
     switch (key) {
       case 'theme': {
         const t = THEMES.find(x => x.id === c.id)!;
+        if (t.art) return h('span', { class: 'look-art', 'data-art': t.id, 'aria-hidden': 'true' });
         return h('span', { class: 'look-swatch', 'aria-hidden': 'true' }, ...t.swatch.map(col => h('i', { style: `background:${col}` })));
       }
       case 'buttons': return h('span', { class: 'bs-btn', 'data-bs': c.id, 'aria-hidden': 'true' }, `${c.emoji} Go!`);
@@ -57,11 +58,13 @@ export function openLook(profile: Profile, save: (p: Profile) => Promise<void>):
       h('div', { class: `look-grid ${SMALL.has(key) ? 'small' : ''}` }, ...choicesFor(key).map(c => {
         const on = look[key] === c.id;
         const shown = key === 'theme' || key === 'pattern' || key === 'header' || key === 'font';
+        const feature = key === 'theme' && THEMES.some(t => t.id === c.id && t.art);
         return h('button', {
-          class: `look-card ${on ? 'on' : ''}`, 'aria-pressed': String(on),
+          class: `look-card ${on ? 'on' : ''} ${feature ? 'feature' : ''}`, 'aria-pressed': String(on),
           onclick: () => {
             if (key === 'party') confetti([], c.id as Look['party']);
-            void commit({ ...look, [key]: c.id }, `${c.label}. ${c.hint}`);
+            const next = key === 'theme' ? withTheme(look, c.id as Look['theme']) : { ...look, [key]: c.id };
+            void commit(next, `${c.label}. ${c.hint}`);
           },
         },
         sample(key, c as Choice<string>),

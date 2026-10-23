@@ -37,7 +37,7 @@ export default defineConfig({
       },
       workbox: {
         // species/*.json is the Nova Scotia species list (~140 kB gzipped): precached so naming works offline.
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}', 'species/*.json'],
+        globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}', 'species/*.json'],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         runtimeCaching: [
           {
