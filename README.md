@@ -33,7 +33,8 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
 - **Tick check**: when a hunt ends, or any time from 🏠 on the map, Bramble walks the explorer through
   the places ticks hide, with a grown-ups' guide to checking and removing a tick.
 - **Badges**: 28 badges for exploring, collecting, drawing, telling stories and finishing hunts.
-- **Two modes**, chosen on first launch and changeable in the Grown-up corner:
+- **Two modes**, chosen on first launch and switched any time with the 🧒 / 👨‍👧 button on the map
+  (switching to Together asks for a grown-up):
   - *Explorer mode*: a child on their own. Big pictures, everything read aloud, no typing; deleting
     finds and settings need a grown-up.
   - *Together mode*: a child and a grown-up side by side. Adds questions to talk about, a name and a

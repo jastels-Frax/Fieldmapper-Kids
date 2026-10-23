@@ -37,7 +37,7 @@ export function profileFace(p: Profile, cls = 'face'): HTMLElement {
 }
 
 /** The editable parts of a profile, as form sections. `onChange` hears every edit. */
-function profileForm(p: Profile, opts: { showMode: boolean; lockMode?: () => Promise<boolean> }): HTMLElement {
+function profileForm(p: Profile, opts: { showMode: boolean; lockMode?: (to: Mode) => Promise<boolean> }): HTMLElement {
   const wrap = h('div', { class: 'profile-form' });
 
   // Who is using it
@@ -47,7 +47,7 @@ function profileForm(p: Profile, opts: { showMode: boolean; lockMode?: () => Pro
       const info = MODE_INFO[m];
       return h('button', { class: `mode-card ${p.mode === m ? 'on' : ''}`, onclick: async () => {
         if (p.mode === m) return;
-        if (opts.lockMode && !(await opts.lockMode())) return;
+        if (opts.lockMode && !(await opts.lockMode(m))) return;
         p.mode = m;
         paintModes();
       } }, h('span', { class: 'mode-emoji' }, info.emoji), h('strong', {}, info.title), h('span', {}, info.text));
@@ -128,6 +128,8 @@ export interface ProfileHost {
   save: (p: Profile) => Promise<void>;
   remove: (p: Profile) => Promise<void>;
   openCrew: () => void;
+  /** Explorer <-> Together for the active explorer (asks for a grown-up when relaxing the locks). */
+  toggleMode: () => Promise<void>;
 }
 
 /** "Who's exploring?": switch explorer, add one, change your own card, meet the crew. */
@@ -153,7 +155,15 @@ export function openProfiles(host: ProfileHost): void {
         on ? h('span', { class: 'crew-yours' }, '⭐ Exploring now') : null));
     }
     body.append(grid);
-    if (me) body.append(h('button', { class: 'big-btn soft', onclick: () => openProfileEditor(host, me, paint) }, '✏️ Change my card'));
+    if (me) {
+      const other: Mode = me.mode === 'explorer' ? 'together' : 'explorer';
+      body.append(
+        h('p', { class: 'hint center' }, `${MODE_INFO[me.mode].emoji} ${MODE_INFO[me.mode].title} is on.`),
+        h('button', { class: 'big-btn soft', onclick: async () => { await host.toggleMode(); paint(); } },
+          `${MODE_INFO[other].emoji} Switch to ${MODE_INFO[other].title}`),
+        h('button', { class: 'big-btn soft', onclick: () => openProfileEditor(host, me, paint) }, '✏️ Change my card'),
+      );
+    }
     body.append(
       h('button', { class: 'big-btn soft', onclick: async () => {
         if (!(await askGrownUp('Adding an explorer is for grown-ups.'))) return;
@@ -170,7 +180,7 @@ export function openProfileEditor(host: ProfileHost, original: Profile, after: (
   const p: Profile = { ...original };
   const { body, close } = openSheet({ title: isNew ? 'New explorer' : `${original.name || 'Explorer'}'s card`, emoji: isNew ? '➕' : '✏️', className: 'profile-edit' });
   body.append(
-    profileForm(p, { showMode: true, lockMode: isNew ? undefined : () => askGrownUp('Changing between Explorer and Together mode is for grown-ups.') }),
+    profileForm(p, { showMode: true, lockMode: isNew ? undefined : async to => to === 'explorer' || askGrownUp('Together mode is for exploring with a grown-up beside you.') }),
     h('button', { class: 'big-btn', onclick: async () => {
       if (!p.name) { toast('Type a name first.'); return; }
       await host.save(p);

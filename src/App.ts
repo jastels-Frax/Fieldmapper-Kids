@@ -44,6 +44,7 @@ export class App {
   private walkNote!: HTMLElement;
   private huntChip!: HTMLElement;
   private dock!: BuddyDock;
+  private modeBtn!: HTMLElement;
 
   async init(): Promise<void> {
     this.settings = await loadSettings();
@@ -97,6 +98,20 @@ export class App {
     this.refresh();
   }
 
+  /**
+   * Explorer <-> Together, any time. Going to Together relaxes the locks and
+   * shows exact places, so it asks for a grown-up; going back to Explorer does not.
+   */
+  private async toggleMode(): Promise<void> {
+    const toTogether = this.profile.mode === 'explorer';
+    if (toTogether && !(await askGrownUp('Together mode is for exploring with a grown-up beside you.'))) return;
+    const p: Profile = { ...this.profile, mode: toTogether ? 'together' : 'explorer' };
+    await this.profileHost().save(p);
+    sounds.pick();
+    toast(toTogether ? '👨‍👧 Together mode: exploring with a grown-up' : '🧒 Explorer mode: exploring on my own');
+    say(toTogether ? 'Together mode! Explore with your grown-up.' : 'Explorer mode!');
+  }
+
   private applyAudio(): void {
     setReadAloud(this.settings.readAloud);
     setSounds(this.settings.sounds);
@@ -121,6 +136,7 @@ export class App {
     const me = h('button', { class: 'round-btn me-btn', 'aria-label': 'Where am I?', onclick: () => {
       if (this.map.goToMe(lastFix())) { sounds.tap(); say('Here you are!'); } else say('I am still looking for you.');
     } }, '📍');
+    this.modeBtn = h('button', { class: 'round-btn mode-btn', onclick: () => void this.toggleMode() });
     const layers = h('button', { class: 'round-btn', 'aria-label': 'Map style: streets, satellite or hybrid', onclick: () => openBasemapPicker(this.settings.basemap, async b => {
       this.settings = { ...this.settings, basemap: b };
       this.map.setBasemap(b);
@@ -129,7 +145,7 @@ export class App {
     app.append(
       h('div', { id: 'map' }),
       h('header', { class: 'top-bar' }, this.hello, this.starBtn, this.huntChip, lock),
-      h('div', { class: 'side-btns' }, me, layers,
+      h('div', { class: 'side-btns' }, me, layers, this.modeBtn,
         h('button', { class: 'round-btn', 'aria-label': 'Scavenger hunts', onclick: () => this.openHuntsScreen() }, '🔎'),
         h('button', { class: 'round-btn', 'aria-label': 'Done exploring: tick check', onclick: () => void this.endAdventure() }, '🏠')),
       this.dock.el,
@@ -152,6 +168,9 @@ export class App {
 
   private applySettingsToChrome(): void {
     document.documentElement.dataset.mode = this.profile.mode;
+    const together = this.profile.mode === 'together';
+    this.modeBtn.textContent = together ? '👨‍👧' : '🧒';
+    this.modeBtn.setAttribute('aria-label', together ? 'Together mode is on. Tap for Explorer mode' : 'Explorer mode is on. Tap for Together mode');
     this.hello.replaceChildren(profileFace(this.profile, 'face hello-face'), h('span', { class: 'hello-name' }, this.profile.name || 'Explorer'));
     this.map.setAvatar?.({ emoji: this.profile.avatar, photo: this.profile.photo });
     this.dock?.setGuide(this.profile.guide);
@@ -388,6 +407,7 @@ export class App {
         else { this.scopeToProfile(); this.refresh(); }
       },
       openCrew: () => openCrew(this.screenHost()),
+      toggleMode: () => this.toggleMode(),
     };
   }
 
