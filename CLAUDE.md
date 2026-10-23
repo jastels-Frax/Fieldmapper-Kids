@@ -73,6 +73,12 @@ grown-up can also import any Field Mapper `db-*.json` file or a CSV (Grown-up co
 - **Badges and challenges are derived** from the finds (and finished-hunt and tick-check counts); nothing is stored for them.
 - **Finds, hunt runs and tick checks belong to a profile**; custom hunts, species lists and device settings are shared.
 - **A place is only what was chosen**: GPS (accuracy kept), a tapped spot (`placeBy: 'map'`, no accuracy), or none.
+- **Every save writes fresh copies of its blobs** (`storage.detach`): Safari can return a Blob read from IndexedDB that
+  still points at the stored record's file, and writing it into a new version of the same record can lose it — which is
+  how an edit lost a drawing. Never `put` a blob you read back without going through `saveFind` / `saveProfile`.
+- **Never style a MapLibre marker's own element with `position` or `transform`**: MapLibre positions it (absolute plus an
+  inline transform). A `position: relative` there put every pin in normal flow, so pins drifted as the map zoomed. Draw
+  inside an inner element (`.find-pin`, `.me-inner`).
 - **Changing the IndexedDB schema** needs a `DB_VERSION` bump and an upgrade path in `storage.ts`.
 - **Tile caching**: OpenFreeMap tiles/glyphs/sprites and Esri imagery tiles are `CacheFirst`; the style and TileJSON are
   `NetworkFirst` because they name the current data release. Keep it that way. Imagery is capped at z18 and overzoomed.

@@ -53,8 +53,31 @@ export async function getFind(id: string): Promise<Find | undefined> {
   return f && normalizeFind(f, uid);
 }
 
+/**
+ * A fresh, in-memory copy of a blob. Safari can hand back a Blob read from
+ * IndexedDB that still points at the stored record's file; written into a new
+ * version of the same record, it can vanish when the old version is replaced,
+ * which is how an edit lost a drawing. Every save writes copies, never the
+ * handles it was given.
+ */
+async function detach(b: Blob | undefined): Promise<Blob | undefined> {
+  if (!b) return undefined;
+  return new Blob([await b.arrayBuffer()], { type: b.type });
+}
+
+async function detachFind(f: Find): Promise<Find> {
+  const pictures = await Promise.all(f.pictures.map(async p => ({ ...p, blob: (await detach(p.blob))! })));
+  const out: Find = { ...f, pictures };
+  const thumb = await detach(f.thumb);
+  const voice = await detach(f.voice);
+  if (thumb) out.thumb = thumb; else delete out.thumb;
+  if (voice) out.voice = voice; else delete out.voice;
+  return out;
+}
+
 export async function saveFind(f: Find): Promise<void> {
-  await (await db()).put('finds', f);
+  const copy = await detachFind(f);
+  await (await db()).put('finds', copy);
 }
 
 export async function deleteFind(id: string): Promise<void> {
@@ -106,7 +129,10 @@ export async function allProfiles(): Promise<Profile[]> {
 }
 
 export async function saveProfile(p: Profile): Promise<void> {
-  await (await db()).put('profiles', p);
+  const photo = await detach(p.photo);
+  const copy: Profile = { ...p };
+  if (photo) copy.photo = photo; else delete copy.photo;
+  await (await db()).put('profiles', copy);
 }
 
 /** Deletes an explorer and everything that was theirs: finds and hunt runs. */
@@ -145,13 +171,12 @@ export async function migrateToProfiles(): Promise<Profile[]> {
     tickChecks: legacy.tickChecks,
     createdAt: new Date().toISOString(),
   };
+  // Copies are made BEFORE the write transaction: awaiting a blob read inside one would let it close.
+  const oldFinds = (await d.getAll('finds')) as Find[];
+  const moved = await Promise.all(oldFinds.map(f => detachFind({ ...normalizeFind(f, uid), profileId: p.id })));
   const tx = d.transaction(['profiles', 'finds', 'huntRuns', 'settings'], 'readwrite');
   await tx.objectStore('profiles').put(p);
-  let cur = await tx.objectStore('finds').openCursor();
-  while (cur) {
-    await cur.update({ ...normalizeFind(cur.value as Find, uid), profileId: p.id });
-    cur = await cur.continue();
-  }
+  for (const f of moved) await tx.objectStore('finds').put(f);
   let rc = await tx.objectStore('huntRuns').openCursor();
   while (rc) {
     await rc.update({ ...rc.value, profileId: p.id });

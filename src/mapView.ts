@@ -91,11 +91,16 @@ export class MapView {
 
   setAvatar(face: Face): void {
     if (!this.me) {
+      // MapLibre positions the marker element itself (absolute + transform), so
+      // nothing may restyle it: all the drawing happens on an inner element.
       const el = document.createElement('div');
       el.className = 'me-marker';
+      const inner = document.createElement('div');
+      inner.className = 'me-inner';
       this.meRing = document.createElement('div');
       this.meRing.className = 'me-ring';
-      el.append(this.meRing, Object.assign(document.createElement('span'), { className: 'me-face' }));
+      inner.append(this.meRing, Object.assign(document.createElement('span'), { className: 'me-face' }));
+      el.append(inner);
       this.me = new maplibregl.Marker({ element: el });
     }
     const slot = this.me.getElement().querySelector('.me-face') as HTMLElement;
@@ -142,14 +147,20 @@ export class MapView {
       seen.add(f.id);
       if (this.findMarkers.has(f.id)) continue;
       const cat = categoryOf(f.category);
+      // The button is the element MapLibre positions; the pin is drawn inside it.
       const el = document.createElement('button');
       el.className = 'find-marker';
       el.style.setProperty('--cat', cat.colour);
-      el.setAttribute('aria-label', f.nickname || cat.label);
+      el.setAttribute('aria-label', f.nickname || f.species?.name || cat.label);
+      const pin = document.createElement('span');
+      pin.className = 'find-pin';
+      const face = document.createElement('span');
+      face.className = 'find-pin-face';
+      pin.append(face);
       if (f.thumb) {
         const img = document.createElement('img');
         img.alt = '';
-        el.append(img);
+        face.append(img);
         el.classList.add('has-photo');
         // The marker is attached below in this same task, so its URL survives.
         queueMicrotask(() => { img.src = blobUrl(f.thumb!, el); });
@@ -157,7 +168,8 @@ export class MapView {
       const badge = document.createElement('span');
       badge.className = 'find-marker-emoji';
       badge.textContent = cat.emoji;
-      el.append(badge);
+      (f.thumb ? el : face).append(badge);
+      el.prepend(pin);
       el.addEventListener('click', e => {
         e.stopPropagation();
         this.onFindTap(f.id);
