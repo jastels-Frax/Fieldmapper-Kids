@@ -587,7 +587,7 @@ html[data-theme="snow"] {
 /* ════ FIELD JOURNAL: the storybook look of "Scout the Survey Squirrel" ════
    Not only colours: paper, ink, stitching, specimen-label cards, field-note bubbles, a sepia map and the book's
    own plates pasted at the top of each screen. The art is Fraxinus's own (src/assets/journal/, cropped from the
-   storybook pages). It sits BEFORE the button styles so a chosen button style still wins over its controls. */
+   storybook pages). It draws its own buttons and title strip: while it is on, look.lockedBy rests those two switches. */
 html[data-theme="journal"] {
   --bg: #ecdfbf; --card: #f8f0da; --ink: #3a2b1b; --soft-ink: #6a5640; --line: #4a3826; --on-accent: #fbf3df;
   --green: #5e6d38; --green-dark: #3e4922; --orange: #c4652a; --yellow: #d9a23a;
@@ -688,6 +688,8 @@ html[data-theme="journal"] .sheet.capture .sheet-body::before { aspect-ratio: 3.
 html[data-theme="journal"] .sheet.celebrate .sheet-body::before, html[data-theme="journal"] .sheet.look .sheet-body::before { aspect-ratio: 1.75 / 1; }
 .look-art { display: block; width: 100%; height: 120px; border: 2px solid var(--line); background: #e9dcbc url("./assets/journal/cover.webp") center 62% / cover no-repeat; }
 .look-card.feature { grid-column: 1 / -1; }
+.look-grid.locked { opacity: 0.45; filter: grayscale(0.6); pointer-events: none; }
+.look-locked-note { margin: -4px 0 8px; font-style: italic; }
 /* Scout the Survey Squirrel: a painted oval portrait, so a little bigger than the stickers and never sepia-filtered again. */
 .buddy-fig.scout { filter: drop-shadow(1px 3px 3px rgba(58, 43, 27, 0.35)) !important; }
 .scout-img { display: block; width: 100%; height: 100%; object-fit: contain; -webkit-user-drag: none; user-select: none; }

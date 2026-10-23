@@ -62,6 +62,17 @@ test('surprise me changes the fun switches and keeps the needs', () => {
 });
 
 import { withTheme } from '../src/look.ts';
+
+test('the Field Journal draws its own buttons and title strip, and gives the picks back after', () => {
+  const picked = { ...DEFAULT_LOOK, buttons: 'sticker', header: 'rainbow', pattern: 'dots' } as Look;
+  const j = lookAttributes({ ...picked, theme: 'journal' });
+  assert.equal(j.buttons, DEFAULT_LOOK.buttons);
+  assert.equal(j.header, DEFAULT_LOOK.header);
+  assert.equal(j.pattern, 'dots', 'only what the journal draws itself rests');
+  const o = lookAttributes({ ...picked, theme: 'ocean' });
+  assert.equal(o.buttons, 'sticker');
+  assert.equal(o.header, 'rainbow');
+});
 import { existsSync } from 'node:fs';
 
 test('the Field Journal brings storybook letters, but never over letters an explorer chose', () => {

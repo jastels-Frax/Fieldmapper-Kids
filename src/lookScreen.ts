@@ -1,5 +1,5 @@
 import type { Profile } from './types.ts';
-import { FONT_STACKS, LOOK_KEYS, THEMES, choicesFor, normalizeLook, surpriseLook, withTheme, type Choice, type Look } from './look.ts';
+import { FONT_STACKS, LOOK_KEYS, THEMES, choicesFor, lockedBy, normalizeLook, surpriseLook, withTheme, type Choice, type Look } from './look.ts';
 import { applyLook } from './lookApply.ts';
 import { h, openSheet } from './ui.ts';
 import { say } from './speech.ts';
@@ -53,14 +53,18 @@ export function openLook(profile: Profile, save: (p: Profile) => Promise<void>):
     }
   };
 
-  const section = <K extends keyof Look>(key: K) =>
-    [h('h2', { class: 'section-title' }, TITLES[key]),
-      h('div', { class: `look-grid ${SMALL.has(key) ? 'small' : ''}` }, ...choicesFor(key).map(c => {
-        const on = look[key] === c.id;
+  const section = <K extends keyof Look>(key: K) => {
+    const locked = lockedBy(look.theme).includes(key);
+    const themeName = THEMES.find(t => t.id === look.theme)?.label ?? '';
+    return [h('h2', { class: 'section-title' }, TITLES[key]),
+      ...(locked ? [h('p', { class: 'hint look-locked-note' }, `${themeName} has its own paper ${key === 'buttons' ? 'buttons' : 'top strip'}. Pick another colour to use these.`)] : []),
+      h('div', { class: `look-grid ${SMALL.has(key) ? 'small' : ''} ${locked ? 'locked' : ''}` }, ...choicesFor(key).map(c => {
+        const on = !locked && look[key] === c.id;
         const shown = key === 'theme' || key === 'pattern' || key === 'header' || key === 'font';
         const feature = key === 'theme' && THEMES.some(t => t.id === c.id && t.art);
         return h('button', {
           class: `look-card ${on ? 'on' : ''} ${feature ? 'feature' : ''}`, 'aria-pressed': String(on),
+          ...(locked ? { disabled: true, 'aria-disabled': 'true' } : {}),
           onclick: () => {
             if (key === 'party') confetti([], c.id as Look['party']);
             const next = key === 'theme' ? withTheme(look, c.id as Look['theme']) : { ...look, [key]: c.id };
@@ -71,6 +75,7 @@ export function openLook(profile: Profile, save: (p: Profile) => Promise<void>):
         h('strong', { style: key === 'font' ? `font-family:${FONT_STACKS[c.id as Look['font']]}` : '' }, `${shown && key !== 'font' ? `${c.emoji} ` : ''}${c.label}`),
         h('span', { class: 'look-hint' }, c.hint));
       }))];
+  };
 
   const paint = () => {
     const top = body.scrollTop;

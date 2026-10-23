@@ -159,7 +159,16 @@ export function normalizeLook(raw: unknown): Look {
 export function lookAttributes(l: Look): Record<string, string> {
   const { party, ...rest } = l;
   void party;
+  // A whole-look theme draws its own buttons and title strip. Mixing another style in drew a round
+  // Sticker button under the journal's square paper one, so those switches rest while it is on.
+  // The explorer's picks stay stored and come back with any other theme.
+  for (const k of lockedBy(l.theme)) (rest as Record<string, string>)[k] = DEFAULT_LOOK[k];
   return { ...rest };
+}
+
+/** The switches a theme draws for itself (none, unless it is a whole look like the Field Journal). */
+export function lockedBy(theme: ThemeId): (keyof Look)[] {
+  return THEMES.find(t => t.id === theme)?.art ? ['buttons', 'header'] : [];
 }
 
 export function partyPieces(p: PartyId): string[] {
