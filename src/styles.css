@@ -504,3 +504,17 @@ body.picking .sheet, body.picking .top-bar, body.picking .bottom-bar, body.picki
 .edit-pen { font-size: 22px; }
 .edit-thumbs { display: flex; gap: 6px; align-items: center; }
 .edit-thumbs img { width: 44px; height: 44px; object-fit: cover; border-radius: 10px; border: 2px solid var(--line); }
+
+/* Recording a path */
+.rec-btn.recording { background: #ff6b6b; animation: breathe 1.2s ease-in-out infinite; }
+.rec-chip {
+  position: absolute; left: 50%; transform: translateX(-50%); top: calc(74px + var(--safe-t)); z-index: 5;
+  background: #c92a2a; color: #fff; border: 3px solid var(--line); border-radius: 999px; padding: 8px 16px;
+  font-weight: 900; font-size: 17px; box-shadow: var(--shadow);
+}
+.walk-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 8px 0 12px; }
+.walk-stats div { background: #fff; border: 3px solid var(--line); border-radius: var(--radius); padding: 12px; text-align: center; display: flex; flex-direction: column; }
+.walk-stats strong { font-size: 26px; }
+.walk-stats span { color: var(--soft-ink); font-weight: 700; }
+.sound-btn { font-size: 22px; }
+.round-btn.small.on { background: #d3f9d8; }

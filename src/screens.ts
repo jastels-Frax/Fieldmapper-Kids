@@ -27,6 +27,8 @@ export interface ScreenHost {
   openHunts: () => void;
   huntsCompleted: () => number;
   tickChecks: () => number;
+  badgeExtras: () => import('./badges.ts').BadgeExtras;
+  openWalks: () => void;
   /** Opens the end-of-adventure tick check. */
   tickCheck: () => void;
 }
@@ -140,7 +142,7 @@ export function openBook(host: ScreenHost, start?: CategoryId): void {
     const n = host.finds().length;
     body.append(crewSays('squirrel', { text: `Acorn here! You have ${n} ${n === 1 ? 'sticker' : 'stickers'}. Tap one to look closer.`, pose: 'excited' }));
   }
-  body.append(chips, grid);
+  body.append(chips, grid, h('button', { class: 'big-btn soft', onclick: () => host.openWalks() }, '👣 My paths'));
   paint();
   // An edit or a delete made from a find opened here redraws the book behind it.
   const onChanged = () => (grid.isConnected ? paint() : window.removeEventListener(FINDS_CHANGED, onChanged));
@@ -235,7 +237,7 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void): v
 
 export function openBadges(host: ScreenHost): void {
   const { body } = openSheet({ title: 'My Badges', emoji: '🏅', className: 'badges' });
-  const list = badgeProgress(host.finds().map(toBadgeFind), undefined, { huntsCompleted: host.huntsCompleted(), tickChecks: host.tickChecks() });
+  const list = badgeProgress(host.finds().map(toBadgeFind), undefined, host.badgeExtras());
   const earned = list.filter(b => b.earned).length;
   body.append(crewSays('moose', {
     text: earned ? `You have ${earned} of ${list.length} badges! Tap one to hear how to get it.` : 'No badges yet. Tap one to hear how to get it!',

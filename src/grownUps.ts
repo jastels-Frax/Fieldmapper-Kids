@@ -8,11 +8,15 @@ import { parseFieldMapperList, parseSpeciesCsv } from './species.ts';
 import { allSpeciesLists, deleteSpeciesList, saveSpeciesList } from './storage.ts';
 import { invalidateSpecies, loadSpecies } from './speciesStore.ts';
 import { photoCount } from './findModel.ts';
+import type { Walk } from './walk.ts';
+import { availableVoices, currentVoice, preview } from './speech.ts';
+import { englishVoices, voiceScore } from './voiceRank.ts';
 
 export interface GrownUpHost {
   settings: Settings;
   /** Every explorer's finds. */
   allFinds: () => Find[];
+  allWalks: () => Walk[];
   profiles: ProfileHost;
   applySettings: (s: Settings) => Promise<void>;
   deleteAll: () => Promise<void>;
@@ -36,12 +40,32 @@ export function openGrownUps(host: GrownUpHost): void {
   };
   paintPeople();
 
-  const toggle = (key: 'readAloud' | 'sounds' | 'trail' | 'tickReminder', label: string) => {
+  const toggle = (key: 'readAloud' | 'sounds' | 'trail' | 'tickReminder' | 'pathRecording' | 'walksOnMap' | 'keepAwake', label: string) => {
     const box = h('input', { type: 'checkbox' }) as HTMLInputElement;
     box.checked = s[key];
     box.addEventListener('change', async () => { s[key] = box.checked; await save(); });
     return h('label', { class: 'toggle' }, box, h('span', {}, label));
   };
+
+  // Voice
+  const voiceList = h('div', { class: 'profile-list' });
+  const paintVoices = () => {
+    const list = englishVoices(availableVoices()).sort((a, b) => voiceScore(b) - voiceScore(a));
+    const now = currentVoice();
+    voiceList.replaceChildren(
+      h('div', { class: 'maker-row' }, h('span', { class: 'hunt-item-emoji' }, '✨'),
+        h('span', { class: 'maker-text' }, h('strong', {}, 'Best voice on this device'), h('br'), h('span', { class: 'hint' }, now && !s.voiceURI ? `Using ${now.name}` : 'Picked automatically')),
+        h('button', { class: `round-btn small ${!s.voiceURI ? 'on' : ''}`, 'aria-label': 'Use the best voice', onclick: async () => { s.voiceURI = undefined; await save(); paintVoices(); speakSample(); } }, !s.voiceURI ? '✅' : '○')),
+      ...list.slice(0, 12).map(v => h('div', { class: 'maker-row' }, h('span', { class: 'hunt-item-emoji' }, '🗣️'),
+        h('span', { class: 'maker-text' }, h('strong', {}, v.name), h('br'), h('span', { class: 'hint' }, `${v.lang}${v.localService ? '' : ' · needs internet'}`)),
+        h('button', { class: 'round-btn small', 'aria-label': `Hear ${v.name}`, onclick: () => preview('Hi! Let\'s go exploring and see what we can find!', v) }, '▶️'),
+        h('button', { class: 'round-btn small', 'aria-label': `Use ${v.name}`, onclick: async () => { s.voiceURI = v.voiceURI; await save(); paintVoices(); } }, s.voiceURI === v.voiceURI ? '✅' : '○'))),
+      list.length ? h('span') : h('p', { class: 'hint' }, 'This device has no English speech voices installed.'),
+    );
+  };
+  const speakSample = () => { const v = currentVoice(); if (v) preview("Hi! Let's go exploring and see what we can find!", v); };
+  paintVoices();
+  window.speechSynthesis?.addEventListener?.('voiceschanged', paintVoices);
 
   // Species lists
   const lists = h('div', { class: 'profile-list' });
@@ -95,7 +119,7 @@ export function openGrownUps(host: GrownUpHost): void {
     exportBtn.setAttribute('disabled', '');
     exportBtn.textContent = '📦 Packing…';
     try {
-      const blob = await buildExport(host.allFinds(), host.profiles.profiles());
+      const blob = await buildExport(host.allFinds(), host.profiles.profiles(), host.allWalks());
       await saveFile(blob, `scout-finds-${new Date().toISOString().slice(0, 10)}.zip`);
     } catch {
       toast('Saving the file did not work.');
@@ -104,10 +128,10 @@ export function openGrownUps(host: GrownUpHost): void {
       exportBtn.textContent = '📦 Save all finds as a file';
     }
   });
-  const wipe = h('button', { class: 'text-btn danger' }, '🗑️ Delete every find on this device');
+  const wipe = h('button', { class: 'text-btn danger' }, '🗑️ Delete every find and path on this device');
   wipe.addEventListener('click', async () => {
     if (!finds.length) return;
-    if (!(await askYesNo(`Delete all ${finds.length} finds, of every explorer, with their photos and voice notes? This cannot be undone. Save a file first if you want to keep them.`, 'Delete everything', 'Cancel'))) return;
+    if (!(await askYesNo(`Delete all ${finds.length} finds and recorded paths, of every explorer, with their photos and voice notes? This cannot be undone. Save a file first if you want to keep them.`, 'Delete everything', 'Cancel'))) return;
     await host.deleteAll();
     close();
     toast('All finds deleted.');
@@ -118,12 +142,20 @@ export function openGrownUps(host: GrownUpHost): void {
     people,
     h('button', { class: 'big-btn soft', onclick: () => openProfileEditor(host.profiles, newProfile(), paintPeople, true) }, '➕ Add an explorer'),
     h('h2', { class: 'section-title' }, 'Sound and map'),
-    toggle('readAloud', '🔊 Read words aloud'),
+    toggle('readAloud', '🔊 Read words aloud (also the 🔊 button on the map)'),
     toggle('sounds', '🎵 Happy sounds'),
     toggle('trail', '👣 Show today\'s walk on the map'),
     toggle('tickReminder', '🕷️ Offer a tick check when a hunt ends'),
     h('p', { class: 'hint' }, 'The 🏠 button on the map starts a tick check any time. The 🛰️ button switches between streets, satellite and hybrid.'),
     tickHowTo(),
+    h('h2', { class: 'section-title' }, 'Recording paths'),
+    toggle('pathRecording', '👣 Show the Record my path button'),
+    toggle('walksOnMap', '🟣 Show saved paths on the map'),
+    toggle('keepAwake', '💡 Keep the screen on while a path records'),
+    h('p', { class: 'hint' }, 'Phones and tablets stop reading the GPS when the screen goes off, so a path only records while Scout is open on the screen. Keeping the screen on uses more battery. Paths stay on this device like everything else.'),
+    h('h2', { class: 'section-title' }, 'Voice'),
+    h('p', { class: 'hint' }, 'Scout reads aloud with the voices built into this device, so nothing is sent anywhere. Tap ▶️ to hear one. For more natural voices, download an "Enhanced" or "Premium" English voice in the device settings (iPhone/iPad: Settings › Accessibility › Spoken Content › Voices; Android: Settings › Text-to-speech › Google › Install voice data), then come back here.'),
+    voiceList,
     h('h2', { class: 'section-title' }, 'Species lists'),
     h('p', { class: 'hint' }, 'Explorers can name what they found from these lists. Add another Field Mapper species file (db-….json, e.g. another province) or a CSV of common name, scientific name, taxon.'),
     lists,
@@ -133,7 +165,7 @@ export function openGrownUps(host: GrownUpHost): void {
     storage, exportBtn, wipe,
     h('h2', { class: 'section-title' }, 'Privacy'),
     h('p', { class: 'hint' },
-      'Everything stays on this device: explorers, finds, photos, voices, location and walks. There is no account and nothing is uploaded. ' +
+      'Everything stays on this device: explorers, finds, photos, voices, location, walks and recorded paths. There is no account and nothing is uploaded. ' +
       'The map pictures come from OpenFreeMap (OpenStreetMap data) and, for satellite views, Esri World Imagery; those services see which part of the map is being looked at, as any web map does. ' +
       'Uninstalling the app or clearing the browser\'s site data deletes the finds, so save a file now and then.'),
     h('p', { class: 'hint' }, `Scout ${__APP_VERSION__} · made by Fraxinus`),

@@ -30,7 +30,7 @@ There is no linter; `tsc` is the gate.
 | `App.ts` | The orchestrator: owns settings, profiles (and the active one), every find and hunt run (scoped to the active explorer on screen), the map, the chrome and the guide dock. |
 | `types.ts` | `Find` (with `pictures[]`, `species`, `sign`, `placeBy`), `Profile`, `Settings` (device-wide), `GuideId`. |
 | `findModel.ts` | `normalizeFind`: reads a version-1 find (one `photo` / one `drawing`) into the `pictures` list. Every read goes through it. |
-| `storage.ts` | IndexedDB (`FieldMapperKids` — the pre-rename name, kept so nobody's finds are orphaned), `DB_VERSION` 2: `finds`, `settings`, `trails`, `huntRuns`, `customHunts`, `profiles`, `speciesLists`. `migrateToProfiles` turns a version-1 device's single explorer (in the settings) into the first profile and files every find and hunt run under it. |
+| `storage.ts` | IndexedDB (`FieldMapperKids` — the pre-rename name, kept so nobody's finds are orphaned), `DB_VERSION` 3: `finds`, `settings`, `trails`, `huntRuns`, `customHunts`, `profiles`, `speciesLists`, `walks`. `migrateToProfiles` turns a version-1 device's single explorer (in the settings) into the first profile and files every find and hunt run under it. |
 | `profiles.ts` | Explorer profiles: "Who's exploring?", the profile card editor (name, about, photo or emoji, mode, guide, guide's name). Adding an explorer, switching TO Together mode and deleting ask for a grown-up; back to Explorer mode does not. The mode switches any time from the 🧒/👨‍👧 button on the map (`App.toggleMode`) or "Who's exploring?". |
 | `guides.ts` | Any of the eight characters as an explorer's guide, and the name they are called (`guideName`, renamable). `buddyView.setGuideName` makes every bubble use it. |
 | `species.ts`, `speciesStore.ts`, `familiar.ts` | Naming a find: the slim species record, search by the find's kind (`CATEGORY_TAXA`), readers for Field Mapper species files and CSVs; the loaded list (built-in + imported); the big-button familiar species (each name must exist in the list — tested). |
@@ -45,11 +45,13 @@ There is no linter; `tsc` is the gate.
 | `buddyView.ts`, `buddyLines.ts` | The buddy and the crew on screen (`buddySays` / `crewSays`), and what each buddy says. |
 | `critters.ts`, `cast.ts` | The woodland crew, drawn in Pip and Hop's style, and who looks after what: Fern the fox (hunts), Maple the moose (badges), Bramble the bear (safety: tick check, grown-up gate), Hoot the owl (facts), Acorn the squirrel (sticker book), Bandit the raccoon (challenges). A new part of the app gets a crew member, not a new character. |
 | `tickGuide.ts`, `tickScreen.ts` | The end-of-adventure tick check and the grown-ups' how-to (CDC / Health Canada advice; general information, not medical advice). |
+| `walk.ts`, `recorder.ts`, `walkScreens.ts` | "Record my path": streamed GPS fixes kept only where they are movement (`judgePoint`: ≤ 35 m accuracy, ≥ 5 m step, no faster than 12 m/s), saved every few seconds as the path grows, optional screen wake lock; a path left recording when the app closed ends at its last point (`closeOrphan`). Saved paths draw purple, the live one orange. Distinct from the automatic daily trail (`trail.ts`). |
+| `speech.ts`, `voiceRank.ts` | Reading aloud with the device's own voices (never a network voice service): `pickVoice` chooses the best-sounding installed English voice (natural / neural / enhanced, Canadian first, never novelty voices) unless a grown-up chose one in the Grown-up corner. The 🔊/🔇 button on the map switches reading aloud. |
 | `voice.ts`, `drawPad.ts`, `image.ts`, `speech.ts`, `sound.ts`, `confetti.ts`, `gps.ts`, `trail.ts`, `exportData.ts` | One job each. |
 
 **Pure, DOM-free and unit-tested:** `badges.ts`, `challenges.ts`, `hunts.ts`, `gate.ts`, `csv.ts`,
 `geo.ts`, `categories.ts`, `buddies.ts`, `buddyLines.ts`, `critters.ts`, `cast.ts`, `tickGuide.ts`, `guides.ts`,
-`findModel.ts`, `species.ts`, `familiar.ts`, `ids.ts`. Keep logic there and the DOM out of them.
+`findModel.ts`, `species.ts`, `familiar.ts`, `ids.ts`, `walk.ts`, `voiceRank.ts`. Keep logic there and the DOM out of them.
 
 ## Species lists
 
@@ -71,7 +73,7 @@ grown-up can also import any Field Mapper `db-*.json` file or a CSV (Grown-up co
 - **A hunt is stored BY VALUE on its run**, so editing a custom hunt never changes a hunt already
   under way or won. A deleted find re-opens the hunt item it ticked.
 - **Badges and challenges are derived** from the finds (and finished-hunt and tick-check counts); nothing is stored for them.
-- **Finds, hunt runs and tick checks belong to a profile**; custom hunts, species lists and device settings are shared.
+- **Finds, hunt runs, recorded paths and tick checks belong to a profile**; custom hunts, species lists and device settings are shared.
 - **A place is only what was chosen**: GPS (accuracy kept), a tapped spot (`placeBy: 'map'`, no accuracy), or none.
 - **Every save writes fresh copies of its blobs** (`storage.detach`): Safari can return a Blob read from IndexedDB that
   still points at the stored record's file, and writing it into a new version of the same record can lose it — which is

@@ -36,6 +36,9 @@ const count = (finds: BadgeFind[], cat: CategoryId) => finds.filter(f => f.categ
 export interface BadgeExtras {
   huntsCompleted?: number;
   tickChecks?: number;
+  /** Recorded paths: how many, and the longest in metres. */
+  walks?: number;
+  longestWalkM?: number;
 }
 
 interface BadgeRule extends Badge {
@@ -94,6 +97,8 @@ const RULES: BadgeRule[] = [
   { id: 'hunt1', emoji: '🔎', title: 'Treasure Hunter', how: 'Finish a scavenger hunt.', target: 1, measure: (_f, _c, x) => x.huntsCompleted ?? 0 },
   { id: 'hunt3', emoji: '🗺️', title: 'Hunt Master', how: 'Finish 3 scavenger hunts.', target: 3, measure: (_f, _c, x) => x.huntsCompleted ?? 0 },
   { id: 'ticks', emoji: '🕷️', title: 'Tick Checker', how: 'Do a tick check after exploring, 3 times.', target: 3, measure: (_f, _c, x) => x.tickChecks ?? 0 },
+  { id: 'path1', emoji: '👣', title: 'Path Finder', how: 'Record a path of your walk.', target: 1, measure: (_f, _c, x) => x.walks ?? 0 },
+  { id: 'path1k', emoji: '🥾', title: 'Trail Blazer', how: 'Record a path 1 kilometre long.', target: 1, measure: (_f, _c, x) => ((x.longestWalkM ?? 0) >= 1000 ? 1 : 0) },
   {
     id: 'far', emoji: '🚀', title: 'Far Explorer', how: 'Find things more than 1 kilometre apart.', target: 1,
     measure: f => (farthestApartM(f) >= 1000 ? 1 : 0),

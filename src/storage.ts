@@ -3,6 +3,7 @@ import type { Find, LegacySettings, Profile, Settings } from './types.ts';
 import { normalizeFind } from './findModel.ts';
 import { uid } from './ids.ts';
 import type { Hunt, HuntRun } from './hunts.ts';
+import type { Walk } from './walk.ts';
 import { DEFAULT_SETTINGS } from './types.ts';
 
 export interface TrailDay {
@@ -15,11 +16,12 @@ export interface TrailDay {
 const DB_NAME = 'FieldMapperKids';
 /**
  * 1: finds, settings, trails, hunt runs, custom hunts.
+ * 3: recorded paths ("walks").
  * 2: explorer profiles and imported species lists. The DATA move (settings ->
  *    first profile, finds stamped with it) is `migrateToProfiles`, run by App,
  *    because it needs to know whether the device was ever set up.
  */
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let dbp: Promise<IDBPDatabase> | null = null;
 function db(): Promise<IDBPDatabase> {
@@ -37,6 +39,7 @@ function db(): Promise<IDBPDatabase> {
         d.createObjectStore('profiles', { keyPath: 'id' });
         d.createObjectStore('speciesLists', { keyPath: 'id' });
       }
+      if (oldVersion < 3) d.createObjectStore('walks', { keyPath: 'id' });
     },
   });
   return dbp;
@@ -89,6 +92,20 @@ export async function deleteAllFinds(): Promise<void> {
   await d.clear('finds');
   await d.clear('trails');
   await d.clear('huntRuns');
+  await d.clear('walks');
+}
+
+export async function allWalks(): Promise<Walk[]> {
+  const list = (await (await db()).getAll('walks')) as Walk[];
+  return list.sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+}
+
+export async function saveWalk(w: Walk): Promise<void> {
+  await (await db()).put('walks', w);
+}
+
+export async function deleteWalk(id: string): Promise<void> {
+  await (await db()).delete('walks', id);
 }
 
 /** A species list a grown-up imported (a Field Mapper species file, or a CSV). */
@@ -120,6 +137,10 @@ export async function loadSettings(): Promise<Settings> {
     trail: s?.trail ?? DEFAULT_SETTINGS.trail,
     tickReminder: s?.tickReminder ?? DEFAULT_SETTINGS.tickReminder,
     basemap: s?.basemap ?? DEFAULT_SETTINGS.basemap,
+    pathRecording: s?.pathRecording ?? DEFAULT_SETTINGS.pathRecording,
+    walksOnMap: s?.walksOnMap ?? DEFAULT_SETTINGS.walksOnMap,
+    keepAwake: s?.keepAwake ?? DEFAULT_SETTINGS.keepAwake,
+    ...(s?.voiceURI ? { voiceURI: s.voiceURI } : {}),
   };
 }
 
@@ -138,9 +159,9 @@ export async function saveProfile(p: Profile): Promise<void> {
 /** Deletes an explorer and everything that was theirs: finds and hunt runs. */
 export async function deleteProfile(id: string): Promise<void> {
   const d = await db();
-  const tx = d.transaction(['profiles', 'finds', 'huntRuns'], 'readwrite');
+  const tx = d.transaction(['profiles', 'finds', 'huntRuns', 'walks'], 'readwrite');
   await tx.objectStore('profiles').delete(id);
-  for (const store of ['finds', 'huntRuns'] as const) {
+  for (const store of ['finds', 'huntRuns', 'walks'] as const) {
     let cur = await tx.objectStore(store).openCursor();
     while (cur) {
       if ((cur.value as { profileId?: string }).profileId === id) await cur.delete();

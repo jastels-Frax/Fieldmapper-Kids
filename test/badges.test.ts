@@ -77,3 +77,10 @@ test('track detective and species spotter', () => {
   assert.equal(b.signs.earned, true);
   assert.equal(b.species.value, 4);
 });
+
+test('path badges read the recorded walks', () => {
+  const b = Object.fromEntries(badgeProgress([], clock, { walks: 2, longestWalkM: 1200 }).map(x => [x.id, x]));
+  assert.equal(b.path1.earned, true);
+  assert.equal(b.path1k.earned, true);
+  assert.equal(Object.fromEntries(badgeProgress([], clock, { walks: 1, longestWalkM: 999 }).map(x => [x.id, x])).path1k.earned, false);
+});

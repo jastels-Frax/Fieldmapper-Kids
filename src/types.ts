@@ -98,9 +98,20 @@ export interface Settings {
   /** Offer a tick check when a hunt ends. */
   tickReminder: boolean;
   basemap: Basemap;
+  /** Show the "Record my path" button on the map. */
+  pathRecording: boolean;
+  /** Draw saved paths on the map. */
+  walksOnMap: boolean;
+  /** Keep the screen on while a path records (a phone stops GPS when it sleeps). */
+  keepAwake: boolean;
+  /** The speech voice a grown-up chose; absent = the best one installed. */
+  voiceURI?: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
+  pathRecording: true,
+  walksOnMap: true,
+  keepAwake: true,
   readAloud: true,
   sounds: true,
   trail: true,

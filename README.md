@@ -22,6 +22,11 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
   picture, Explorer or Together mode, their own finds, hunts and badges, and their own guide — any of
   the eight characters, renamed if they like.
 - **Map styles**: streets, satellite or hybrid.
+- **Record my path** (👣): streams GPS into a saved path with live distance and time, can keep the screen
+  awake while recording, and keeps every path to see on the map, list and export. The button and the
+  paths on the map can each be switched off in the Grown-up corner.
+- **Reading aloud** uses the best voice the device has (a grown-up can pick and preview any installed
+  voice), and the 🔊 / 🔇 button on the map turns it on and off.
 - **Sticker book**: every find as a sticker, filtered by kind, with favourites.
 - **Scavenger hunts**: eight ready-made hunts (Backyard, Rainbow, Forest, Pond & Stream, Tiny Things,
   Five Senses, Beach, Flower). A find ticks the items it matches; the explorer can tick others
@@ -32,7 +37,7 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
   Bandit the raccoon hides the daily challenges. Tap the name at the top of the map to meet them.
 - **Tick check**: when a hunt ends, or any time from 🏠 on the map, Bramble walks the explorer through
   the places ticks hide, with a grown-ups' guide to checking and removing a tick.
-- **Badges**: 28 badges for exploring, collecting, drawing, telling stories and finishing hunts.
+- **Badges**: 30 badges for exploring, collecting, drawing, telling stories and finishing hunts.
 - **Two modes**, chosen on first launch and switched any time with the 🧒 / 👨‍👧 button on the map
   (switching to Together asks for a grown-up):
   - *Explorer mode*: a child on their own. Big pictures, everything read aloud, no typing; deleting

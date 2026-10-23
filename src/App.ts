@@ -2,12 +2,17 @@ import type { Find, Profile, Settings } from './types.ts';
 import {
   allCustomHunts, allFinds, allHuntRuns, allProfiles, deleteAllFinds, deleteCustomHunt, deleteFind, deleteProfile,
   loadSettings, migrateToProfiles, saveCustomHunt, saveFind, saveHuntRun, saveProfile, saveSettings,
+  allWalks, saveWalk, deleteWalk,
 } from './storage.ts';
+import { PathRecorder } from './recorder.ts';
+import { closeOrphan, distanceWords, durationWords, walkDurationMs, walkLengthM, type Walk } from './walk.ts';
+import { finishWalk, openWalks, type WalkHost } from './walkScreens.ts';
+import type { BadgeExtras } from './badges.ts';
 import { MapView } from './mapView.ts';
 import { lastFix, onFix, startGps } from './gps.ts';
 import { addToTrail, loadToday, trailLengthM } from './trail.ts';
 import { askYesNo, h, toast, uid } from './ui.ts';
-import { say, setReadAloud } from './speech.ts';
+import { say, setReadAloud, setVoice } from './speech.ts';
 import { setSounds, sounds } from './sound.ts';
 import { startCapture } from './capture.ts';
 import { FINDS_CHANGED, celebrate, openCrew, openBadges, openBook, openChallenges, openFind, todaysChallenges, type ScreenHost } from './screens.ts';
@@ -45,6 +50,13 @@ export class App {
   private huntChip!: HTMLElement;
   private dock!: BuddyDock;
   private modeBtn!: HTMLElement;
+  private soundBtn!: HTMLElement;
+  private recBtn!: HTMLElement;
+  private recChip!: HTMLElement;
+  private recTimer: number | undefined;
+  private recorder = new PathRecorder();
+  private everyWalk: Walk[] = [];
+  private walks: Walk[] = [];
 
   async init(): Promise<void> {
     this.settings = await loadSettings();
@@ -55,6 +67,13 @@ export class App {
     this.everyFind = await allFinds();
     this.everyRun = await allHuntRuns();
     this.custom = await allCustomHunts();
+    // A path that was recording when the app closed ends at its last point.
+    this.everyWalk = await Promise.all((await allWalks()).map(async w => {
+      if (w.endedAt) return w;
+      const closed = closeOrphan(w);
+      await saveWalk(closed);
+      return closed;
+    }));
     this.applyAudio();
     const first = this.profiles.find(p => p.id === this.settings.activeProfileId) ?? this.profiles[0];
     this.profile = first ?? { id: '', name: '', avatar: '🦊', mode: 'explorer', guide: 'frog', createdAt: '' };
@@ -74,6 +93,7 @@ export class App {
     const t = await loadToday();
     this.map.setTrail(t.points, this.settings.trail);
     this.paintWalk(t.points.length ? trailLengthM(t) : 0);
+    this.drawWalks();
     const hi = greet(this.profile.guide);
     this.dock.speak({ ...hi, text: this.profile.name ? `Hi ${this.profile.name}! ${hi.text}` : hi.text });
   }
@@ -83,6 +103,7 @@ export class App {
     const mine = (x: { profileId?: string }) => !x.profileId || x.profileId === this.profile.id;
     this.finds = this.everyFind.filter(mine);
     this.runs = this.everyRun.filter(mine);
+    this.walks = this.everyWalk.filter(mine);
     this.profile.guide = normalizeGuide(this.profile.guide);
     setGuideName(this.profile.guide, guideName(this.profile.guide, this.profile.guideName));
   }
@@ -115,6 +136,101 @@ export class App {
   private applyAudio(): void {
     setReadAloud(this.settings.readAloud);
     setSounds(this.settings.sounds);
+    setVoice(this.settings.voiceURI);
+    if (this.soundBtn) {
+      this.soundBtn.textContent = this.settings.readAloud ? '🔊' : '🔇';
+      this.soundBtn.setAttribute('aria-label', this.settings.readAloud ? 'Reading aloud is on. Tap to turn it off' : 'Reading aloud is off. Tap to turn it on');
+    }
+  }
+
+  /** The 🔊 / 🔇 button: reading aloud on and off, for anyone, any time. */
+  private async toggleReadAloud(): Promise<void> {
+    this.settings = { ...this.settings, readAloud: !this.settings.readAloud };
+    await saveSettings(this.settings);
+    this.applyAudio();
+    sounds.tap();
+    say('Reading aloud is on!');
+    toast(this.settings.readAloud ? '🔊 Reading aloud is on' : '🔇 Reading aloud is off');
+  }
+
+  // ── Recording a path ──────────────────────────────────────────
+
+  private async toggleRecording(): Promise<void> {
+    if (this.recorder.recording) {
+      const w = await this.recorder.stop();
+      clearInterval(this.recTimer);
+      this.paintRecording();
+      if (w) {
+        this.upsertWalk(w);
+        finishWalk(this.walkHost(), w);
+      }
+      return;
+    }
+    if (!lastFix()) say('I am still looking for where you are. I will start the path as soon as I find you.');
+    await this.recorder.start(this.profile.id, this.settings.keepAwake);
+    sounds.pick();
+    say("Recording your path! Tap the footprints again when you're done.");
+    this.recTimer = window.setInterval(() => this.paintRecording(), 15000);
+    this.paintRecording();
+  }
+
+  private paintRecording(): void {
+    const w = this.recorder.walk;
+    const on = this.recorder.recording;
+    this.recBtn.classList.toggle('recording', on);
+    this.recBtn.textContent = on ? '⏹️' : '👣';
+    this.recBtn.setAttribute('aria-label', on ? 'Stop recording my path' : 'Record my path');
+    this.recChip.hidden = !on;
+    if (on && w) this.recChip.textContent = `⏺ ${distanceWords(walkLengthM(w.points))} · ${durationWords(walkDurationMs(w))}`;
+    this.drawWalks();
+  }
+
+  private drawWalks(): void {
+    const saved = this.settings.walksOnMap ? this.walks.filter(w => w.endedAt).map(w => w.points.map(p => [p.lon, p.lat] as [number, number])) : [];
+    const live = this.recorder.recording && this.recorder.walk ? this.recorder.walk.points.map(p => [p.lon, p.lat] as [number, number]) : null;
+    this.map.setWalks(saved, live);
+  }
+
+  private upsertWalk(w: Walk): void {
+    this.everyWalk = [w, ...this.everyWalk.filter(x => x.id !== w.id)];
+    this.scopeToProfile();
+  }
+
+  /** `without` leaves one path out: what the badges were before it was kept. */
+  private badgeExtras(without?: string): BadgeExtras {
+    const done = this.walks.filter(w => w.endedAt && w.id !== without);
+    return {
+      huntsCompleted: this.huntsDone(),
+      tickChecks: this.tickCount(),
+      walks: done.length,
+      longestWalkM: Math.max(0, ...done.map(w => walkLengthM(w.points))),
+    };
+  }
+
+  private walkHost(): WalkHost {
+    return {
+      profile: this.profile,
+      walks: () => this.walks,
+      save: async w => {
+        const before = this.badgeExtras(w.id);
+        await saveWalk(w);
+        this.upsertWalk(w);
+        this.drawWalks();
+        for (const b of newlyEarned([], [], undefined, before, this.badgeExtras())) {
+          setTimeout(() => { sounds.badge(); toast(`${b.emoji} New badge: ${b.title}!`, 4000); say(`You earned the ${b.title} badge!`); }, 1200);
+        }
+      },
+      remove: async w => {
+        await deleteWalk(w.id);
+        this.everyWalk = this.everyWalk.filter(x => x.id !== w.id);
+        this.scopeToProfile();
+        this.drawWalks();
+      },
+      show: w => {
+        this.drawWalks();
+        this.map.fitLine(w.points.map(p => [p.lon, p.lat] as [number, number]));
+      },
+    };
   }
 
   private buildChrome(): void {
@@ -133,6 +249,10 @@ export class App {
       return tip(this.profile.guide);
     });
     const lock = h('button', { class: 'round-btn lock', 'aria-label': 'Grown-up corner', onclick: () => void this.openGrownUpCorner() }, '🔒');
+    this.soundBtn = h('button', { class: 'round-btn lock sound-btn', onclick: () => void this.toggleReadAloud() });
+    this.recBtn = h('button', { class: 'round-btn rec-btn', onclick: () => void this.toggleRecording() }, '👣');
+    this.recChip = h('button', { class: 'rec-chip', hidden: true, 'aria-label': 'Recording my path. Tap to stop', onclick: () => void this.toggleRecording() });
+    this.recorder.onChange = () => this.paintRecording();
     const me = h('button', { class: 'round-btn me-btn', 'aria-label': 'Where am I?', onclick: () => {
       if (this.map.goToMe(lastFix())) { sounds.tap(); say('Here you are!'); } else say('I am still looking for you.');
     } }, '📍');
@@ -144,8 +264,9 @@ export class App {
     }) }, '🛰️');
     app.append(
       h('div', { id: 'map' }),
-      h('header', { class: 'top-bar' }, this.hello, this.starBtn, this.huntChip, lock),
-      h('div', { class: 'side-btns' }, me, layers, this.modeBtn,
+      h('header', { class: 'top-bar' }, this.hello, this.starBtn, this.huntChip, this.soundBtn, lock),
+      this.recChip,
+      h('div', { class: 'side-btns' }, me, layers, this.modeBtn, this.recBtn,
         h('button', { class: 'round-btn', 'aria-label': 'Scavenger hunts', onclick: () => this.openHuntsScreen() }, '🔎'),
         h('button', { class: 'round-btn', 'aria-label': 'Done exploring: tick check', onclick: () => void this.endAdventure() }, '🏠')),
       this.dock.el,
@@ -158,6 +279,7 @@ export class App {
       ),
     );
     this.applySettingsToChrome();
+    this.applyAudio();
   }
 
   private helloText(): string {
@@ -174,8 +296,10 @@ export class App {
     this.hello.replaceChildren(profileFace(this.profile, 'face hello-face'), h('span', { class: 'hello-name' }, this.profile.name || 'Explorer'));
     this.map.setAvatar?.({ emoji: this.profile.avatar, photo: this.profile.photo });
     this.dock?.setGuide(this.profile.guide);
+    if (this.recBtn) this.recBtn.hidden = !this.settings.pathRecording && !this.recorder.recording;
     this.paintStar();
     this.paintHunt();
+    if (this.recBtn) this.paintRecording();
   }
 
   private liveIds(): Set<string> {
@@ -291,8 +415,7 @@ export class App {
       news = { run: next, ticked: run.hunt.items.filter(i => huntItems.includes(i.id)), completed: next.status === 'done' };
     }
 
-    const extras = (h: number) => ({ huntsCompleted: h, tickChecks: this.tickCount() });
-    const earned = newlyEarned(before, this.finds.map(toBadgeFind), undefined, extras(huntsBefore), extras(this.huntsDone()));
+    const earned = newlyEarned(before, this.finds.map(toBadgeFind), undefined, { ...this.badgeExtras(), huntsCompleted: huntsBefore }, this.badgeExtras());
     const { list, done } = todaysChallenges(this.finds);
     const newly = list.filter(c => done.has(c.id) && !challengesBefore.has(c.id));
     this.map.setFinds(this.finds);
@@ -357,6 +480,7 @@ export class App {
     window.dispatchEvent(new Event(FINDS_CHANGED));
     this.map.clearFinds();
     this.map.setFinds(this.finds);
+    if (this.recBtn) this.drawWalks();
     this.paintStar();
     this.paintHunt();
   }
@@ -379,7 +503,9 @@ export class App {
       openHunts: () => this.openHuntsScreen(),
       huntsCompleted: () => this.huntsDone(),
       tickChecks: () => this.tickCount(),
+      badgeExtras: () => this.badgeExtras(),
       tickCheck: () => this.openTickCheckScreen(),
+      openWalks: () => openWalks(this.walkHost()),
     };
   }
 
@@ -416,6 +542,7 @@ export class App {
     openGrownUps({
       settings: this.settings,
       allFinds: () => this.everyFind,
+      allWalks: () => this.everyWalk,
       profiles: this.profileHost(),
       applySettings: async s => {
         this.settings = s;
@@ -425,11 +552,13 @@ export class App {
         const t = await loadToday();
         this.map.setTrail(t.points, s.trail);
         this.paintWalk(s.trail ? trailLengthM(t) : 0);
+        this.drawWalks();
       },
       deleteAll: async () => {
         await deleteAllFinds();
         this.everyFind = [];
         this.everyRun = [];
+        this.everyWalk = [];
         this.scopeToProfile();
         this.refresh();
         this.map.setTrail([], false);

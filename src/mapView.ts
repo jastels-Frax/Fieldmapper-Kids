@@ -8,7 +8,7 @@ const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 /** Esri World Imagery. Capped at z18: finer requests can fail, and MapLibre overzooms the last level. */
 const IMAGERY_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 /** Layers this app adds; a basemap switch never touches them. */
-const OWN_LAYERS = new Set(['sat', 'trail-line']);
+const OWN_LAYERS = new Set(['sat', 'trail-line', 'walks-line', 'live-walk-line']);
 
 /** What the map draws with no network and nothing cached: grass. Finds still show. */
 const OFFLINE_STYLE: StyleSpecification = {
@@ -62,6 +62,18 @@ export class MapView {
       id: 'trail-line', type: 'line', source: 'trail',
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': '#f76707', 'line-width': 6, 'line-dasharray': [0.1, 2], 'line-opacity': 0.9 },
+    });
+    this.map.addSource('walks', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    this.map.addLayer({
+      id: 'walks-line', type: 'line', source: 'walks',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#7048e8', 'line-width': 5, 'line-opacity': 0.75 },
+    });
+    this.map.addSource('live-walk', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    this.map.addLayer({
+      id: 'live-walk-line', type: 'line', source: 'live-walk',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#e8590c', 'line-width': 7, 'line-opacity': 0.95 },
     });
     for (const l of this.map.getStyle().layers ?? []) {
       if (OWN_LAYERS.has(l.id)) continue;
@@ -182,6 +194,23 @@ export class MapView {
         this.findMarkers.delete(id);
       }
     }
+  }
+
+  /** Saved paths (purple) and the one recording now (orange). */
+  setWalks(lines: [number, number][][], live: [number, number][] | null): void {
+    const fc = (ls: [number, number][][]) => ({
+      type: 'FeatureCollection' as const,
+      features: ls.filter(l => l.length > 1).map(coordinates => ({ type: 'Feature' as const, properties: {}, geometry: { type: 'LineString' as const, coordinates } })),
+    });
+    (this.map?.getSource('walks') as maplibregl.GeoJSONSource | undefined)?.setData(fc(lines));
+    (this.map?.getSource('live-walk') as maplibregl.GeoJSONSource | undefined)?.setData(fc(live ? [live] : []));
+  }
+
+  fitLine(coords: [number, number][]): void {
+    if (coords.length < 2) return;
+    const b = new maplibregl.LngLatBounds(coords[0], coords[0]);
+    for (const c of coords) b.extend(c);
+    this.map.fitBounds(b, { padding: 80, maxZoom: 18 });
   }
 
   /** Forget every marker, so the next setFinds redraws edited finds. */
