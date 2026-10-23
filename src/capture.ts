@@ -65,14 +65,29 @@ export function startCapture(host: CaptureHost, existing?: Find): void {
   const back = sheet.querySelector('.back-btn') as HTMLButtonElement;
   back.replaceWith(back.cloneNode(true));
   (sheet.querySelector('.back-btn') as HTMLButtonElement).addEventListener('click', async () => {
-    if (!editing && stepIdx === 0 && !draft.pictures.length) return close();
-    if (await askYesNo(editing ? 'Stop without saving the changes?' : 'Stop and throw this find away?', editing ? '↩️ Yes, stop' : '🗑️ Yes', '✨ Keep going')) close();
+    if (editing) {
+      // Inside one question, back means "back to my find"; from the summary it means leave.
+      if (!onOverview) return overview();
+      if (!changed() || (await askYesNo('Stop without saving the changes?', '↩️ Yes, stop', '✏️ Keep changing'))) close();
+      return;
+    }
+    if (stepIdx === 0 && !draft.pictures.length) return close();
+    if (await askYesNo('Stop and throw this find away?', '🗑️ Yes', '✨ Keep going')) close();
   });
-  const dots = h('div', { class: 'step-dots', 'aria-hidden': 'true' });
+  const dots = h('div', { class: 'step-dots', 'aria-hidden': 'true', hidden: editing });
   sheet.querySelector('.sheet-head')!.append(dots);
+
+  // Editing opens on a summary of the find; each row opens ONE question and comes
+  // back. Changing the kind of thing also asks the questions that depend on it.
+  let onOverview = false;
+  let followUps: Step[] = [];
+  const snapshot = () => JSON.stringify({ ...draft, pictures: draft.pictures.map(p => p.id), voice: !!draft.voice, thumb: undefined, place }) + String(draft.voice?.size ?? '');
+  let original = '';
+  const changed = () => snapshot() !== original;
 
   const current = (): Step => steps()[stepIdx];
   const go = (i: number) => {
+    onOverview = false;
     const list = steps();
     stepIdx = Math.max(0, Math.min(list.length - 1, i));
     dots.replaceChildren(...list.map((_, j) => h('span', { class: j <= stepIdx ? 'on' : '' })));
@@ -83,8 +98,19 @@ export function startCapture(host: CaptureHost, existing?: Find): void {
     render[list[stepIdx]]();
   };
   const put = (...xs: (Node | null | false)[]) => body.append(...xs.filter((x): x is Node => !!x));
-  const next = () => { sounds.tap(); go(stepIdx + 1); };
-  const prevBtn = () => stepIdx > 0 ? h('button', { class: 'text-btn', onclick: () => go(stepIdx - 1) }, '⬅️ Go back') : null;
+  const goStep = (st: Step) => go(Math.max(0, steps().indexOf(st)));
+  const next = () => {
+    sounds.tap();
+    if (!editing) return go(stepIdx + 1);
+    const after = followUps.shift();
+    if (after) goStep(after);
+    else overview();
+  };
+  const prevBtn = () => editing
+    ? h('button', { class: 'text-btn', onclick: () => { followUps = []; overview(); } }, '⬅️ Back to my find')
+    : stepIdx > 0 ? h('button', { class: 'text-btn', onclick: () => go(stepIdx - 1) }, '⬅️ Go back') : null;
+  /** In editing, the step's own "Next" reads as "Done". */
+  const nextLabel = (label = 'Next ➡️') => (editing ? '✅ Done' : label);
   const title = (text?: string, pose?: Expression) => {
     const line = stepLine(guide, current());
     return buddySays(guide, { text: text ?? line.text, pose: pose ?? line.pose });
@@ -121,7 +147,7 @@ export function startCapture(host: CaptureHost, existing?: Find): void {
           img.src = blobUrl(p.blob, cell);
           return cell;
         }));
-        nextBtn.textContent = draft.pictures.length ? 'Next ➡️' : '👀 No pictures, next';
+        nextBtn.textContent = editing ? '✅ Done' : draft.pictures.length ? 'Next ➡️' : '👀 No pictures, next';
         count.textContent = draft.pictures.length ? `${draft.pictures.length} ${draft.pictures.length === 1 ? 'picture' : 'pictures'}` : '';
       };
       const count = h('p', { class: 'hint center' });
@@ -161,8 +187,14 @@ export function startCapture(host: CaptureHost, existing?: Find): void {
           h('button', {
             class: `choice ${draft.category === c.id ? 'on' : ''}`, style: `--cat:${c.colour}`,
             onclick: () => {
-              if (draft.category !== c.id) { draft.species = undefined; draft.sign = undefined; }
+              const changedKind = draft.category !== c.id;
+              if (changedKind) { draft.species = undefined; draft.sign = undefined; }
               draft.category = c.id as CategoryId;
+              if (editing && changedKind) {
+                followUps = [];
+                if (c.id === 'sign') followUps.push('sign');
+                if (hasSpeciesStep(c.id as CategoryId)) followUps.push('species');
+              }
               sounds.pick();
               say(c.cheer);
               setTimeout(next, 700);
@@ -234,7 +266,7 @@ export function startCapture(host: CaptureHost, existing?: Find): void {
         title(),
         chosen,
         h('div', { class: 'species-box' }, familiar, search, results, status),
-        h('button', { class: 'big-btn', onclick: next }, 'Next ➡️'),
+        h('button', { class: 'big-btn', onclick: next }, nextLabel()),
         h('button', { class: 'text-btn', onclick: () => { draft.species = undefined; next(); } }, "🤷 I don't know yet"),
         prevBtn(),
       );
@@ -256,7 +288,7 @@ export function startCapture(host: CaptureHost, existing?: Find): void {
         });
         grid.append(b);
       }
-      put(title(), grid, h('button', { class: 'big-btn', onclick: next }, 'Next ➡️'), prevBtn());
+      put(title(), grid, h('button', { class: 'big-btn', onclick: next }, nextLabel()), prevBtn());
     },
 
     size() {
@@ -322,7 +354,7 @@ export function startCapture(host: CaptureHost, existing?: Find): void {
       };
       // Editing with GPS chosen means "where I am now": ask for a fresh fix.
       if (editing) fix = lastFix();
-      put(title(), cards, note, h('button', { class: 'big-btn', onclick: next }, 'Next ➡️'), prevBtn());
+      put(title(), cards, note, h('button', { class: 'big-btn', onclick: next }, nextLabel()), prevBtn());
       paint();
       if (!fix && !editing) void bestFix(8000, 30).then(f => { if (f) { fix = f; if (place.kind === 'none') place = { kind: 'gps' }; paint(); } });
     },
@@ -360,7 +392,9 @@ export function startCapture(host: CaptureHost, existing?: Find): void {
           h('label', { class: 'field' }, h('span', {}, '✏️ Grown-up note'), note),
         );
       }
-      parts.push(h('button', { class: 'big-btn save-btn', onclick: () => void finish() }, editing ? 'Save my changes ✅' : 'Save my find! ✨'), prevBtn());
+      parts.push(editing
+        ? h('button', { class: 'big-btn', onclick: next }, '✅ Done')
+        : h('button', { class: 'big-btn save-btn', onclick: () => void finish() }, 'Save my find! ✨'), prevBtn());
       put(...parts);
     },
   };
@@ -414,5 +448,60 @@ export function startCapture(host: CaptureHost, existing?: Find): void {
     }
   }
 
-  go(0);
+  /** The summary a saved find opens on: every answer, each one tap from being changed. */
+  function overview() {
+    onOverview = true;
+    body.replaceChildren();
+    body.scrollTop = 0;
+    const cat = draft.category ? categoryOf(draft.category) : null;
+    const row = (st: Step, emoji: string, label: string, value: Node | string) =>
+      h('button', { class: 'edit-row', onclick: () => { sounds.tap(); followUps = []; goStep(st); } },
+        h('span', { class: 'edit-emoji' }, emoji),
+        h('span', { class: 'edit-text' }, h('strong', {}, label), typeof value === 'string' ? h('span', {}, value) : value),
+        h('span', { class: 'edit-pen', 'aria-hidden': 'true' }, '✏️'));
+    const thumbs = h('span', { class: 'edit-thumbs' });
+    for (const p of draft.pictures.slice(0, 4)) {
+      const img = h('img', { alt: '' });
+      thumbs.append(img);
+      img.src = blobUrl(p.blob, img);
+    }
+    if (!draft.pictures.length) thumbs.textContent = 'No pictures yet';
+    else if (draft.pictures.length > 4) thumbs.append(h('span', {}, `+${draft.pictures.length - 4}`));
+    const colourDots = h('span', { class: 'colour-dots' }, ...draft.colours.map(c => {
+      const col = COLOURS.find(x => x.id === c)!;
+      return h('span', { class: 'dot', style: `--sw:${col.hex}`, title: col.label });
+    }));
+    if (!draft.colours.length) colourDots.textContent = 'None picked';
+    const sign = SIGNS.find(x => x.id === draft.sign);
+    const size = SIZES.find(x => x.id === draft.size);
+    const cnt = COUNTS.find(x => x.id === draft.count);
+    const where = place.kind === 'keep' ? 'On the map, where you put it'
+      : place.kind === 'map' ? 'Moved to a spot you tapped'
+      : place.kind === 'gps' ? 'Moved to where you are now'
+      : 'Not on the map';
+    const story = [draft.voice ? '🎤 Voice note' : '', draft.nickname ? `🏷️ ${draft.nickname}` : '', draft.note ? '✏️ Grown-up note' : ''].filter(Boolean).join(' · ') || 'Nothing yet';
+    put(
+      buddySays(guide, { text: 'Tap the part you want to change!', pose: 'point' }),
+      h('div', { class: 'edit-list' },
+        row('picture', '📷', 'Pictures', thumbs),
+        row('category', cat?.emoji ?? '❓', 'What it is', cat?.label ?? '—'),
+        draft.category === 'sign' ? row('sign', sign?.emoji ?? '🐾', 'The clue', sign?.label ?? 'Not picked') : null,
+        draft.category && hasSpeciesStep(draft.category) ? row('species', '📚', 'Its name', draft.species?.name ?? 'Not named yet') : null,
+        row('colours', '🎨', 'Colours', colourDots),
+        row('size', size?.emoji ?? '📏', 'How big', size?.label ?? 'Not picked'),
+        row('count', cnt?.emoji ?? '🔢', 'How many', cnt?.label ?? 'Not picked'),
+        row('where', '📍', 'Where', where),
+        row('tell', '💬', together ? 'Story, name and note' : 'Story and name', story),
+      ),
+      h('button', { class: 'big-btn save-btn', onclick: () => void finish() }, 'Save my changes ✅'),
+      h('button', { class: 'text-btn', onclick: async () => {
+        if (!changed() || (await askYesNo('Stop without saving the changes?', '↩️ Yes, stop', '✏️ Keep changing'))) close();
+      } }, "↩️ Don't save"),
+    );
+  }
+
+  if (editing) {
+    original = snapshot();
+    overview();
+  } else go(0);
 }

@@ -486,3 +486,17 @@ body.picking .sheet, body.picking .top-bar, body.picking .bottom-bar, body.picki
 .basemap-card .mode-card { flex-direction: row; align-items: center; gap: 12px; }
 .basemap-card .mode-card .mode-emoji { font-size: 34px; }
 .basemap-card .mode-card span:last-child { flex: 1; }
+
+/* Editing a find: one row per answer */
+.edit-list { display: flex; flex-direction: column; gap: 10px; }
+.edit-row {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; text-align: left;
+  background: #fff; border: 3px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); min-height: 72px;
+}
+.edit-emoji { font-size: 34px; flex: 0 0 auto; }
+.edit-text { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.edit-text strong { font-size: 18px; }
+.edit-text > span { font-size: 15px; font-weight: 700; color: var(--soft-ink); }
+.edit-pen { font-size: 22px; }
+.edit-thumbs { display: flex; gap: 6px; align-items: center; }
+.edit-thumbs img { width: 44px; height: 44px; object-fit: cover; border-radius: 10px; border: 2px solid var(--line); }
