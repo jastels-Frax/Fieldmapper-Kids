@@ -1,4 +1,4 @@
-import type { Settings } from './types.ts';
+import type { Profile, Settings } from './types.ts';
 import { HUNTS, ITEM_LIBRARY, MAX_CUSTOM_ITEMS, huntProgress, makeCustomHunt, type Hunt, type HuntItem, type HuntRun } from './hunts.ts';
 import { askYesNo, h, openSheet, toast, uid } from './ui.ts';
 import { say } from './speech.ts';
@@ -9,6 +9,7 @@ import { askGrownUp } from './gateView.ts';
 
 export interface HuntHost {
   settings: Settings;
+  profile: Profile;
   runs: () => HuntRun[];
   customHunts: () => Hunt[];
   liveFindIds: () => Set<string>;
@@ -43,7 +44,6 @@ function progressBar(done: number, total: number): HTMLElement {
 /** The hunts: the one under way, the ones to choose from, and the trophies. */
 export function openHunts(host: HuntHost): void {
   const { body, close } = openSheet({ title: 'Scavenger Hunts', emoji: '🔎', className: 'hunts' });
-  const buddy = host.settings.buddy;
   const paint = () => {
     body.replaceChildren();
     const live = host.liveFindIds();
@@ -85,7 +85,7 @@ export function openHunts(host: HuntHost): void {
     body.append(list);
 
     const maker = h('button', { class: 'big-btn soft', onclick: async () => {
-      if (host.settings.mode !== 'together' && !(await askGrownUp('Grown-ups can make a hunt of their own.'))) return;
+      if (host.profile.mode !== 'together' && !(await askGrownUp('Grown-ups can make a hunt of their own.'))) return;
       openHuntMaker(host, null, paint);
     } }, '🛠️ Make your own hunt');
     body.append(maker);
@@ -120,12 +120,12 @@ export function openHunts(host: HuntHost): void {
       sheet.body.append(
         h('div', { class: 'ask-row' },
           h('button', { class: 'text-btn', onclick: async () => {
-            if (host.settings.mode !== 'together' && !(await askGrownUp('Changing a hunt is for grown-ups.'))) return;
+            if (host.profile.mode !== 'together' && !(await askGrownUp('Changing a hunt is for grown-ups.'))) return;
             sheet.close();
             openHuntMaker(host, hunt, paint);
           } }, '✏️ Change this hunt'),
           h('button', { class: 'text-btn danger', onclick: async () => {
-            if (host.settings.mode !== 'together' && !(await askGrownUp('Deleting a hunt is for grown-ups.'))) return;
+            if (host.profile.mode !== 'together' && !(await askGrownUp('Deleting a hunt is for grown-ups.'))) return;
             if (!(await askYesNo(`Delete the ${hunt.title}? Trophies already won stay on the shelf.`, '🗑️ Delete', 'Keep it'))) return;
             await host.deleteCustom(hunt.id);
             sheet.close();

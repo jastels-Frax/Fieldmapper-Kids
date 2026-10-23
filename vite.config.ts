@@ -36,8 +36,20 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // species/*.json is the Nova Scotia species list (~140 kB gzipped): precached so naming works offline.
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2}', 'species/*.json'],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         runtimeCaching: [
+          {
+            // Esri World Imagery for the satellite and hybrid maps. A tile under one URL never changes.
+            urlPattern: /^https:\/\/server\.arcgisonline\.com\/ArcGIS\/rest\/services\/World_Imagery\/MapServer\/tile\//,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'imagery-tiles',
+              expiration: { maxEntries: 3000, maxAgeSeconds: 60 * 60 * 24 * 30, purgeOnQuotaError: true },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
           {
             // OpenFreeMap tiles, glyphs and sprites never change under one URL (the
             // tile path carries the data release), so CacheFirst: a place already

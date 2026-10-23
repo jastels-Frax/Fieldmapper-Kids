@@ -1,10 +1,14 @@
 import maplibregl, { type Map as MlMap, type Marker, type StyleSpecification } from 'maplibre-gl';
-import type { Find } from './types.ts';
+import type { Basemap, Find } from './types.ts';
 import { categoryOf } from './categories.ts';
 import type { Fix } from './gps.ts';
 import { blobUrl } from './ui.ts';
 
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
+/** Esri World Imagery. Capped at z18: finer requests can fail, and MapLibre overzooms the last level. */
+const IMAGERY_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+/** Layers this app adds; a basemap switch never touches them. */
+const OWN_LAYERS = new Set(['sat', 'trail-line']);
 
 /** What the map draws with no network and nothing cached: grass. Finds still show. */
 const OFFLINE_STYLE: StyleSpecification = {
@@ -35,12 +39,15 @@ export class MapView {
   onFindTap: (id: string) => void = () => {};
   offline = false;
 
-  async mount(container: HTMLElement, avatar: string): Promise<void> {
+  private baseVisibility = new Map<string, 'visible' | 'none'>();
+
+  async mount(container: HTMLElement, avatar: Face, basemap: Basemap): Promise<void> {
     const style = await pickStyle();
     this.offline = style === OFFLINE_STYLE;
+    const withImagery = withImageryLayer(style);
     this.map = new maplibregl.Map({
       container,
-      style,
+      style: withImagery,
       center: [-63.57, 44.65],
       zoom: 3,
       attributionControl: { compact: true },
@@ -56,9 +63,33 @@ export class MapView {
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': '#f76707', 'line-width': 6, 'line-dasharray': [0.1, 2], 'line-opacity': 0.9 },
     });
+    for (const l of this.map.getStyle().layers ?? []) {
+      if (OWN_LAYERS.has(l.id)) continue;
+      this.baseVisibility.set(l.id, ((l.layout as { visibility?: 'visible' | 'none' } | undefined)?.visibility) ?? 'visible');
+    }
+    this.setBasemap(basemap);
   }
 
-  setAvatar(avatar: string): void {
+  /**
+   * Streets is the vector map as it comes. Satellite hides all of it over the
+   * imagery. Hybrid keeps the roads, paths, borders and every label on top of
+   * the imagery and hides the filled areas that would cover it.
+   */
+  setBasemap(mode: Basemap): void {
+    if (!this.map?.getLayer('sat')) return;
+    this.map.setLayoutProperty('sat', 'visibility', mode === 'streets' ? 'none' : 'visible');
+    for (const l of this.map.getStyle().layers ?? []) {
+      if (OWN_LAYERS.has(l.id)) continue;
+      const original = this.baseVisibility.get(l.id) ?? 'visible';
+      let vis: 'visible' | 'none';
+      if (mode === 'streets') vis = original;
+      else if (mode === 'satellite') vis = 'none';
+      else vis = original === 'visible' && keptInHybrid(l) ? 'visible' : 'none';
+      this.map.setLayoutProperty(l.id, 'visibility', vis);
+    }
+  }
+
+  setAvatar(face: Face): void {
     if (!this.me) {
       const el = document.createElement('div');
       el.className = 'me-marker';
@@ -67,8 +98,22 @@ export class MapView {
       el.append(this.meRing, Object.assign(document.createElement('span'), { className: 'me-face' }));
       this.me = new maplibregl.Marker({ element: el });
     }
-    (this.me.getElement().querySelector('.me-face') as HTMLElement).textContent = avatar;
+    const slot = this.me.getElement().querySelector('.me-face') as HTMLElement;
+    slot.replaceChildren();
+    if (face.photo) {
+      const img = document.createElement('img');
+      img.alt = '';
+      img.className = 'me-photo';
+      if (this.mePhotoUrl) URL.revokeObjectURL(this.mePhotoUrl);
+      this.mePhotoUrl = URL.createObjectURL(face.photo);
+      img.src = this.mePhotoUrl;
+      slot.append(img);
+    } else {
+      slot.textContent = face.emoji;
+    }
   }
+
+  private mePhotoUrl: string | null = null;
 
   showMe(fix: Fix): void {
     if (!this.me) return;
@@ -143,4 +188,36 @@ export class MapView {
         : [],
     });
   }
+}
+
+export interface Face {
+  emoji: string;
+  photo?: Blob;
+}
+
+/** Adds the imagery as a raster layer just above the style's own background. */
+function withImageryLayer(style: string | StyleSpecification): StyleSpecification {
+  const s = typeof style === 'string' ? OFFLINE_STYLE : style;
+  const layers = [...(s.layers ?? [])];
+  const at = layers.findIndex(l => l.type !== 'background');
+  const sat = { id: 'sat', type: 'raster' as const, source: 'esri-imagery', layout: { visibility: 'none' as const } };
+  layers.splice(at < 0 ? layers.length : at, 0, sat);
+  return {
+    ...s,
+    sources: {
+      ...s.sources,
+      'esri-imagery': {
+        type: 'raster', tiles: [IMAGERY_URL], tileSize: 256, maxzoom: 18,
+        attribution: 'Imagery © Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+      },
+    },
+    layers,
+  };
+}
+
+/** In hybrid: lines that are roads, paths or borders, and every label and icon. */
+function keptInHybrid(l: { id: string; type: string }): boolean {
+  if (l.type === 'symbol') return true;
+  if (l.type === 'line') return /road|highway|street|path|track|bridge|tunnel|rail|boundary|admin|ferry/i.test(l.id);
+  return false;
 }

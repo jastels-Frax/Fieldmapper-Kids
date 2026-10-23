@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buddySvg, EXPRESSIONS, BUDDY_NAMES } from '../src/buddies.ts';
 import { greet, tip, stepLine, cheer, STEP_LINES } from '../src/buddyLines.ts';
+import { GUIDES, GUIDE_INFO, guideName, guideSvg, normalizeGuide } from '../src/guides.ts';
 
 test('every pose draws for both buddies', () => {
   for (const b of ['rat', 'frog'] as const) {
@@ -24,7 +25,7 @@ test('names match the Field Mapper tour', () => {
 });
 
 test('every line exists for both buddies', () => {
-  for (const b of ['rat', 'frog'] as const) {
+  for (const b of GUIDES) {
     for (let i = 0; i < 20; i++) {
       const r = () => i / 20;
       assert.ok(greet(b, r).text && tip(b, r).text && cheer(b, r).text);
@@ -43,4 +44,14 @@ test('every crew member draws in every pose and has a role', () => {
     assert.ok(CAST[c].name && CAST[c].role && CAST[c].intro);
   }
   assert.equal(new Set(CRITTERS.map(c => CAST[c].role)).size, CRITTERS.length);
+});
+
+test('any crew member can be the guide, and renaming is bounded', () => {
+  for (const g of GUIDES) assert.match(guideSvg(g), /^<svg/);
+  assert.equal(guideName('fox'), GUIDE_INFO.fox.name);
+  assert.equal(guideName('fox', '  Rusty  '), 'Rusty');
+  assert.equal(guideName('fox', '   '), GUIDE_INFO.fox.name);
+  assert.equal(guideName('owl', 'x'.repeat(40)).length, 20);
+  assert.equal(normalizeGuide('dragon'), 'frog');
+  assert.equal(normalizeGuide('bear'), 'bear');
 });

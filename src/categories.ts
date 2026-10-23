@@ -1,4 +1,4 @@
-import type { CategoryId, ColourId, CountId, SizeId } from './types.ts';
+import type { CategoryId, ColourId, CountId, SignId, SizeId } from './types.ts';
 
 export interface Category {
   id: CategoryId;
@@ -43,6 +43,11 @@ export const CATEGORIES: Category[] = [
     id: 'animal', emoji: '🐿️', label: 'Animal', colour: '#e8590c', cheer: 'An animal! Wow!',
     talk: ['Was it fast or slow?', 'Did it have fur, scales or skin?', 'Did it see you?'],
     facts: ['Squirrels bury nuts and forget some, which grow into trees.', 'Frogs can breathe through their skin.', 'Many animals come out at dusk.'],
+  },
+  {
+    id: 'sign', emoji: '🐾', label: 'Tracks & scat', colour: '#a0522d', cheer: 'Animal clues! You are a detective!',
+    talk: ['How many toes can you see in the track?', 'Which way was the animal going?', 'What animal do you think left it?'],
+    facts: ['Scat is what scientists call animal poop. Look, but never touch it!', 'Deer and moose tracks show two toes; foxes and coyotes show four.', 'A chewed pine cone with the scales pulled off is often a red squirrel\'s lunch.'],
   },
   {
     id: 'rock', emoji: '🪨', label: 'Rock', colour: '#868e96', cheer: 'A rock! Rock on!',
@@ -100,3 +105,14 @@ export const COUNTS: { id: CountId; emoji: string; label: string }[] = [
 ];
 
 export const AVATARS = ['🦊', '🐻', '🐸', '🦉', '🐢', '🐰', '🦋', '🐞', '🦔', '🐝', '🦝', '🐙'];
+
+/** The clues an animal leaves, for a 'sign' find. */
+export const SIGNS: { id: SignId; emoji: string; label: string }[] = [
+  { id: 'track', emoji: '🐾', label: 'Tracks' },
+  { id: 'scat', emoji: '💩', label: 'Scat (poop)' },
+  { id: 'chewed', emoji: '🌰', label: 'Chewed food' },
+  { id: 'nest', emoji: '🪺', label: 'A nest' },
+  { id: 'feather', emoji: '🪶', label: 'Feathers or fur' },
+  { id: 'burrow', emoji: '🕳️', label: 'A hole or burrow' },
+  { id: 'other', emoji: '🔎', label: 'Another clue' },
+];

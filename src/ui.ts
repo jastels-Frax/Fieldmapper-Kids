@@ -79,9 +79,7 @@ export function blobUrl(blob: Blob, owner: Element): string {
   return url;
 }
 
-export function uid(): string {
-  return (crypto as Crypto & { randomUUID?: () => string }).randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-}
+export { uid } from './ids.ts';
 
 /** A big yes / no question, drawn for small hands. */
 export function askYesNo(text: string, yes: string, no: string): Promise<boolean> {

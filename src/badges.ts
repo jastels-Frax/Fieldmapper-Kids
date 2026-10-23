@@ -3,6 +3,7 @@ import { distanceM, localDay, localHour } from './geo.ts';
 
 /** What a badge needs to know about a find: no pixels, no sound. */
 export type BadgeFind = Pick<Find, 'createdAt' | 'category' | 'colours' | 'size' | 'count' | 'lat' | 'lon'> & {
+  species?: string;
   hasPhoto?: boolean;
   hasDrawing?: boolean;
   hasVoice?: boolean;
@@ -42,7 +43,7 @@ interface BadgeRule extends Badge {
 }
 
 /** Categories that count towards "one of everything" (a mystery is not a kind of thing). */
-export const COLLECTABLE: CategoryId[] = ['bird', 'bug', 'plant', 'tree', 'flower', 'animal', 'rock', 'water', 'sky'];
+export const COLLECTABLE: CategoryId[] = ['bird', 'bug', 'plant', 'tree', 'flower', 'animal', 'sign', 'rock', 'water', 'sky'];
 
 const RULES: BadgeRule[] = [
   { id: 'first', emoji: '⭐', title: 'First Find', how: 'Save your very first find.', target: 1, measure: f => f.length },
@@ -54,6 +55,11 @@ const RULES: BadgeRule[] = [
   { id: 'flowers', emoji: '🌸', title: 'Flower Power', how: 'Find 5 flowers.', target: 5, measure: f => count(f, 'flower') },
   { id: 'rocks', emoji: '🪨', title: 'Rock Collector', how: 'Find 5 rocks.', target: 5, measure: f => count(f, 'rock') },
   { id: 'animals', emoji: '🐿️', title: 'Animal Tracker', how: 'Find 5 animals.', target: 5, measure: f => count(f, 'animal') },
+  { id: 'signs', emoji: '🐾', title: 'Track Detective', how: 'Find 3 animal tracks or other clues.', target: 3, measure: f => count(f, 'sign') },
+  {
+    id: 'species', emoji: '📚', title: 'Species Spotter', how: 'Name 5 different species.', target: 5,
+    measure: f => new Set(f.map(x => x.species).filter(Boolean)).size,
+  },
   { id: 'water', emoji: '💧', title: 'Water Wizard', how: 'Find water 3 times.', target: 3, measure: f => count(f, 'water') },
   { id: 'sky', emoji: '☁️', title: 'Cloud Spotter', how: 'Look up and save the sky 3 times.', target: 3, measure: f => count(f, 'sky') },
   {
@@ -123,8 +129,10 @@ export function newlyEarned(
 }
 
 export function toBadgeFind(f: Find): BadgeFind {
+  const pics = f.pictures ?? [];
   return {
     createdAt: f.createdAt, category: f.category, colours: f.colours, size: f.size, count: f.count,
-    lat: f.lat, lon: f.lon, hasPhoto: !!f.photo, hasDrawing: !!f.drawing, hasVoice: !!f.voice,
+    lat: f.lat, lon: f.lon, species: f.species?.name,
+    hasPhoto: pics.some(p => p.kind === 'photo'), hasDrawing: pics.some(p => p.kind === 'drawing'), hasVoice: !!f.voice,
   };
 }

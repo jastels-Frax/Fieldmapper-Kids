@@ -35,6 +35,8 @@ export interface Hunt {
 
 export interface HuntRun {
   id: string;
+  /** The explorer on the hunt. */
+  profileId?: string;
   hunt: Hunt;
   startedAt: string;
   /** item id -> the find that ticked it */
@@ -81,7 +83,7 @@ export const ITEM_LIBRARY: HuntItem[] = [
   item('rough', '🪵', 'Something rough'),
   item('round', '⭕', 'Something round'),
   item('heart', '❤️', 'Something shaped like a heart'),
-  item('track', '🐾', 'An animal track'),
+  item('track', '🐾', 'An animal track or scat', { category: 'sign' }),
   item('hole', '🕳️', 'A hole where something lives'),
   item('web', '🕸️', 'A spider web'),
   item('shell', '🐚', 'A shell'),

@@ -29,7 +29,7 @@ test('rainbow counts distinct colours across finds', () => {
 });
 
 test('one of everything ignores mysteries', () => {
-  const cats = ['bird', 'bug', 'plant', 'tree', 'flower', 'animal', 'rock', 'water'] as const;
+  const cats = ['bird', 'bug', 'plant', 'tree', 'flower', 'animal', 'sign', 'rock', 'water'] as const;
   const b = byId([...cats.map(category => find({ category })), find({ category: 'mystery' })]);
   assert.equal(b.everything.earned, false);
   assert.equal(byId([...cats.map(category => find({ category })), find({ category: 'sky' })]).everything.earned, true);
@@ -69,4 +69,11 @@ test('hunt badges count finished hunts', () => {
 test('tick checker counts finished checks', () => {
   assert.equal(badgeProgress([], clock, { tickChecks: 2 }).find(b => b.id === 'ticks')!.earned, false);
   assert.equal(badgeProgress([], clock, { tickChecks: 3 }).find(b => b.id === 'ticks')!.earned, true);
+});
+
+test('track detective and species spotter', () => {
+  const b = byId([find({ category: 'sign' }), find({ category: 'sign' }), find({ category: 'sign', species: 'Red Fox' }),
+    find({ species: 'Red Fox' }), find({ species: 'Blue Jay' }), find({ species: 'Moose' }), find({ species: 'Raccoon' })]);
+  assert.equal(b.signs.earned, true);
+  assert.equal(b.species.value, 4);
 });

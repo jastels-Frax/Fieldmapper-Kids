@@ -41,3 +41,31 @@ export function startGps(): void {
     { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 },
   );
 }
+
+/**
+ * Waits up to `ms` for a fix at least as good as `goodM`, keeping the best one
+ * seen. Resolves with the best fix (or the last known one, or null).
+ */
+export function bestFix(ms: number, goodM: number): Promise<Fix | null> {
+  return new Promise(resolve => {
+    let best = lastFix();
+    if (best && best.accuracy <= goodM) return resolve(best);
+    const off = onFix(f => {
+      if (f && (!best || f.accuracy < best.accuracy)) best = f;
+      if (best && best.accuracy <= goodM) done();
+    });
+    const timer = setTimeout(() => done(), ms);
+    function done() {
+      clearTimeout(timer);
+      off();
+      resolve(best);
+    }
+  });
+}
+
+/** Accuracy in words a child understands, with a colour class. */
+export function accuracyWords(m: number): { text: string; level: 'great' | 'ok' | 'fuzzy' } {
+  if (m <= 10) return { text: `Super close (about ${Math.round(m)} m)`, level: 'great' };
+  if (m <= 30) return { text: `Pretty close (about ${Math.round(m)} m)`, level: 'ok' };
+  return { text: `A bit fuzzy (about ${Math.round(m)} m)`, level: 'fuzzy' };
+}

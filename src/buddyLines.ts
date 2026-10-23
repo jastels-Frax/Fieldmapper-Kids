@@ -1,69 +1,66 @@
-import type { Buddy, Expression } from './buddies.ts';
+import type { GuideId } from './types.ts';
+import type { Expression } from './buddies.ts';
+import { GUIDE_INFO } from './guides.ts';
 
-/** What Pip and Hop say. Each line is the same idea in the buddy's own voice. */
+/** What the explorer's guide says. Lines are written once, in each guide's own sound. */
 export interface Line {
   text: string;
   pose: Expression;
 }
 
-type Voiced = Record<Buddy, string>;
-const both = (rat: string, frog: string): Voiced => ({ rat, frog });
+const sound = (g: GuideId) => GUIDE_INFO[g].sound;
 
-const GREET: Voiced[] = [
-  both('Squeak! Ready to explore?', 'Ribbit! Ready to explore?'),
-  both("Let's sniff out something amazing!", "Let's hop to it and find something amazing!"),
+const GREET: ((g: GuideId) => string)[] = [
+  g => `${sound(g)}! Ready to explore?`,
+  () => "Let's go and find something amazing!",
 ];
 
-/** Tips Pip and Hop give when tapped on the map. */
-const TIPS: Voiced[] = [
-  both('Look under leaves. Tiny bugs love to hide there!', 'Peek under leaves. Tiny bugs hide there, yum!'),
-  both('Stand very still and listen. Can you hear a bird?', 'Sit still like me and listen. Can you hear a bird?'),
-  both('Rocks come in so many colours. Find a sparkly one!', 'Find a smooth rock. Rivers make them round!'),
-  both('Look up! What shape are the clouds?', 'Look up! Is that cloud shaped like a frog?'),
-  both('Count the petals on a flower!', 'Can you find a flower with five petals?'),
-  both('Tap the star at the top for today\'s challenges!', 'Tap the star at the top for today\'s challenges!'),
-  both('Puddles and ponds are full of life. Have a look!', 'Water is my favourite! Find a pond or a puddle!'),
-  both('Be gentle with living things. Look, but leave them be.', 'Be gentle with animals. We look, we do not touch.'),
-  both('Do not wander off. Stay where your grown-up can see you!', 'Stay close to your grown-up, okay?'),
+const TIPS: string[] = [
+  'Look under leaves. Tiny bugs love to hide there!',
+  'Stand very still and listen. Can you hear a bird?',
+  'Look at the ground. Can you find any animal tracks?',
+  'Look up! What shape are the clouds?',
+  'Count the petals on a flower!',
+  "Tap the star at the top for today's challenges!",
+  'Puddles and ponds are full of life. Have a look!',
+  'Be gentle with living things. Look, but leave them be.',
+  'Stay where your grown-up can see you!',
+  'Found poop? Scientists call it scat. Look, but never touch!',
 ];
 
-export const STEP_LINES: Record<string, Voiced> = {
-  picture: both('How do you want to remember it?', 'How do you want to remember it?'),
-  category: both('Ooh! What did you find?', 'Ooh! What did you find?'),
-  colours: both('What colours is it? Tap all the colours you see.', 'What colours is it? Tap all the colours you see.'),
-  size: both('How big is it? Bigger than me?', 'How big is it? Bigger than me?'),
-  count: both('How many did you see?', 'How many did you see?'),
-  tell: both('Tell me all about it! What did you notice?', 'Tell me about it! I am all ears. Well, I have no ears.'),
+const STEP: Record<string, string> = {
+  picture: 'How do you want to remember it? Add as many photos and drawings as you like!',
+  category: 'Ooh! What did you find?',
+  sign: 'What clue did the animal leave?',
+  species: 'Do you know what it is called?',
+  colours: 'What colours is it? Tap all the colours you see.',
+  size: 'How big is it?',
+  count: 'How many did you see?',
+  where: 'Where did you find it?',
+  tell: 'Tell me all about it! What did you notice?',
 };
 
 const STEP_POSES: Record<string, Expression> = {
-  picture: 'hello', category: 'think', colours: 'point', size: 'excited', count: 'think', tell: 'listen',
+  picture: 'hello', category: 'think', sign: 'think', species: 'think', colours: 'point', size: 'excited', count: 'think', where: 'point', tell: 'listen',
 };
 
-const CHEER: Voiced[] = [
-  both('Squeak squeak! Great find!', 'Ribbit ribbit! Great find!'),
-  both('Whisker-licious!', 'Toad-ally awesome!'),
-  both('You are a super explorer!', 'You are a hop-tastic explorer!'),
-];
+export const STEP_LINES = STEP;
 
-export function greet(b: Buddy, rand = Math.random): Line {
-  return { text: pick(GREET, rand)[b], pose: 'hello' };
+export function greet(g: GuideId, rand = Math.random): Line {
+  return { text: pick(GREET, rand)(g), pose: 'hello' };
 }
 
-export function tip(b: Buddy, rand = Math.random): Line {
-  return { text: pick(TIPS, rand)[b], pose: rand() < 0.5 ? 'point' : 'wink' };
+export function tip(_g: GuideId, rand = Math.random): Line {
+  return { text: pick(TIPS, rand), pose: rand() < 0.5 ? 'point' : 'wink' };
 }
 
-export function stepLine(b: Buddy, step: string): Line {
-  return { text: (STEP_LINES[step] ?? STEP_LINES.picture)[b], pose: STEP_POSES[step] ?? 'hello' };
+export function stepLine(_g: GuideId, step: string): Line {
+  return { text: STEP[step] ?? STEP.picture, pose: STEP_POSES[step] ?? 'hello' };
 }
 
-export function cheer(b: Buddy, rand = Math.random): Line {
-  return { text: pick(CHEER, rand)[b], pose: 'success' };
-}
-
-export function emptyBook(b: Buddy): Line {
-  return { text: b === 'rat' ? 'No stickers yet! Let\'s go find something.' : 'No stickers yet! Let\'s hop out and find something.', pose: 'confused' };
+export function cheer(g: GuideId, rand = Math.random): Line {
+  const lines = [`${sound(g)}! Great find!`, 'You are a super explorer!', 'Wow, what a find!'];
+  return { text: pick(lines, rand), pose: 'success' };
 }
 
 function pick<T>(list: T[], rand: () => number): T {

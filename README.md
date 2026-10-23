@@ -11,9 +11,17 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
 ## What it does
 
 - **Map**: a big-button map with "Where am I?", every find as a pin, and a dotted trail of today's walk.
-- **"I found something!"**: take a photo or draw a picture, pick what it is (bird, bug, plant, tree,
-  flower, animal, rock, water, sky, mystery), tap its colours, say how big it is and how many there were,
-  and record a voice note. Pip or Hop asks each question out loud.
+- **"I found something!"**: add as many photos and drawings as you like, pick what it is (bird, bug, plant,
+  tree, flower, animal, tracks & scat, rock, water, sky, mystery), name the species if you know it, tap its
+  colours, say how big it is and how many there were, choose where it goes (where you stood by GPS, a spot
+  tapped on the map, or nowhere), and record a voice note. Your guide asks each question out loud.
+  Every find can be changed later.
+- **Species names** come from the Nova Scotia ACCDC lists in Fraxinus Field Mapper (about 6,400 species,
+  with big buttons for familiar ones). Grown-ups can import more lists from Field Mapper or a CSV.
+- **Explorers**: several profiles on one device, each with a name, an "about me", a photo or animal
+  picture, Explorer or Together mode, their own finds, hunts and badges, and their own guide — any of
+  the eight characters, renamed if they like.
+- **Map styles**: streets, satellite or hybrid.
 - **Sticker book**: every find as a sticker, filtered by kind, with favourites.
 - **Scavenger hunts**: eight ready-made hunts (Backyard, Rainbow, Forest, Pond & Stream, Tiny Things,
   Five Senses, Beach, Flower). A find ticks the items it matches; the explorer can tick others
@@ -24,7 +32,7 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
   Bandit the raccoon hides the daily challenges. Tap the name at the top of the map to meet them.
 - **Tick check**: when a hunt ends, or any time from 🏠 on the map, Bramble walks the explorer through
   the places ticks hide, with a grown-ups' guide to checking and removing a tick.
-- **Badges**: 26 badges for exploring, collecting, drawing, telling stories and finishing hunts.
+- **Badges**: 28 badges for exploring, collecting, drawing, telling stories and finishing hunts.
 - **Two modes**, chosen on first launch and changeable in the Grown-up corner:
   - *Explorer mode*: a child on their own. Big pictures, everything read aloud, no typing; deleting
     finds and settings need a grown-up.
@@ -38,8 +46,8 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
 
 Everything stays on the device, in the browser's IndexedDB: finds, photos, voice notes, locations and
 walks. There is no account, no sync and no analytics. The only network use is the map itself: map
-pictures come from [OpenFreeMap](https://openfreemap.org) (OpenStreetMap data), which sees which part
-of the map is being looked at, as any web map does. With no network the map turns plain green and
+pictures come from [OpenFreeMap](https://openfreemap.org) (OpenStreetMap data) and, for satellite and
+hybrid, Esri World Imagery; those services see which part of the map is being looked at, as any web map does. With no network the map turns plain green and
 everything else keeps working; places already viewed are cached.
 
 ## Development

@@ -1,5 +1,5 @@
-import type { CategoryId, Find, Settings } from './types.ts';
-import { CATEGORIES, COLOURS, COUNTS, SIZES, categoryOf } from './categories.ts';
+import type { CategoryId, Find, Profile, Settings } from './types.ts';
+import { CATEGORIES, COLOURS, COUNTS, SIGNS, SIZES, categoryOf } from './categories.ts';
 import { askYesNo, blobUrl, h, openSheet, whenWords } from './ui.ts';
 import { say } from './speech.ts';
 import { sounds } from './sound.ts';
@@ -8,7 +8,7 @@ import { badgeProgress, toBadgeFind, type BadgeProgress } from './badges.ts';
 import { challengesFor, completedChallenges, type Challenge } from './challenges.ts';
 import { localDay } from './geo.ts';
 import { askGrownUp } from './gateView.ts';
-import { buddySays, crewSays, critterFigure } from './buddyView.ts';
+import { buddySays, crewSays, critterFigure, nameOf } from './buddyView.ts';
 import { CRITTERS, critterSvg } from './critters.ts';
 import { CAST } from './cast.ts';
 import { cheer } from './buddyLines.ts';
@@ -16,6 +16,9 @@ import type { HuntItem, HuntRun } from './hunts.ts';
 
 export interface ScreenHost {
   settings: Settings;
+  profile: Profile;
+  /** Opens the capture flow on a saved find to change it. */
+  editFind: (f: Find) => void;
   finds: () => Find[];
   showOnMap: (f: Find) => void;
   remove: (f: Find) => Promise<void>;
@@ -35,7 +38,7 @@ export interface HuntNews {
 }
 
 function pictureOf(f: Find, owner: Element, cls: string): HTMLElement {
-  const blob = f.thumb ?? f.photo ?? f.drawing;
+  const blob = f.thumb ?? f.pictures[0]?.blob;
   const cat = categoryOf(f.category);
   if (blob) {
     const img = h('img', { class: cls, alt: f.nickname || cat.label });
@@ -53,14 +56,18 @@ export function celebrate(host: ScreenHost, f: Find, newBadges: BadgeProgress[],
   const sticker = h('div', { class: 'big-sticker', style: `--cat:${cat.colour}` });
   body.append(sticker);
   sticker.append(pictureOf(f, sticker, 'big-sticker-pic'), h('span', { class: 'big-sticker-emoji' }, cat.emoji));
-  const what = f.nickname ? `You found ${f.nickname}!` : `You found ${/^[aeiou]/i.test(cat.label) ? 'an' : 'a'} ${cat.label.toLowerCase()}!`;
-  const buddy = host.settings.buddy;
+  const an = (w: string) => (/^[aeiou]/i.test(w) ? 'an' : 'a');
+  const what = f.nickname ? `You found ${f.nickname}!`
+    : f.category === 'sign' ? (f.species ? `You found ${f.species.name} clues!` : 'You found animal clues!')
+    : f.species ? `You found ${an(f.species.name)} ${f.species.name}!`
+    : `You found ${an(cat.label)} ${cat.label.toLowerCase()}!`;
+  const buddy = host.profile.guide;
   const hooray = cheer(buddy);
   body.append(
     buddySays(buddy, { text: `${hooray.text} ${what}`, pose: hooray.pose }, { quiet: true, big: true }),
     crewSays('owl', { text: `Hoo! Did you know? ${fact}`, pose: 'point' }, { quiet: true }),
   );
-  if (!locatedOk) body.append(h('p', { class: 'hint' }, '📍 I could not tell where you were, so this one is not on the map.'));
+  if (!locatedOk) body.append(h('p', { class: 'hint' }, '📖 This one is in your sticker book, but not on the map.'));
   if (hunt) {
     for (const i of hunt.ticked) {
       body.append(h('div', { class: 'win-card hunt' }, h('span', { class: 'win-emoji' }, i.emoji), h('p', {}, `Hunt: ${i.text}. Found it!`)));
@@ -94,13 +101,15 @@ export function celebrate(host: ScreenHost, f: Find, newBadges: BadgeProgress[],
 /** The sticker book: every find as a sticker, filtered by kind. */
 export function openBook(host: ScreenHost, start?: CategoryId): void {
   const { body, close } = openSheet({ title: 'My Finds', emoji: '📖', className: 'book' });
+  void close;
   let filter: CategoryId | 'all' | 'fav' = start ?? 'all';
   const chips = h('div', { class: 'chips' });
   const grid = h('div', { class: 'sticker-grid' });
   const counts = new Map<string, number>();
-  for (const f of host.finds()) counts.set(f.category, (counts.get(f.category) ?? 0) + 1);
 
   const paint = () => {
+    counts.clear();
+    for (const f of host.finds()) counts.set(f.category, (counts.get(f.category) ?? 0) + 1);
     chips.replaceChildren(
       h('button', { class: `chip ${filter === 'all' ? 'on' : ''}`, onclick: () => { filter = 'all'; paint(); } }, `🌍 All ${host.finds().length}`),
       h('button', { class: `chip ${filter === 'fav' ? 'on' : ''}`, onclick: () => { filter = 'fav'; paint(); } }, '❤️'),
@@ -133,24 +142,37 @@ export function openBook(host: ScreenHost, start?: CategoryId): void {
   }
   body.append(chips, grid);
   paint();
+  // An edit or a delete made from a find opened here redraws the book behind it.
+  const onChanged = () => (grid.isConnected ? paint() : window.removeEventListener(FINDS_CHANGED, onChanged));
+  window.addEventListener(FINDS_CHANGED, onChanged);
 }
+
+/** Fired on window whenever the finds on screen change. */
+export const FINDS_CHANGED = 'scout-finds-changed';
 
 /** One find, large: its picture, its sound, and what was noticed. */
 export function openFind(host: ScreenHost, id: string, onChange?: () => void): void {
   const f = host.finds().find(x => x.id === id);
   if (!f) return;
-  const together = host.settings.mode === 'together';
+  const together = host.profile.mode === 'together';
   const cat = categoryOf(f.category);
   const { body, close } = openSheet({ title: f.nickname || cat.label, emoji: cat.emoji, className: 'detail' });
-  const pic = f.photo ?? f.drawing;
-  if (pic) {
-    const img = h('img', { class: 'detail-pic', alt: f.nickname || cat.label });
-    body.append(img);
-    img.src = blobUrl(pic, img);
+  if (f.pictures.length) {
+    const strip = h('div', { class: `detail-pics ${f.pictures.length > 1 ? 'many' : ''}` });
+    body.append(strip);
+    f.pictures.forEach((p, i) => {
+      const img = h('img', { class: 'detail-pic', alt: `${p.kind === 'photo' ? 'Photo' : 'Drawing'} ${i + 1} of ${f.pictures.length}` });
+      strip.append(img);
+      img.src = blobUrl(p.blob, img);
+    });
+    if (f.pictures.length > 1) body.append(h('p', { class: 'hint center' }, `👉 Swipe to see all ${f.pictures.length} pictures`));
   } else {
     body.append(h('div', { class: 'detail-emoji', style: `--cat:${cat.colour}` }, cat.emoji));
   }
   const facts: HTMLElement[] = [h('li', {}, `🕒 ${whenWords(f.createdAt)}`)];
+  if (f.species) facts.push(h('li', {}, `📚 ${f.species.name}`, f.species.scientific ? h('span', { class: 'latin' }, ` ${f.species.scientific}`) : null));
+  const sign = SIGNS.find(x => x.id === f.sign);
+  if (sign) facts.push(h('li', {}, `${sign.emoji} ${sign.label}`));
   if (f.colours.length) {
     facts.push(h('li', { class: 'colour-dots' }, '🎨 ', ...f.colours.map(c => {
       const col = COLOURS.find(x => x.id === c)!;
@@ -190,11 +212,13 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void): v
     if (f.favourite) { sounds.pick(); say('One of my favourites!'); }
     onChange?.();
   });
-  const row = h('div', { class: 'ask-row' }, fav);
-  if (typeof f.lat === 'number') {
-    row.append(h('button', { class: 'big-btn soft', onclick: () => { document.querySelectorAll('.sheet').forEach(s => s.remove()); host.showOnMap(f); } }, '🗺️ Show on map'));
-  }
+  const row = h('div', { class: 'ask-row' }, fav,
+    h('button', { class: 'big-btn soft', onclick: () => { close(); host.editFind(f); } }, '✏️ Change it'));
   body.append(row);
+  if (typeof f.lat === 'number') {
+    body.append(h('button', { class: 'big-btn soft', onclick: () => { document.querySelectorAll('.sheet').forEach(x => x.remove()); host.showOnMap(f); } }, '🗺️ Show on map'));
+  }
+  if (f.editedAt) body.append(h('p', { class: 'hint center' }, `Changed ${whenWords(f.editedAt).toLowerCase()}`));
   const del = h('button', { class: 'text-btn danger' }, '🗑️ Throw away this find');
   del.addEventListener('click', async () => {
     const ok = together
@@ -264,17 +288,17 @@ export function openChallenges(host: ScreenHost): void {
 /** Meet the crew: who looks after what. */
 export function openCrew(host: ScreenHost): void {
   const { body } = openSheet({ title: 'My Explorer Crew', emoji: '🌲', className: 'crew' });
-  const buddy = host.settings.buddy;
-  body.append(buddySays(buddy, { text: buddy === 'rat' ? 'I am Pip, your buddy! Meet my friends. Tap anyone to say hi.' : 'I am Hop, your buddy! Meet my friends. Tap anyone to say hi.', pose: 'hello' }));
+  const g = host.profile.guide;
+  body.append(buddySays(g, { text: `I am ${nameOf(g)}, your guide! Meet the crew. Tap anyone to say hi.`, pose: 'hello' }));
   const grid = h('div', { class: 'crew-grid' });
   for (const c of CRITTERS) {
     const m = CAST[c];
     const card = h('button', { class: 'crew-card', onclick: () => {
-      say(m.intro);
+      say(m.intro.replace(m.name, nameOf(c)));
       const fig = card.querySelector('.crew-fig') as HTMLElement;
       fig.innerHTML = critterSvg(c, 'excited');
       setTimeout(() => { fig.innerHTML = critterSvg(c, 'hello'); }, 1800);
-    } }, critterFigure(c, 'hello', 'buddy-fig crew-fig'), h('strong', {}, m.name), h('span', { class: 'crew-role' }, m.role), h('span', { class: 'crew-home' }, m.home));
+    } }, critterFigure(c, 'hello', 'buddy-fig crew-fig'), h('strong', {}, nameOf(c)), h('span', { class: 'crew-role' }, m.role), h('span', { class: 'crew-home' }, m.home), c === g ? h('span', { class: 'crew-yours' }, '⭐ Your guide') : null);
     grid.append(card);
   }
   body.append(grid);
