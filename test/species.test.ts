@@ -49,3 +49,10 @@ test('merging keeps the first of a duplicate', () => {
   const b = [{ n: 'moose', t: 'Mammal', s: 'Alces alces' }, { n: 'Elk', t: 'Mammal' }];
   assert.deepEqual(mergeLists(a, b).map(s => s.n), ['Moose', 'Elk']);
 });
+
+test('mushrooms have their own list, and fungi left the plant list', () => {
+  const m = searchSpecies(ns.species, 'mushroom', 'amanita', 100);
+  assert.ok(m.length > 10);
+  assert.ok(m.every(s => s.t === 'Fungus'));
+  assert.ok(searchSpecies(ns.species, 'plant', 'amanita', 100).every(s => s.t !== 'Fungus'));
+});

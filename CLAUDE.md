@@ -48,12 +48,13 @@ There is no linter; `tsc` is the gate.
 | `tickGuide.ts`, `tickScreen.ts` | The end-of-adventure tick check and the grown-ups' how-to (CDC / Health Canada advice; general information, not medical advice). |
 | `look.ts`, `lookApply.ts`, `lookScreen.ts` | "My look", per explorer (`Profile.look`, absence = default), nine switches: colours (eleven themes), buttons (Bubbly · Sticker · Flat · Jelly · Outline · Pixel · Pop — each reshapes every control's edge, corners, shadow, fill and lettering), background pattern, top strip, map pins, celebrations (read by `confetti.ts` from `data-party`), word size, letters, moving. Each but the celebration is one `data-` attribute on `<html>`; its CSS (the LOOKS block at the foot of `styles.css`) only re-points tokens or restyles the controls list. Every picker card shows its own choice (`.bs-btn[data-bs]`, `[data-pat]`, `[data-hd]`, `[data-pn]` samples, never one of the real controls), so a new choice needs both blocks (tested). A withdrawn id folds forever in `normalizeLook` (`blocky` → `pixel`). "Surprise me" randomises all but word size and moving. Kids change it themselves — no gate. **Field Journal** (`journal`, an `art` theme) is a whole look, not a palette: paper and ink-frame data URIs, stitched buttons, field-note bubbles, a sepia map, and a plate from the "Scout the Survey Squirrel" storybook taped to the top of each screen (`src/assets/journal/*.webp`, cropped from Fraxinus's own pages, precached; one per sheet `className`, tested to exist). Its block sits BEFORE the button styles so a chosen button style still wins, and `withTheme` brings the Storybook letters only over the default ones. |
 | `walk.ts`, `recorder.ts`, `walkScreens.ts` | "Record my path": streamed GPS fixes kept only where they are movement (`judgePoint`: ≤ 35 m accuracy, ≥ 5 m step, no faster than 12 m/s), saved every few seconds as the path grows, optional screen wake lock; a path left recording when the app closed ends at its last point (`closeOrphan`). Saved paths draw purple, the live one orange. Distinct from the automatic daily trail (`trail.ts`). |
+| `compass.ts`, `heading.ts` | The 🧭 facing arrow on the map. Ported from Field Mapper's `OrientationManager` + orientation marker: iOS `webkitCompassHeading`, else an absolute event's `360 − alpha`; `deviceorientationabsolute` with a fall-back to `deviceorientation`. GPS `coords.heading` is course of TRAVEL (null standing still), so it is never used. `heading.ts` is the pure half (reading, short-way smoothing, compass words). The arrow is its own map-aligned marker (`MapView.setFacing`). iOS asks permission only from a tap, so a remembered "on" (`Settings.compass`, device-wide) starts on the first touch. No declination model, as in Field Mapper. |
 | `speech.ts`, `voiceRank.ts` | Reading aloud with the device's own voices (never a network voice service): `pickVoice` chooses the best-sounding installed English voice (natural / neural / enhanced, Canadian first, never novelty voices) unless a grown-up chose one in the Grown-up corner. The 🔊/🔇 button on the map switches reading aloud. |
 | `voice.ts`, `drawPad.ts`, `image.ts`, `speech.ts`, `sound.ts`, `confetti.ts`, `gps.ts`, `trail.ts`, `exportData.ts` | One job each. |
 
 **Pure, DOM-free and unit-tested:** `badges.ts`, `challenges.ts`, `hunts.ts`, `gate.ts`, `csv.ts`,
 `geo.ts`, `categories.ts`, `buddies.ts`, `buddyLines.ts`, `critters.ts`, `cast.ts`, `tickGuide.ts`, `guides.ts`,
-`findModel.ts`, `species.ts`, `familiar.ts`, `ids.ts`, `walk.ts`, `voiceRank.ts`, `look.ts`, `tiers.ts`, `sproutArt.ts`. Keep logic there and the DOM out of them.
+`findModel.ts`, `species.ts`, `familiar.ts`, `ids.ts`, `walk.ts`, `voiceRank.ts`, `heading.ts`, `look.ts`, `tiers.ts`, `sproutArt.ts`. Keep logic there and the DOM out of them.
 
 ## Species lists
 
@@ -62,6 +63,10 @@ There is no linter; `tsc` is the gate.
 hand-edit. It keeps named species, drops accidental / doubtful / unconfirmed / false-report / absent / hybrid records
 and unranked (SU) invertebrates, and folds subspecies by common name. It is precached so naming works offline. A
 grown-up can also import any Field Mapper `db-*.json` file or a CSV (Grown-up corner ▸ Species lists).
+
+**Mushrooms** are their own kind (`mushroom`, list taxon `Fungus` — the ~585 named macrofungi in `ns.json`, which used to sit
+under Plant). They are deliberately NOT in `badges.COLLECTABLE`: badges are derived, so adding a kind to "One of
+Everything" would take that badge away from every explorer who already earned it. Every mushroom line says never eat one.
 
 ## Rules
 

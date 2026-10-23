@@ -30,6 +30,16 @@ async function pickStyle(): Promise<string | StyleSpecification> {
   }
 }
 
+/**
+ * The facing arrow: Field Mapper's chevron (MapManager.orientationArrowSvg), bigger and with a soft
+ * wedge behind it, drawn in the explorer's accent (currentColor). Centred on (80,80), pointing north at 0°.
+ * Our own constant markup, the one kind of innerHTML this app allows.
+ */
+const FACING_SVG = `<svg viewBox="0 0 160 160" width="168" height="168" aria-hidden="true">
+  <path d="M80 80 L46 16 A72 72 0 0 1 114 16 Z" fill="currentColor" fill-opacity="0.22"/>
+  <path d="M80 2 L100 40 L80 31 L60 40 Z" fill="currentColor" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
+</svg>`;
+
 export class MapView {
   map!: MlMap;
   private me: Marker | null = null;
@@ -131,10 +141,40 @@ export class MapView {
   }
 
   private mePhotoUrl: string | null = null;
+  private facing: maplibregl.Marker | null = null;
+  private facingDeg: number | null = null;
+  private meAt: [number, number] | null = null;
+
+  /**
+   * The arrow showing which way the explorer faces, or null to take it away.
+   * Its own marker, centred on the explorer and aligned to the MAP (Field
+   * Mapper's orientation marker), so it keeps pointing at the real direction
+   * when the map turns. Added only once there is a fix: a marker cannot be put
+   * on the map before it has somewhere to be.
+   */
+  setFacing(deg: number | null): void {
+    this.facingDeg = deg;
+    if (deg == null) {
+      this.facing?.remove();
+      this.facing = null;
+      return;
+    }
+    if (!this.facing && this.meAt) {
+      const el = document.createElement('div');
+      el.className = 'facing-marker';
+      el.innerHTML = FACING_SVG;
+      this.facing = new maplibregl.Marker({ element: el, anchor: 'center', rotationAlignment: 'map', pitchAlignment: 'map' })
+        .setLngLat(this.meAt).addTo(this.map);
+    }
+    this.facing?.setRotation(deg);
+  }
 
   showMe(fix: Fix): void {
     if (!this.me) return;
     this.me.setLngLat([fix.lon, fix.lat]);
+    this.meAt = [fix.lon, fix.lat];
+    if (this.facing) this.facing.setLngLat(this.meAt);
+    else if (this.facingDeg != null) this.setFacing(this.facingDeg);
     if (!this.me.getElement().isConnected) this.me.addTo(this.map);
     if (!this.followed) {
       this.followed = true;

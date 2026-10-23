@@ -1,7 +1,7 @@
 /** How the app talks to whoever is holding it. */
 export type Mode = 'explorer' | 'together';
 
-export type CategoryId = 'bird' | 'bug' | 'plant' | 'tree' | 'flower' | 'animal' | 'sign' | 'rock' | 'water' | 'sky' | 'mystery';
+export type CategoryId = 'bird' | 'bug' | 'plant' | 'tree' | 'flower' | 'animal' | 'mushroom' | 'sign' | 'rock' | 'water' | 'sky' | 'mystery';
 
 export type SizeId = 'tiny' | 'small' | 'medium' | 'big' | 'huge';
 export type CountId = 'one' | 'few' | 'lots';
@@ -108,6 +108,8 @@ export interface Settings {
   walksOnMap: boolean;
   /** Keep the screen on while a path records (a phone stops GPS when it sleeps). */
   keepAwake: boolean;
+  /** Show an arrow on the map pointing the way the explorer is facing (the device compass). */
+  compass: boolean;
   /** The speech voice a grown-up chose; absent = the best one installed. */
   voiceURI?: string;
 }
@@ -121,6 +123,7 @@ export const DEFAULT_SETTINGS: Settings = {
   trail: true,
   tickReminder: true,
   basemap: 'streets',
+  compass: false,
 };
 
 /** Pre-profile settings, as version 1 stored them: read once, by the migration. */

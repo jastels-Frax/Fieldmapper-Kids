@@ -28,6 +28,7 @@ const POOL: Challenge[] = [
   { id: 'draw', emoji: '🎨', text: 'Draw a picture of a find', test: f => !!f.hasDrawing },
   { id: 'voice', emoji: '🎤', text: 'Tell a story about a find', test: f => !!f.hasVoice },
   { id: 'mystery', emoji: '❓', text: 'Find a mystery', test: f => f.category === 'mystery' },
+  { id: 'mushroom', emoji: '🍄', text: 'Find a mushroom (look, never eat!)', test: f => f.category === 'mushroom' },
   { id: 'sign', emoji: '🐾', text: 'Find an animal track or clue', test: f => f.category === 'sign' },
   { id: 'species', emoji: '📚', text: 'Find out what something is called', test: f => !!f.species },
 ];

@@ -22,6 +22,10 @@ const FLOWERS = ['Common Dandelion', 'White Clover', 'Red Clover', 'Oxeye Daisy'
   "Queen Anne's Lace", 'Rugosa Rose', 'Sheep Laurel', 'Wild Lily-of-The-Valley', 'Painted Trillium'];
 const PLANTS = ['Cinnamon Fern', 'Eastern Bracken Fern', 'Broad-leaved Cattail', 'Common Juniper', 'Common Labrador Tea',
   'Partridgeberry', 'British Soldiers Lichen', 'Reindeer Lichen'];
+const MUSHROOMS = ['Fly Amanita', 'Turkey Tail', 'Chicken of the Woods', "Artist's Bracket", 'Tinder Conk', 'Birch Polypore',
+  'Giant Puffball', 'Pear-shaped Puffball', 'Shaggy Mane', 'Honey Fungus', 'Oyster Mushroom', "Witch's Butter",
+  'Orange Peel Fungus', "Dead Man's Fingers", 'Common Morel', 'Lobster Mushroom', 'Fairy Ring Mushroom', 'Slippery Jack',
+  'Candlesnuff Fungus', 'Common Earthball'];
 const BUGS = ['Monarch', 'Mourning Cloak', 'Cabbage White', 'Canadian Tiger Swallowtail', 'Red Admiral', 'Painted Lady',
   'American Lady', 'Viceroy', 'White Admiral', 'Clouded Sulphur', 'Common Green Darner', 'Ebony Jewelwing',
   'Seven-spotted Lady Beetle', 'Common Eastern Bumble Bee', 'European Honey Bee'];
@@ -34,5 +38,6 @@ export const FAMILIAR: Partial<Record<CategoryId, string[]>> = {
   flower: FLOWERS,
   plant: [...PLANTS, ...TREES.slice(0, 4), ...FLOWERS.slice(0, 4)],
   bug: BUGS,
+  mushroom: MUSHROOMS,
   water: ['Green Frog', 'Spring Peeper', 'Painted Turtle', 'Snapping Turtle', 'Mallard', 'Common Loon', 'Great Blue Heron', 'Common Green Darner'],
 };

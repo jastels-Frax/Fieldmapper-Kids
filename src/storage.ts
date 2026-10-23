@@ -140,6 +140,7 @@ export async function loadSettings(): Promise<Settings> {
     pathRecording: s?.pathRecording ?? DEFAULT_SETTINGS.pathRecording,
     walksOnMap: s?.walksOnMap ?? DEFAULT_SETTINGS.walksOnMap,
     keepAwake: s?.keepAwake ?? DEFAULT_SETTINGS.keepAwake,
+    compass: s?.compass ?? DEFAULT_SETTINGS.compass,
     ...(s?.voiceURI ? { voiceURI: s.voiceURI } : {}),
   };
 }

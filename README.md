@@ -12,7 +12,7 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
 
 - **Map**: a big-button map with "Where am I?", every find as a pin, and a dotted trail of today's walk.
 - **"I found something!"**: add as many photos and drawings as you like, pick what it is (bird, bug, plant,
-  tree, flower, animal, tracks & scat, rock, water, sky, mystery), name the species if you know it, tap its
+  tree, flower, animal, mushroom, tracks & scat, rock, water, sky, mystery), name the species if you know it, tap its
   colours, say how big it is and how many there were, choose where it goes (where you stood by GPS, a spot
   tapped on the map, or nowhere), and record a voice note. Your guide asks each question out loud.
   Every find can be changed later.
@@ -22,6 +22,8 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
   picture, Explorer or Together mode, their own finds, hunts and badges, and their own guide — any of
   the eight characters, renamed if they like.
 - **Map styles**: streets, satellite or hybrid.
+- **Which way am I facing?** (🧭): an arrow on the map turns with the device compass (iPhone/iPad ask permission
+  once). It reads the phone's own compass, so no data leaves the device.
 - **Record my path** (👣): streams GPS into a saved path with live distance and time, can keep the screen
   awake while recording, and keeps every path to see on the map, list and export. The button and the
   paths on the map can each be switched off in the Grown-up corner.

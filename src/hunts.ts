@@ -87,7 +87,7 @@ export const ITEM_LIBRARY: HuntItem[] = [
   item('hole', '🕳️', 'A hole where something lives'),
   item('web', '🕸️', 'A spider web'),
   item('shell', '🐚', 'A shell'),
-  item('mushroom', '🍄', 'A mushroom (look, don\'t touch!)'),
+  item('mushroom', '🍄', 'A mushroom (look, don\'t touch!)', { category: 'mushroom' }),
   item('sound', '👂', 'Something that makes a sound'),
   item('seed', '🌱', 'A seed'),
   item('stick', '🥢', 'A stick longer than your arm'),

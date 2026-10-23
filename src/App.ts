@@ -34,6 +34,8 @@ import { applyLook } from './lookApply.ts';
 import { tierOf } from './tiers.ts';
 import { openLook } from './lookScreen.ts';
 import { openBasemapPicker } from './basemapPicker.ts';
+import { Compass } from './compass.ts';
+import { compassWord, smoothHeading } from './heading.ts';
 
 export class App {
   private settings!: Settings;
@@ -58,6 +60,9 @@ export class App {
   private recChip!: HTMLElement;
   private recTimer: number | undefined;
   private recorder = new PathRecorder();
+  private compass = new Compass();
+  private compassBtn!: HTMLElement;
+  private facingDeg: number | null = null;
   private everyWalk: Walk[] = [];
   private walks: Walk[] = [];
 
@@ -154,6 +159,73 @@ export class App {
     sounds.tap();
     say('Reading aloud is on!');
     toast(this.settings.readAloud ? '🔊 Reading aloud is on' : '🔇 Reading aloud is off');
+  }
+
+  // ── Which way am I facing? ────────────────────────────────────
+
+  /** Turns the facing arrow on or off. On iPhones and iPads the compass asks permission, so this must run from a tap. */
+  private async toggleCompass(): Promise<void> {
+    sounds.tap();
+    if (this.settings.compass) {
+      this.stopCompass();
+      this.settings = { ...this.settings, compass: false };
+      await saveSettings(this.settings);
+      say('Arrow off.');
+      toast('🧭 Arrow off');
+      this.paintCompass();
+      return;
+    }
+    if (!(await this.startCompass())) {
+      say('This device will not share its compass.');
+      toast('🧭 No compass here. A grown-up can allow motion and orientation in the settings.');
+      return;
+    }
+    this.settings = { ...this.settings, compass: true };
+    await saveSettings(this.settings);
+    say('Now the arrow shows which way you are facing! Turn around and watch it.');
+    toast('🧭 The arrow shows which way you face');
+    this.paintCompass();
+    // A laptop has no compass but still says yes: tell the explorer rather than show nothing.
+    setTimeout(() => {
+      if (this.settings.compass && this.compass.running && !this.compass.hasReading) toast('🧭 Hmm, this device does not seem to have a compass.');
+    }, 3500);
+  }
+
+  private async startCompass(): Promise<boolean> {
+    let word = '';
+    this.compass.onHeading = deg => {
+      this.facingDeg = smoothHeading(this.facingDeg, deg);
+      this.map.setFacing(this.facingDeg);
+      if (compassWord(this.facingDeg) !== word) { word = compassWord(this.facingDeg); this.paintCompass(); }
+    };
+    return this.compass.start();
+  }
+
+  private stopCompass(): void {
+    this.compass.stop();
+    this.facingDeg = null;
+    this.map.setFacing(null);
+  }
+
+  /**
+   * At launch. Where the compass asks permission (iOS) it can only be asked from a tap, so a
+   * remembered "on" waits for the explorer's first touch anywhere — Field Mapper keeps it armed
+   * until the next tap of its button; here any tap will do.
+   */
+  private resumeCompass(): void {
+    if (!this.settings.compass) return;
+    if (!Compass.needsPermission()) { void this.startCompass(); return; }
+    const once = () => { void this.startCompass(); };
+    document.addEventListener('pointerup', once, { once: true });
+  }
+
+  private paintCompass(): void {
+    const on = this.settings.compass;
+    this.compassBtn.classList.toggle('on', on);
+    this.compassBtn.setAttribute('aria-pressed', String(on));
+    this.compassBtn.setAttribute('aria-label', on
+      ? `Arrow on${this.facingDeg != null ? `, you are facing ${compassWord(this.facingDeg)}` : ''}. Tap to turn it off`
+      : 'Show which way I am facing');
   }
 
   // ── Recording a path ──────────────────────────────────────────
@@ -260,6 +332,7 @@ export class App {
       if (this.map.goToMe(lastFix())) { sounds.tap(); say('Here you are!'); } else say('I am still looking for you.');
     } }, '📍');
     this.modeBtn = h('button', { class: 'round-btn mode-btn', onclick: () => void this.toggleMode() });
+    this.compassBtn = h('button', { class: 'round-btn compass-btn', onclick: () => void this.toggleCompass() }, '🧭');
     const layers = h('button', { class: 'round-btn', 'aria-label': 'Map style: streets, satellite or hybrid', onclick: () => openBasemapPicker(this.settings.basemap, async b => {
       this.settings = { ...this.settings, basemap: b };
       this.map.setBasemap(b);
@@ -269,7 +342,7 @@ export class App {
       h('div', { id: 'map' }),
       h('header', { class: 'top-bar' }, this.hello, this.starBtn, this.huntChip, this.soundBtn, lock),
       this.recChip,
-      h('div', { class: 'side-btns' }, me, layers, this.modeBtn, this.recBtn,
+      h('div', { class: 'side-btns' }, me, this.compassBtn, layers, this.modeBtn, this.recBtn,
         h('button', { class: 'round-btn', 'aria-label': 'Scavenger hunts', onclick: () => this.openHuntsScreen() }, '🔎'),
         h('button', { class: 'round-btn', 'aria-label': 'Done exploring: tick check', onclick: () => void this.endAdventure() }, '🏠')),
       this.dock.el,
@@ -283,6 +356,8 @@ export class App {
     );
     this.applySettingsToChrome();
     this.applyAudio();
+    this.paintCompass();
+    this.resumeCompass();
   }
 
   private helloText(): string {

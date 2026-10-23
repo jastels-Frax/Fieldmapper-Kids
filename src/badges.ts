@@ -58,6 +58,7 @@ const RULES: BadgeRule[] = [
   { id: 'flowers', emoji: '🌸', title: 'Flower Power', how: 'Find 5 flowers.', target: 5, measure: f => count(f, 'flower') },
   { id: 'rocks', emoji: '🪨', title: 'Rock Collector', how: 'Find 5 rocks.', target: 5, measure: f => count(f, 'rock') },
   { id: 'animals', emoji: '🐿️', title: 'Animal Tracker', how: 'Find 5 animals.', target: 5, measure: f => count(f, 'animal') },
+  { id: 'mushrooms', emoji: '🍄', title: 'Mushroom Spotter', how: 'Find 3 mushrooms. Look, but never eat them!', target: 3, measure: f => count(f, 'mushroom') },
   { id: 'signs', emoji: '🐾', title: 'Track Detective', how: 'Find 3 animal tracks or other clues.', target: 3, measure: f => count(f, 'sign') },
   {
     id: 'species', emoji: '📚', title: 'Species Spotter', how: 'Name 5 different species.', target: 5,
