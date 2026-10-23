@@ -1,5 +1,6 @@
 /** A burst of confetti over everything, for a moment. */
 export function confetti(emojis: string[] = []): void {
+  if (document.documentElement.dataset.motion === 'calm' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const canvas = document.createElement('canvas');
   canvas.className = 'confetti';
   const dpr = Math.min(2, window.devicePixelRatio || 1);

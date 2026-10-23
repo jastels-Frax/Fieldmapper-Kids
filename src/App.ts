@@ -30,6 +30,8 @@ import { localDay } from './geo.ts';
 import { guideName, normalizeGuide } from './guides.ts';
 import { openProfiles, profileFace, type ProfileHost } from './profiles.ts';
 import { pickOnMap } from './mapPicker.ts';
+import { applyLook } from './lookApply.ts';
+import { openLook } from './lookScreen.ts';
 import { openBasemapPicker } from './basemapPicker.ts';
 
 export class App {
@@ -290,6 +292,7 @@ export class App {
 
   private applySettingsToChrome(): void {
     document.documentElement.dataset.mode = this.profile.mode;
+    applyLook(this.profile.look);
     const together = this.profile.mode === 'together';
     this.modeBtn.textContent = together ? '👨‍👧' : '🧒';
     this.modeBtn.setAttribute('aria-label', together ? 'Together mode is on. Tap for Explorer mode' : 'Explorer mode is on. Tap for Together mode');
@@ -534,6 +537,7 @@ export class App {
       },
       openCrew: () => openCrew(this.screenHost()),
       toggleMode: () => this.toggleMode(),
+      openLook: () => openLook(this.profile, p => this.profileHost().save(p)),
     };
   }
 

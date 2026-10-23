@@ -83,6 +83,8 @@ export interface Profile {
   guideName?: string;
   /** When each tick check was finished (ISO), newest last; feeds the Tick Checker badge. */
   tickChecks?: string[];
+  /** How Scout looks for this explorer (look.ts); absent = the default look. */
+  look?: Partial<import('./look.ts').Look>;
   createdAt: string;
 }
 

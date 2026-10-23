@@ -130,6 +130,8 @@ export interface ProfileHost {
   openCrew: () => void;
   /** Explorer <-> Together for the active explorer (asks for a grown-up when relaxing the locks). */
   toggleMode: () => Promise<void>;
+  /** Colours, buttons, text size, font and motion for the active explorer. */
+  openLook: () => void;
 }
 
 /** "Who's exploring?": switch explorer, add one, change your own card, meet the crew. */
@@ -161,6 +163,7 @@ export function openProfiles(host: ProfileHost): void {
         h('p', { class: 'hint center' }, `${MODE_INFO[me.mode].emoji} ${MODE_INFO[me.mode].title} is on.`),
         h('button', { class: 'big-btn soft', onclick: async () => { await host.toggleMode(); paint(); } },
           `${MODE_INFO[other].emoji} Switch to ${MODE_INFO[other].title}`),
+        h('button', { class: 'big-btn soft', onclick: () => host.openLook() }, '🎨 My look'),
         h('button', { class: 'big-btn soft', onclick: () => openProfileEditor(host, me, paint) }, '✏️ Change my card'),
       );
     }

@@ -45,13 +45,14 @@ There is no linter; `tsc` is the gate.
 | `buddyView.ts`, `buddyLines.ts` | The buddy and the crew on screen (`buddySays` / `crewSays`), and what each buddy says. |
 | `critters.ts`, `cast.ts` | The woodland crew, drawn in Pip and Hop's style, and who looks after what: Fern the fox (hunts), Maple the moose (badges), Bramble the bear (safety: tick check, grown-up gate), Hoot the owl (facts), Acorn the squirrel (sticker book), Bandit the raccoon (challenges). A new part of the app gets a crew member, not a new character. |
 | `tickGuide.ts`, `tickScreen.ts` | The end-of-adventure tick check and the grown-ups' how-to (CDC / Health Canada advice; general information, not medical advice). |
+| `look.ts`, `lookApply.ts`, `lookScreen.ts` | "My look", per explorer (`Profile.look`, absence = default): colour theme (Forest · Ocean · Sunset · Berry · Night · Snow), button style (Bubbly · Sticker · Flat · Blocky), text size, font, motion. Each is one `data-` attribute on `<html>` whose CSS (the LOOKS block at the foot of `styles.css`) only re-points tokens; a new choice needs a CSS block (tested). Kids change it themselves — no gate. |
 | `walk.ts`, `recorder.ts`, `walkScreens.ts` | "Record my path": streamed GPS fixes kept only where they are movement (`judgePoint`: ≤ 35 m accuracy, ≥ 5 m step, no faster than 12 m/s), saved every few seconds as the path grows, optional screen wake lock; a path left recording when the app closed ends at its last point (`closeOrphan`). Saved paths draw purple, the live one orange. Distinct from the automatic daily trail (`trail.ts`). |
 | `speech.ts`, `voiceRank.ts` | Reading aloud with the device's own voices (never a network voice service): `pickVoice` chooses the best-sounding installed English voice (natural / neural / enhanced, Canadian first, never novelty voices) unless a grown-up chose one in the Grown-up corner. The 🔊/🔇 button on the map switches reading aloud. |
 | `voice.ts`, `drawPad.ts`, `image.ts`, `speech.ts`, `sound.ts`, `confetti.ts`, `gps.ts`, `trail.ts`, `exportData.ts` | One job each. |
 
 **Pure, DOM-free and unit-tested:** `badges.ts`, `challenges.ts`, `hunts.ts`, `gate.ts`, `csv.ts`,
 `geo.ts`, `categories.ts`, `buddies.ts`, `buddyLines.ts`, `critters.ts`, `cast.ts`, `tickGuide.ts`, `guides.ts`,
-`findModel.ts`, `species.ts`, `familiar.ts`, `ids.ts`, `walk.ts`, `voiceRank.ts`. Keep logic there and the DOM out of them.
+`findModel.ts`, `species.ts`, `familiar.ts`, `ids.ts`, `walk.ts`, `voiceRank.ts`, `look.ts`. Keep logic there and the DOM out of them.
 
 ## Species lists
 
@@ -66,6 +67,9 @@ grown-up can also import any Field Mapper `db-*.json` file or a CSV (Grown-up co
 - **Child safety and privacy first.** No accounts, no uploads, no analytics, no third-party requests
   beyond the map tiles. Anything destructive or outward (delete, export, settings) sits behind the
   grown-up gate in Explorer mode. Exact coordinates are shown only in Together mode.
+- **Colours, borders and corners are tokens** (`--bg`, `--card`, `--ink`, `--green` (the accent), `--good-soft`…, `--bw`,
+  `--radius`): never hard-code a colour in a new rule, or a theme (Night above all) will miss it.
+- **Age tiers are planned, not built**: read `docs/AGE_TIERS.md` before adding anything age-specific.
 - **All text goes through `textContent`** (`ui.ts` `h()`); the only `innerHTML` is the buddy SVG,
   which is our own constant markup.
 - **Words are short and are read aloud** (`say()`); every button has an emoji and a word.
