@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { DEFAULT_LOOK, normalizeLook, THEMES, BUTTON_STYLES, TEXT_SIZES, FONTS, MOTIONS, lookAttributes } from '../src/look.ts';
+import { DEFAULT_LOOK, normalizeLook, LOOK_KEYS, choicesFor, lookAttributes, surpriseLook, FONT_STACKS, FONTS, PARTIES, type Look } from '../src/look.ts';
 
 test('absence and unknown ids fall back to the default', () => {
   assert.deepEqual(normalizeLook(undefined), DEFAULT_LOOK);
@@ -9,24 +9,56 @@ test('absence and unknown ids fall back to the default', () => {
 });
 
 test('every choice id is unique', () => {
-  for (const list of [THEMES, BUTTON_STYLES, TEXT_SIZES, FONTS, MOTIONS]) {
-    assert.equal(new Set(list.map(c => c.id)).size, list.length);
+  for (const k of LOOK_KEYS) {
+    const list = choicesFor(k);
+    assert.equal(new Set(list.map(c => c.id)).size, list.length, k);
+    assert.ok(list.some(c => c.id === DEFAULT_LOOK[k]), `default ${k} is a choice`);
   }
+});
+
+test('a withdrawn button style folds onto its successor', () => {
+  assert.equal(normalizeLook({ buttons: 'blocky' }).buttons, 'pixel');
 });
 
 test('every non-default choice has CSS, and the default needs none', () => {
   const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
-  const blocks: [string, { id: string }[], string][] = [
-    ['theme', THEMES, DEFAULT_LOOK.theme], ['buttons', BUTTON_STYLES, DEFAULT_LOOK.buttons],
-    ['text', TEXT_SIZES, DEFAULT_LOOK.text], ['font', FONTS, DEFAULT_LOOK.font], ['motion', MOTIONS, DEFAULT_LOOK.motion],
-  ];
-  for (const [attr, list, def] of blocks) {
-    for (const c of list) {
-      if (c.id === def) continue;
-      assert.ok(css.includes(`html[data-${attr}="${c.id}"]`), `no CSS for data-${attr}="${c.id}"`);
+  const attrs = lookAttributes(DEFAULT_LOOK);
+  assert.deepEqual(Object.keys(attrs).sort(), LOOK_KEYS.filter(k => k !== 'party').slice().sort());
+  for (const k of Object.keys(attrs) as (keyof Look)[]) {
+    for (const c of choicesFor(k)) {
+      if (c.id === DEFAULT_LOOK[k]) continue;
+      assert.ok(css.includes(`html[data-${k}="${c.id}"]`), `no CSS for data-${k}="${c.id}"`);
     }
   }
-  assert.deepEqual(Object.keys(lookAttributes(DEFAULT_LOOK)).sort(), ['buttons', 'font', 'motion', 'text', 'theme']);
+  // The picker's samples show each choice whatever the current look is.
+  for (const c of choicesFor('buttons')) if (c.id !== 'bubbly') assert.ok(css.includes(`.bs-btn[data-bs="${c.id}"]`), c.id);
+  for (const c of choicesFor('pattern')) assert.ok(css.includes(`[data-pat="${c.id}"]`), c.id);
+  for (const c of choicesFor('header')) assert.ok(css.includes(`[data-hd="${c.id}"]`), c.id);
+});
+
+test('the font stacks restated for the picker match the CSS', () => {
+  const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
+  for (const f of FONTS) {
+    if (f.id === 'rounded') assert.ok(css.includes(`--font: ${FONT_STACKS.rounded};`));
+    else assert.ok(css.includes(`html[data-font="${f.id}"] { --font: ${FONT_STACKS[f.id]};`), f.id);
+  }
+});
+
+test('celebrations: emoji styles carry their pieces', () => {
+  for (const p of PARTIES) if (p.id === 'stars' || p.id === 'leaves') assert.ok(p.pieces.length > 0);
+});
+
+test('surprise me changes the fun switches and keeps the needs', () => {
+  const cur: Look = { ...DEFAULT_LOOK, text: 'bigger', motion: 'calm' };
+  let seed = 0.123;
+  const rand = () => (seed = (seed * 9301 + 0.49297) % 1);
+  for (let i = 0; i < 20; i++) {
+    const s = surpriseLook(cur, rand);
+    assert.equal(s.text, 'bigger');
+    assert.equal(s.motion, 'calm');
+    for (const k of ['theme', 'buttons', 'pattern', 'header', 'pins', 'party', 'font'] as const) assert.notEqual(s[k], cur[k], k);
+    assert.deepEqual(normalizeLook(s), s);
+  }
 });
 
 import { TIERS, tierOf, MODE_WORDS } from '../src/tiers.ts';

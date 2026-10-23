@@ -5,6 +5,7 @@ export function applyLook(raw: Partial<Look> | undefined): Look {
   const look = normalizeLook(raw);
   const root = document.documentElement;
   for (const [k, v] of Object.entries(lookAttributes(look))) root.dataset[k] = v;
+  root.dataset.party = look.party;
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeBar(look.theme));
   return look;
 }
