@@ -4,6 +4,7 @@ import { buildExport, saveFile } from './exportData.ts';
 import { tickHowTo } from './tickScreen.ts';
 import { profileFace, openProfileEditor, newProfile, type ProfileHost } from './profiles.ts';
 import { guideName } from './guides.ts';
+import { tierOf } from './tiers.ts';
 import { parseFieldMapperList, parseSpeciesCsv } from './species.ts';
 import { allSpeciesLists, deleteSpeciesList, saveSpeciesList } from './storage.ts';
 import { invalidateSpecies, loadSpecies } from './speciesStore.ts';
@@ -34,7 +35,7 @@ export function openGrownUps(host: GrownUpHost): void {
     people.replaceChildren(...host.profiles.profiles().map(p => h('div', { class: 'maker-row profile-row' },
       profileFace(p, 'face row-face'),
       h('span', { class: 'maker-text' }, h('strong', {}, p.name || 'Explorer'), h('br'),
-        h('span', { class: 'hint' }, `${p.mode === 'together' ? 'Together' : 'Explorer'} mode · guide ${guideName(p.guide, p.guideName)} · ${host.profiles.findCount(p.id)} finds`)),
+        h('span', { class: 'hint' }, `${tierOf(p.tier).emoji} ${tierOf(p.tier).label} · ${p.mode === 'together' ? 'together' : 'on my own'} · guide ${guideName(p.guide, p.guideName)} · ${host.profiles.findCount(p.id)} finds`)),
       h('button', { class: 'round-btn small', 'aria-label': `Change ${p.name}`, onclick: () => openProfileEditor(host.profiles, p, paintPeople) }, '✏️'),
     )));
   };

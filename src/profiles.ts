@@ -8,19 +8,38 @@ import { GUIDES, GUIDE_INFO, guideName } from './guides.ts';
 import { guideFigure, crewSays, buddySays } from './buddyView.ts';
 import { CAST } from './cast.ts';
 import { askGrownUp } from './gateView.ts';
+import { MODE_WORDS, TIERS, tierOf, type TierId } from './tiers.ts';
 
 export const MODE_INFO: Record<Mode, { emoji: string; title: string; text: string }> = {
   explorer: {
-    emoji: '🧒',
-    title: 'Explorer mode',
-    text: 'For a child exploring on their own. Big pictures, everything read aloud, very little typing. Deleting finds and settings need a grown-up.',
+    emoji: MODE_WORDS.explorer.emoji,
+    title: MODE_WORDS.explorer.title,
+    text: 'A child exploring on their own. Everything read aloud, very little typing. Deleting finds and settings need a grown-up.',
   },
   together: {
-    emoji: '👨‍👧',
-    title: 'Together mode',
-    text: 'For a child and a grown-up exploring side by side. Adds questions to talk about, a note for each find, and exact locations.',
+    emoji: MODE_WORDS.together.emoji,
+    title: MODE_WORDS.together.title,
+    text: 'A child and a grown-up exploring side by side. Adds questions to talk about, a note for each find, and exact locations.',
   },
 };
+
+/** Big cards for choosing an age tier. `pick` returns false to refuse (a grown-up said no). */
+export function tierPicker(current: TierId, pick: (t: TierId) => Promise<boolean> | boolean): HTMLElement {
+  const wrap = h('div', { class: 'mode-pick tier-pick' });
+  let now = current;
+  const paint = () => wrap.replaceChildren(...TIERS.map(t => h('button', {
+    class: `mode-card ${now === t.id ? 'on' : ''}`, 'aria-pressed': String(now === t.id),
+    onclick: async () => {
+      if (now === t.id) return;
+      if (!(await pick(t.id))) return;
+      now = t.id;
+      say(`${t.label}. ${t.blurb}`);
+      paint();
+    },
+  }, h('span', { class: 'mode-emoji' }, t.emoji), h('strong', {}, `${t.label} · ${t.ages}`), h('span', {}, t.blurb))));
+  paint();
+  return wrap;
+}
 
 export function newProfile(): Profile {
   return { id: uid(), name: '', avatar: AVATARS[0], mode: 'explorer', guide: 'frog', createdAt: new Date().toISOString() };
@@ -53,7 +72,16 @@ function profileForm(p: Profile, opts: { showMode: boolean; lockMode?: (to: Mode
       } }, h('span', { class: 'mode-emoji' }, info.emoji), h('strong', {}, info.title), h('span', {}, info.text));
     }));
     paintModes();
-    wrap.append(h('h2', { class: 'section-title' }, 'Who is using it?'), modes);
+    wrap.append(
+      h('h2', { class: 'section-title' }, 'Age'),
+      tierPicker(tierOf(p.tier).id, async t => {
+        if (opts.lockMode && !(await askGrownUp('Choosing the age level is for grown-ups.'))) return false;
+        p.tier = t;
+        return true;
+      }),
+      h('h2', { class: 'section-title' }, 'Exploring'),
+      modes,
+    );
   }
 
   // Name and about
@@ -153,16 +181,16 @@ export function openProfiles(host: ProfileHost): void {
         close();
       } }, profileFace(p, 'face card-face'), h('strong', {}, p.name || 'Explorer'),
         p.about ? h('span', { class: 'profile-about' }, p.about) : null,
-        h('span', { class: 'profile-meta' }, `${n} ${n === 1 ? 'find' : 'finds'} · ${guideName(p.guide, p.guideName)}`),
+        h('span', { class: 'profile-meta' }, `${tierOf(p.tier).emoji} ${tierOf(p.tier).label} · ${n} ${n === 1 ? 'find' : 'finds'} · ${guideName(p.guide, p.guideName)}`),
         on ? h('span', { class: 'crew-yours' }, '⭐ Exploring now') : null));
     }
     body.append(grid);
     if (me) {
       const other: Mode = me.mode === 'explorer' ? 'together' : 'explorer';
       body.append(
-        h('p', { class: 'hint center' }, `${MODE_INFO[me.mode].emoji} ${MODE_INFO[me.mode].title} is on.`),
+        h('p', { class: 'hint center' }, `Exploring ${MODE_WORDS[me.mode].short} ${MODE_WORDS[me.mode].emoji}`),
         h('button', { class: 'big-btn soft', onclick: async () => { await host.toggleMode(); paint(); } },
-          `${MODE_INFO[other].emoji} Switch to ${MODE_INFO[other].title}`),
+          `${MODE_WORDS[other].emoji} Switch to ${MODE_WORDS[other].title.toLowerCase()}`),
         h('button', { class: 'big-btn soft', onclick: () => host.openLook() }, '🎨 My look'),
         h('button', { class: 'big-btn soft', onclick: () => openProfileEditor(host, me, paint) }, '✏️ Change my card'),
       );
@@ -183,7 +211,7 @@ export function openProfileEditor(host: ProfileHost, original: Profile, after: (
   const p: Profile = { ...original };
   const { body, close } = openSheet({ title: isNew ? 'New explorer' : `${original.name || 'Explorer'}'s card`, emoji: isNew ? '➕' : '✏️', className: 'profile-edit' });
   body.append(
-    profileForm(p, { showMode: true, lockMode: isNew ? undefined : async to => to === 'explorer' || askGrownUp('Together mode is for exploring with a grown-up beside you.') }),
+    profileForm(p, { showMode: true, lockMode: isNew ? undefined : async to => to === 'explorer' || askGrownUp('Exploring together is for when a grown-up is beside you.') }),
     h('button', { class: 'big-btn', onclick: async () => {
       if (!p.name) { toast('Type a name first.'); return; }
       await host.save(p);

@@ -31,6 +31,7 @@ import { guideName, normalizeGuide } from './guides.ts';
 import { openProfiles, profileFace, type ProfileHost } from './profiles.ts';
 import { pickOnMap } from './mapPicker.ts';
 import { applyLook } from './lookApply.ts';
+import { tierOf } from './tiers.ts';
 import { openLook } from './lookScreen.ts';
 import { openBasemapPicker } from './basemapPicker.ts';
 
@@ -127,12 +128,12 @@ export class App {
    */
   private async toggleMode(): Promise<void> {
     const toTogether = this.profile.mode === 'explorer';
-    if (toTogether && !(await askGrownUp('Together mode is for exploring with a grown-up beside you.'))) return;
+    if (toTogether && !(await askGrownUp('Exploring together is for when a grown-up is beside you.'))) return;
     const p: Profile = { ...this.profile, mode: toTogether ? 'together' : 'explorer' };
     await this.profileHost().save(p);
     sounds.pick();
-    toast(toTogether ? '👨‍👧 Together mode: exploring with a grown-up' : '🧒 Explorer mode: exploring on my own');
-    say(toTogether ? 'Together mode! Explore with your grown-up.' : 'Explorer mode!');
+    toast(toTogether ? '👨‍👧 Exploring together with a grown-up' : '🧒 Exploring on my own');
+    say(toTogether ? 'Exploring together! Stay with your grown-up.' : 'Exploring on my own!');
   }
 
   private applyAudio(): void {
@@ -292,10 +293,12 @@ export class App {
 
   private applySettingsToChrome(): void {
     document.documentElement.dataset.mode = this.profile.mode;
+    // Read by later phases (docs/AGE_TIERS.md); nothing is styled by it yet.
+    document.documentElement.dataset.tier = tierOf(this.profile.tier).id;
     applyLook(this.profile.look);
     const together = this.profile.mode === 'together';
     this.modeBtn.textContent = together ? '👨‍👧' : '🧒';
-    this.modeBtn.setAttribute('aria-label', together ? 'Together mode is on. Tap for Explorer mode' : 'Explorer mode is on. Tap for Together mode');
+    this.modeBtn.setAttribute('aria-label', together ? 'Exploring together. Tap to explore on my own' : 'Exploring on my own. Tap to explore together');
     this.hello.replaceChildren(profileFace(this.profile, 'face hello-face'), h('span', { class: 'hello-name' }, this.profile.name || 'Explorer'));
     this.map.setAvatar?.({ emoji: this.profile.avatar, photo: this.profile.photo });
     this.dock?.setGuide(this.profile.guide);

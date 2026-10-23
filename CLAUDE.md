@@ -40,7 +40,7 @@ There is no linter; `tsc` is the gate.
 | `screens.ts` | Celebration, sticker book, find detail (all pictures, Change it), badges, challenges, the crew. An open book redraws on `FINDS_CHANGED`. |
 | `huntScreens.ts` | Scavenger hunts: pick, progress, trophy shelf, hunt maker. |
 | `grownUps.ts`, `gateView.ts` | Grown-up corner and the hold-then-sum gate. |
-| `welcome.ts` | First launch: mode, then the first explorer's card (`profiles.welcomeForm`). |
+| `welcome.ts` | First launch: age tier (sets the starting mode and look), mode, then the first explorer's card (`profiles.welcomeForm`). |
 | `buddies.ts` | Pip and Hop drawn as SVG — **copied from GPS2026felt `src/tour/avatars.ts`**; keep the art in step. |
 | `buddyView.ts`, `buddyLines.ts` | The buddy and the crew on screen (`buddySays` / `crewSays`), and what each buddy says. |
 | `critters.ts`, `cast.ts` | The woodland crew, drawn in Pip and Hop's style, and who looks after what: Fern the fox (hunts), Maple the moose (badges), Bramble the bear (safety: tick check, grown-up gate), Hoot the owl (facts), Acorn the squirrel (sticker book), Bandit the raccoon (challenges). A new part of the app gets a crew member, not a new character. |
@@ -52,7 +52,7 @@ There is no linter; `tsc` is the gate.
 
 **Pure, DOM-free and unit-tested:** `badges.ts`, `challenges.ts`, `hunts.ts`, `gate.ts`, `csv.ts`,
 `geo.ts`, `categories.ts`, `buddies.ts`, `buddyLines.ts`, `critters.ts`, `cast.ts`, `tickGuide.ts`, `guides.ts`,
-`findModel.ts`, `species.ts`, `familiar.ts`, `ids.ts`, `walk.ts`, `voiceRank.ts`, `look.ts`. Keep logic there and the DOM out of them.
+`findModel.ts`, `species.ts`, `familiar.ts`, `ids.ts`, `walk.ts`, `voiceRank.ts`, `look.ts`, `tiers.ts`. Keep logic there and the DOM out of them.
 
 ## Species lists
 
@@ -69,7 +69,9 @@ grown-up can also import any Field Mapper `db-*.json` file or a CSV (Grown-up co
   grown-up gate in Explorer mode. Exact coordinates are shown only in Together mode.
 - **Colours, borders and corners are tokens** (`--bg`, `--card`, `--ink`, `--green` (the accent), `--good-soft`…, `--bw`,
   `--radius`): never hard-code a colour in a new rule, or a theme (Night above all) will miss it.
-- **Age tiers are planned, not built**: read `docs/AGE_TIERS.md` before adding anything age-specific.
+- **Age tiers** (`tiers.ts`, `Profile.tier`, absence = Explorer): Phase 1 is built (the tier is recorded and chosen);
+  the per-tier behaviour is planned in `docs/AGE_TIERS.md` — read it, and its Decisions, before adding anything
+  age-specific. The modes are called "On my own" / "Together" on screen (`MODE_WORDS`); the stored values are unchanged.
 - **All text goes through `textContent`** (`ui.ts` `h()`); the only `innerHTML` is the buddy SVG,
   which is our own constant markup.
 - **Words are short and are read aloud** (`say()`); every button has an emoji and a word.

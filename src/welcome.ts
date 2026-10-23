@@ -2,7 +2,8 @@ import type { Mode, Profile } from './types.ts';
 import { h, toast } from './ui.ts';
 import { say } from './speech.ts';
 import { buddySays } from './buddyView.ts';
-import { MODE_INFO, newProfile, welcomeForm } from './profiles.ts';
+import { MODE_INFO, newProfile, tierPicker, welcomeForm } from './profiles.ts';
+import { TIERS, tierOf } from './tiers.ts';
 import { guideName } from './guides.ts';
 
 /** First launch: who is exploring, how, and with which guide. Resolves with the first explorer. */
@@ -13,18 +14,37 @@ export function welcome(): Promise<Profile> {
     const root = h('div', { class: 'welcome' }, card);
     document.body.append(root);
 
-    const stepMode = () => {
+    // 1. The age tier: it suggests the starting mode and look (both changeable later).
+    const stepTier = () => {
       card.replaceChildren(
         h('div', { class: 'welcome-logo' }, '🧭'),
         h('h1', {}, 'Scout'),
         h('p', { class: 'welcome-tag' }, 'Explore, find and collect the world around you'),
-        h('p', { class: 'welcome-sub' }, 'Hello grown-up! Who will be using this?'),
+        h('p', { class: 'welcome-sub' }, 'Hello grown-up! How old is the explorer?'),
+        tierPicker(tierOf(p.tier).id, t => {
+          const tier = tierOf(t);
+          p.tier = t;
+          p.mode = tier.defaultMode;
+          p.look = Object.keys(tier.defaultLook).length ? { ...tier.defaultLook } : undefined;
+          setTimeout(stepMode, 350);
+          return true;
+        }),
+        h('p', { class: 'hint' }, `Only the level is kept, never an age or a birthday. ${TIERS.length} levels; you can change it later on the explorer's card.`),
+      );
+      root.scrollTop = 0;
+    };
+
+    // 2. On their own, or with a grown-up beside them.
+    const stepMode = () => {
+      card.replaceChildren(
+        h('h1', {}, 'How will they explore?'),
         ...(Object.keys(MODE_INFO) as Mode[]).map(m => {
           const info = MODE_INFO[m];
-          return h('button', { class: 'mode-card', onclick: () => { p.mode = m; stepMe(); } },
+          return h('button', { class: `mode-card ${p.mode === m ? 'on' : ''}`, onclick: () => { p.mode = m; stepMe(); } },
             h('span', { class: 'mode-emoji' }, info.emoji), h('strong', {}, info.title), h('span', {}, info.text));
         }),
-        h('p', { class: 'hint' }, 'You can add more explorers later, each with their own finds.'),
+        h('p', { class: 'hint' }, 'This can be switched any time with the 🧒 / 👨‍👧 button on the map. You can add more explorers later, each with their own finds.'),
+        h('button', { class: 'text-btn', onclick: stepTier }, '⬅️ Back'),
       );
       root.scrollTop = 0;
     };
@@ -55,6 +75,6 @@ export function welcome(): Promise<Profile> {
       say(`Ready, ${p.name}? I am ${g}. Let's explore!`);
     };
 
-    stepMode();
+    stepTier();
   });
 }

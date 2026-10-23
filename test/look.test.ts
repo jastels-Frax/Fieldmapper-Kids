@@ -28,3 +28,14 @@ test('every non-default choice has CSS, and the default needs none', () => {
   }
   assert.deepEqual(Object.keys(lookAttributes(DEFAULT_LOOK)).sort(), ['buttons', 'font', 'motion', 'text', 'theme']);
 });
+
+import { TIERS, tierOf, MODE_WORDS } from '../src/tiers.ts';
+
+test('tiers: absence reads as Explorer, and every default look is valid', () => {
+  assert.equal(tierOf(undefined).id, 'explorer');
+  assert.equal(tierOf('dragon').id, 'explorer');
+  assert.deepEqual(TIERS.map(t => t.id), ['sprout', 'explorer', 'naturalist']);
+  for (const t of TIERS) assert.deepEqual(normalizeLook(t.defaultLook), { ...DEFAULT_LOOK, ...t.defaultLook });
+  assert.equal(TIERS[0].defaultMode, 'together');
+  assert.notEqual(MODE_WORDS.explorer.title, 'Explorer');
+});

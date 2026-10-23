@@ -78,6 +78,8 @@ export interface Profile {
   /** "Loves frogs and puddles": a line about them, optional. */
   about?: string;
   mode: Mode;
+  /** Age tier (tiers.ts); absent = Explorer, which is what every explorer before tiers was. */
+  tier?: import('./tiers.ts').TierId;
   guide: GuideId;
   /** The explorer's own name for their guide; absent = the guide's real name. */
   guideName?: string;

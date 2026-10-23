@@ -1,6 +1,6 @@
 # Age tiers: Sprout · Explorer · Naturalist
 
-**Status: plan, not built.** Scout grows with the child: the same app, the same finds, but what it asks,
+**Status: Phase 1 built** (the tier on the explorer's card, the welcome asks for it, modes renamed); phases 2–5 planned. Scout grows with the child: the same app, the same finds, but what it asks,
 how it says it and which tools it offers change as they get older — the way a family of nature
 magazines moves a reader from pictures to field notes.
 
@@ -26,15 +26,14 @@ is not zero). Moving back down loses nothing either.
 | Badges | Few, generous, celebrated big | Today's 30 | Science-skill badges (a 10-minute bird count, a monthly visit) |
 | Field guide | One spoken line and a picture | Facts, tracks, "where it lives" | ID features, look-alikes, tracks and scat keys, status |
 | Safety | Bramble's tick check as a song-like checklist | Today's tick check | Today's plus the grown-up how-to in their own words |
-| Default mode | Together | On my own or Together | On my own |
+| Default mode | Together (they can still explore on their own) | On my own | On my own |
 | Default look | Bigger text, Bubbly, Lively | Today's default | Plain font, Flat buttons |
 
 ## 3. Naming: modes vs. tiers
 
-"Explorer" is already a **mode** (a child alone, as opposed to with a grown-up). With tiers, a 10-year-old
-Naturalist exploring alone would be "a Naturalist in Explorer mode", which is confusing. **Proposal: rename
-the modes "On my own" and "Together"** when tiers ship. The setting keeps its stored value (`mode:
-'explorer' | 'together'`), so only the words change and no data moves.
+"Explorer" was also the name of a **mode** (a child alone, as opposed to with a grown-up). **The modes are now
+called "On my own" and "Together"** (`tiers.MODE_WORDS`). The stored value is unchanged (`mode: 'explorer' |
+'together'`), so only the words changed and no data moved.
 
 ## 4. Moving up
 
@@ -77,18 +76,26 @@ the modes "On my own" and "Together"** when tiers ship. The setting keeps its st
 
 | Phase | What | Size |
 |---|---|---|
-| 1 | `tiers.ts` (pure catalogue of per-tier switches) · `Profile.tier` (absence = Explorer, today's app) · tier picker on the card and in the welcome · modes renamed "On my own" / "Together" | Small |
-| 2 | Sprout: three-step capture, `data-tier` CSS for big targets, listening-length lines, picture species buttons (needs art) | Medium + art |
-| 3 | Naturalist: the optional field-notebook questions, data sheet, own-finds export, measure tool | Medium |
+| 1 ✅ | `tiers.ts` (pure catalogue of per-tier switches) · `Profile.tier` (absence = Explorer, today's app) · tier picker on the card and in the welcome · modes renamed "On my own" / "Together" | Small |
+| 2 | Sprout: three-step capture, `data-tier` CSS for big targets, listening-length lines, picture species buttons (drawings in the crew's style) | Medium + art |
+| 3 | Naturalist: the optional field-notebook questions, data sheet, own-finds export (no gate), measure tool | Medium |
 | 4 | Field guide with per-tier depth, track and scat keys | Large (content) |
 | 5 | Study plots, science badges and challenges, "ready to move up" suggestions | Medium |
 
 Phase 1 changes nothing for anyone already using Scout: every existing explorer reads as an Explorer.
 
-## 7. Questions to settle
+## 7. Decisions
 
-1. The age bands above are a starting point — do they match the families and classes you have in mind?
-2. Should Sprout be Together-only (no "on my own" for under-7s)?
-3. Can a Naturalist export their own finds without a grown-up?
-4. Who writes and reviews the per-tier wording and field-guide content (an educator's read would help)?
-5. Picture buttons for Sprout: extend the crew's drawing style, or license photos?
+1. **Age bands**: Sprout about 4–6, Explorer about 7–9, Naturalist about 10–12. Agreed.
+2. **Sprout is not Together-only.** It starts in Together; a Sprout can still explore on their own.
+3. **A Naturalist may export their own finds without a grown-up.** (Every other tier: export stays behind the gate.)
+4. **Wording and field-guide content are reviewed by the project owner** before they ship.
+5. **Sprout picture buttons are drawings** in the crew's style — no licensed photos.
+
+## 8. What Phase 1 built
+
+- `src/tiers.ts`: the catalogue (`TIERS`, `tierOf` — absence reads as Explorer — and `MODE_WORDS`).
+- `Profile.tier`, chosen in the welcome ("How old is the explorer?", which also sets the starting mode and
+  look) and on the explorer's card (changing it asks for a grown-up). The tier shows on the explorer's card
+  and in the Grown-up corner, and is stamped as `data-tier` on `<html>` for the later phases. Changing the tier
+  later does not change the explorer's look or mode; those are theirs.
