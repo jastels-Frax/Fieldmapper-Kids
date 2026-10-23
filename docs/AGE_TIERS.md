@@ -92,7 +92,18 @@ Phase 1 changes nothing for anyone already using Scout: every existing explorer 
 4. **Wording and field-guide content are reviewed by the project owner** before they ship.
 5. **Sprout picture buttons are drawings** in the crew's style — no licensed photos.
 
-## 8. What Phase 1 built
+## 8. Sprout drawings so far
+
+`src/sproutArt.ts` holds them. Each is a drawing in the crew's style that names the list species it stands for,
+plus a one-line "how to tell it" for the grown-up. They are already used at every tier: picture buttons first in
+the species step, on the find page, and as a find's picture when it has none.
+
+| Drawing | Species | How to tell it |
+|---|---|---|
+| Red maple leaf | Red Maple | Three big points, small teeth all round, V-shaped gaps; red stalk |
+| Sugar maple leaf | Sugar Maple | Five broad points, few big teeth, round U-shaped gaps |
+
+## 9. What Phase 1 built
 
 - `src/tiers.ts`: the catalogue (`TIERS`, `tierOf` — absence reads as Explorer — and `MODE_WORDS`).
 - `Profile.tier`, chosen in the welcome ("How old is the explorer?", which also sets the starting mode and

@@ -24,7 +24,8 @@ export const MODE_INFO: Record<Mode, { emoji: string; title: string; text: strin
 };
 
 /** Big cards for choosing an age tier. `pick` returns false to refuse (a grown-up said no). */
-export function tierPicker(current: TierId, pick: (t: TierId) => Promise<boolean> | boolean): HTMLElement {
+/** `current` null = nothing chosen yet (the welcome), so every card is a real choice. */
+export function tierPicker(current: TierId | null, pick: (t: TierId) => Promise<boolean> | boolean): HTMLElement {
   const wrap = h('div', { class: 'mode-pick tier-pick' });
   let now = current;
   const paint = () => wrap.replaceChildren(...TIERS.map(t => h('button', {

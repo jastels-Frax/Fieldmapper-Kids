@@ -598,3 +598,18 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
 .tier-pick .mode-card .mode-emoji { font-size: 40px; }
 .tier-pick .mode-card strong { flex: 1; }
 .tier-pick .mode-card span:last-child { flex-basis: 100%; }
+
+/* Sprout picture buttons (sproutArt.ts): drawings in the crew's style */
+.art-chip {
+  display: inline-flex; flex-direction: column; align-items: center; gap: 2px; width: 120px; padding: 8px 6px;
+  background: var(--card); border: var(--bw) solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+  font-size: 15px;
+}
+.art-fig { display: block; width: 88px; height: 88px; }
+.art-fig svg { width: 100%; height: 100%; display: block; }
+.art-card { display: flex; gap: 12px; align-items: center; }
+.art-card .art-fig { flex: 0 0 auto; }
+.art-card p { margin: 0; }
+.art-pic svg { width: 80%; height: 80%; display: block; margin: auto; }
+.detail-emoji.art-pic { height: 260px; display: grid; place-items: center; }
+.detail-emoji.art-pic svg { width: 220px; height: 220px; }

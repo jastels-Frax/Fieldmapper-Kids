@@ -11,6 +11,7 @@ import { askGrownUp } from './gateView.ts';
 import { buddySays, crewSays, critterFigure, nameOf } from './buddyView.ts';
 import { CRITTERS, critterSvg } from './critters.ts';
 import { CAST } from './cast.ts';
+import { artFor } from './sproutArt.ts';
 import { cheer } from './buddyLines.ts';
 import type { HuntItem, HuntRun } from './hunts.ts';
 
@@ -46,6 +47,12 @@ function pictureOf(f: Find, owner: Element, cls: string): HTMLElement {
     const img = h('img', { class: cls, alt: f.nickname || cat.label });
     img.src = blobUrl(blob, owner);
     return img;
+  }
+  const art = f.species ? artFor(f.species.name) : undefined;
+  if (art) {
+    const el = h('span', { class: `${cls} emoji-pic art-pic`, style: `--cat:${cat.colour}`, 'aria-label': art.label });
+    el.innerHTML = art.svg();
+    return el;
   }
   return h('span', { class: `${cls} emoji-pic`, style: `--cat:${cat.colour}`, 'aria-label': cat.label }, cat.emoji);
 }
@@ -168,11 +175,16 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void): v
       img.src = blobUrl(p.blob, img);
     });
     if (f.pictures.length > 1) body.append(h('p', { class: 'hint center' }, `👉 Swipe to see all ${f.pictures.length} pictures`));
+  } else if (f.species && artFor(f.species.name)) {
+    const pic = h('div', { class: 'detail-emoji art-pic', style: `--cat:${cat.colour}` });
+    pic.innerHTML = artFor(f.species.name)!.svg();
+    body.append(pic);
   } else {
     body.append(h('div', { class: 'detail-emoji', style: `--cat:${cat.colour}` }, cat.emoji));
   }
   const facts: HTMLElement[] = [h('li', {}, `🕒 ${whenWords(f.createdAt)}`)];
   if (f.species) facts.push(h('li', {}, `📚 ${f.species.name}`, f.species.scientific ? h('span', { class: 'latin' }, ` ${f.species.scientific}`) : null));
+  const art = f.species ? artFor(f.species.name) : undefined;
   const sign = SIGNS.find(x => x.id === f.sign);
   if (sign) facts.push(h('li', {}, `${sign.emoji} ${sign.label}`));
   if (f.colours.length) {
@@ -186,6 +198,11 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void): v
   const cnt = COUNTS.find(s => s.id === f.count);
   if (cnt) facts.push(h('li', {}, `${cnt.emoji} ${cnt.label}`));
   body.append(h('ul', { class: 'detail-facts' }, ...facts));
+  if (art) {
+    const fig = h('span', { class: 'art-fig', 'aria-hidden': 'true' });
+    fig.innerHTML = art.svg();
+    body.append(h('div', { class: 'talk-card art-card' }, fig, h('div', {}, h('h3', {}, `How to tell a ${art.label}`), h('p', {}, art.tell))));
+  }
 
   if (f.voice) {
     const play = h('button', { class: 'big-btn' }, '▶️ Listen to my story');

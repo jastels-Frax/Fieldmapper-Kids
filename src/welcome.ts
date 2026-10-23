@@ -21,7 +21,7 @@ export function welcome(): Promise<Profile> {
         h('h1', {}, 'Scout'),
         h('p', { class: 'welcome-tag' }, 'Explore, find and collect the world around you'),
         h('p', { class: 'welcome-sub' }, 'Hello grown-up! How old is the explorer?'),
-        tierPicker(tierOf(p.tier).id, t => {
+        tierPicker(p.tier ?? null, t => {
           const tier = tierOf(t);
           p.tier = t;
           p.mode = tier.defaultMode;

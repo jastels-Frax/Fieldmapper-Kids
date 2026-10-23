@@ -33,6 +33,7 @@ There is no linter; `tsc` is the gate.
 | `storage.ts` | IndexedDB (`FieldMapperKids` — the pre-rename name, kept so nobody's finds are orphaned), `DB_VERSION` 3: `finds`, `settings`, `trails`, `huntRuns`, `customHunts`, `profiles`, `speciesLists`, `walks`. `migrateToProfiles` turns a version-1 device's single explorer (in the settings) into the first profile and files every find and hunt run under it. |
 | `profiles.ts` | Explorer profiles: "Who's exploring?", the profile card editor (name, about, photo or emoji, mode, guide, guide's name). Adding an explorer, switching TO Together mode and deleting ask for a grown-up; back to Explorer mode does not. The mode switches any time from the 🧒/👨‍👧 button on the map (`App.toggleMode`) or "Who's exploring?". |
 | `guides.ts` | Any of the eight characters as an explorer's guide, and the name they are called (`guideName`, renamable). `buddyView.setGuideName` makes every bubble use it. |
+| `sproutArt.ts` | Picture drawings of species, in the crew's sticker style (decision 5 of `docs/AGE_TIERS.md`: drawings, never photos). Each names the list species it stands for and a "how to tell it" line (tested against `ns.json` and `FAMILIAR`). Shown as picture buttons first in the species step, on the find page, and as the find's picture when it has no photo or drawing. First drawings: Red Maple and Sugar Maple. |
 | `species.ts`, `speciesStore.ts`, `familiar.ts` | Naming a find: the slim species record, search by the find's kind (`CATEGORY_TAXA`), readers for Field Mapper species files and CSVs; the loaded list (built-in + imported); the big-button familiar species (each name must exist in the list — tested). |
 | `mapPicker.ts`, `basemapPicker.ts` | "Tap the map" placement (a fixed target over the map centre) and the Streets / Satellite / Hybrid chooser. |
 | `mapView.ts` | MapLibre map, OpenFreeMap style with an offline fallback, HTML markers, walk trail. |
@@ -52,7 +53,7 @@ There is no linter; `tsc` is the gate.
 
 **Pure, DOM-free and unit-tested:** `badges.ts`, `challenges.ts`, `hunts.ts`, `gate.ts`, `csv.ts`,
 `geo.ts`, `categories.ts`, `buddies.ts`, `buddyLines.ts`, `critters.ts`, `cast.ts`, `tickGuide.ts`, `guides.ts`,
-`findModel.ts`, `species.ts`, `familiar.ts`, `ids.ts`, `walk.ts`, `voiceRank.ts`, `look.ts`, `tiers.ts`. Keep logic there and the DOM out of them.
+`findModel.ts`, `species.ts`, `familiar.ts`, `ids.ts`, `walk.ts`, `voiceRank.ts`, `look.ts`, `tiers.ts`, `sproutArt.ts`. Keep logic there and the DOM out of them.
 
 ## Species lists
 

@@ -15,6 +15,7 @@ import { toBadgeFind } from './badges.ts';
 import { hasSpeciesStep, searchSpecies, type Species } from './species.ts';
 import { FAMILIAR } from './familiar.ts';
 import { loadSpecies } from './speciesStore.ts';
+import { artFor } from './sproutArt.ts';
 
 export interface CaptureHost {
   settings: Settings;
@@ -258,8 +259,18 @@ export function startCapture(host: CaptureHost, existing?: Find): void {
         list = l;
         status.textContent = l.length ? `${l.length.toLocaleString()} species to choose from${source ? ` · ${source}` : ''}.` : 'No species list on this device yet.';
         const names = new Map(l.map(sp => [sp.n, sp] as const));
-        familiar.replaceChildren(...(FAMILIAR[cat] ?? []).map(n => names.get(n)).filter((sp): sp is Species => !!sp)
-          .map(sp => h('button', { class: 'hunt-chip', onclick: () => choose(sp) }, sp.n)));
+        const known = (FAMILIAR[cat] ?? []).map(n => names.get(n)).filter((sp): sp is Species => !!sp);
+        // Species with a drawing come first, as big picture buttons; the rest stay word chips.
+        const drawn = known.filter(sp => artFor(sp.n));
+        familiar.replaceChildren(
+          ...drawn.map(sp => {
+            const art = artFor(sp.n)!;
+            const fig = h('span', { class: 'art-fig', 'aria-hidden': 'true' });
+            fig.innerHTML = art.svg();
+            return h('button', { class: 'art-chip', onclick: () => { choose(sp); say(art.tell); } }, fig, h('strong', {}, art.label));
+          }),
+          ...known.filter(sp => !artFor(sp.n)).map(sp => h('button', { class: 'hunt-chip', onclick: () => choose(sp) }, sp.n)),
+        );
         paintResults();
       });
       put(
