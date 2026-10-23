@@ -20,8 +20,8 @@ export default defineConfig({
       // main.ts registers ./sw.js itself.
       injectRegister: false,
       manifest: {
-        name: 'Field Mapper Kids',
-        short_name: 'Explorer',
+        name: 'Scout',
+        short_name: 'Scout',
         description: 'Explore and collect the world around you.',
         theme_color: '#2f9e44',
         background_color: '#fff9db',

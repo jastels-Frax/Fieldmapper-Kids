@@ -6,15 +6,39 @@
     <meta name="theme-color" content="#2f9e44" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Explorer" />
+    <meta name="apple-mobile-web-app-title" content="Scout" />
     <meta name="description" content="Explore and collect the world around you." />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./icon-180.png" />
-    <title>Field Mapper Kids</title>
+    <title>Scout</title>
   </head>
   <body>
     <div id="app"></div>
-    <noscript>Field Mapper Kids needs JavaScript turned on.</noscript>
+    <noscript>Scout needs JavaScript turned on.</noscript>
+    <script>
+      // If the app never starts, say so instead of leaving a white page. The commonest
+      // cause is GitHub Pages serving this repository's unbuilt source ("Deploy from a
+      // branch"), where the browser refuses to run src/main.ts.
+      (function () {
+        function fail(why) {
+          if (window.__scoutBooted || document.getElementById('boot-fail')) return;
+          var d = document.createElement('div');
+          d.id = 'boot-fail';
+          d.setAttribute('style', 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;background:#fff9db;font:18px/1.45 system-ui,sans-serif;color:#212529;text-align:center');
+          d.innerHTML = '<div style="max-width:440px"><div style="font-size:64px">🧭</div><h1 style="margin:8px 0">Scout could not start</h1>'
+            + '<p>Ask a grown-up to try again in a minute.</p>'
+            + '<p style="font-size:14px;color:#495057">For whoever published this page: ' + why + '</p>'
+            + '<button onclick="location.reload()" style="font:inherit;font-weight:800;padding:12px 22px;border-radius:16px;border:3px solid #121512;background:#2f9e44;color:#fff">Try again</button></div>';
+          document.body.appendChild(d);
+        }
+        window.__scoutFail = fail;
+        window.addEventListener('error', function (e) {
+          var t = e.target;
+          if (t && t.tagName === 'SCRIPT') fail('the app\'s script did not load. If this is GitHub Pages, set Settings → Pages → Source to "GitHub Actions" and re-run the "Deploy to Pages" workflow; "Deploy from a branch" serves the unbuilt source.');
+        }, true);
+        setTimeout(function () { fail('the app did not start within 30 seconds. Check the connection, then reload.'); }, 30000);
+      })();
+    </script>
     <script type="module" src="./src/main.ts"></script>
   </body>
 </html>

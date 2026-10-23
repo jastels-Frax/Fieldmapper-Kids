@@ -2,6 +2,9 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import './styles.css';
 import { App } from './App.ts';
 
+// The page's own fallback (index.html) shows a message if this flag never appears.
+(window as unknown as { __scoutBooted?: boolean }).__scoutBooted = true;
+
 // Ask the browser to keep the finds when the device runs short of space.
 void navigator.storage?.persist?.();
 
@@ -27,4 +30,9 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   });
 }
 
-void new App().init();
+new App().init().catch(err => {
+  console.error(err);
+  const w = window as unknown as { __scoutBooted?: boolean; __scoutFail?: (why: string) => void };
+  w.__scoutBooted = false;
+  w.__scoutFail?.(`the app stopped while starting (${err instanceof Error ? err.message : String(err)}).`);
+});

@@ -43,7 +43,7 @@ export async function buildExport(finds: Find[], explorer: string): Promise<Blob
   files['finds.geojson'] = strToU8(JSON.stringify({ type: 'FeatureCollection', features }, null, 1));
   files['finds.csv'] = strToU8(rows.map(r => r.map(csvCell).join(',')).join('\r\n'));
   files['README.txt'] = strToU8(
-    `Field Mapper Kids - ${explorer || 'Explorer'}'s finds\n` +
+    `Scout - ${explorer || 'Explorer'}'s finds\n` +
     `Exported ${new Date().toISOString()}\n\n` +
     `finds.geojson  every find as a point (WGS 84 longitude/latitude); finds with no location have no geometry\n` +
     `finds.csv      the same, as a table\n` +

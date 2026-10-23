@@ -33,6 +33,21 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      # "Deploy from a branch" would publish the unbuilt source over this build (a white
+      # screen). Try to switch the source to this workflow; if the token may not, the
+      # step says so and a repository admin switches it in Settings > Pages.
+      - name: Make GitHub Actions the Pages source
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          type=$(gh api "repos/${{ github.repository }}/pages" --jq .build_type || echo unknown)
+          echo "Pages build_type: $type"
+          if [ "$type" != "workflow" ]; then
+            gh api -X PUT "repos/${{ github.repository }}/pages" -f build_type=workflow \
+              && echo "Switched the Pages source to GitHub Actions." \
+              || echo "::warning::Could not switch the Pages source. Set Settings > Pages > Source to 'GitHub Actions', then re-run this workflow."
+          fi
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

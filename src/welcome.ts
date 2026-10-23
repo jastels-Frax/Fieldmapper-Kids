@@ -17,7 +17,8 @@ export function welcome(initial: Settings): Promise<Settings> {
     const stepMode = () => {
       card.replaceChildren(
         h('div', { class: 'welcome-logo' }, '🧭'),
-        h('h1', {}, 'Field Mapper Kids'),
+        h('h1', {}, 'Scout'),
+        h('p', { class: 'welcome-tag' }, 'Explore, find and collect the world around you'),
         h('p', { class: 'welcome-sub' }, 'Hello grown-up! Who will be using this?'),
         ...(Object.keys(MODE_INFO) as Mode[]).map(m => {
           const info = MODE_INFO[m];

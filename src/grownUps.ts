@@ -119,6 +119,6 @@ export function openGrownUps(host: GrownUpHost): void {
       'Everything stays on this device: finds, photos, voices, location and walks. There is no account and nothing is uploaded. ' +
       'The map pictures come from OpenFreeMap (OpenStreetMap data), which sees which part of the map is being looked at, as any web map does. ' +
       'Uninstalling the app or clearing the browser\'s site data deletes the finds, so save a file now and then.'),
-    h('p', { class: 'hint' }, `Field Mapper Kids ${__APP_VERSION__} · made by Fraxinus`),
+    h('p', { class: 'hint' }, `Scout ${__APP_VERSION__} · made by Fraxinus`),
   );
 }

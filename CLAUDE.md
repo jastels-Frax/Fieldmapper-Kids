@@ -4,7 +4,7 @@ Guidance for Claude Code working in this repository.
 
 ## What this is
 
-**Field Mapper Kids**: a PWA for children aged 5–10 to explore outdoors, save finds on a map, collect
+**Scout** (repo `fieldmapper-kids`): a PWA for children aged 5–10 to explore outdoors, save finds on a map, collect
 badges and go on scavenger hunts with a buddy (Pip the rat or Hop the frog). It is a separate,
 much smaller app from Fraxinus Field Mapper (`fraxinusenviro/GPS2026felt`), sharing its stack and
 its two characters, and nothing else. Do not add code here that talks to Field Mapper's backend.
@@ -29,7 +29,7 @@ There is no linter; `tsc` is the gate.
 | `main.ts` | Registers the service worker (update applies only at launch) and starts `App`. |
 | `App.ts` | The orchestrator: owns settings, finds, hunt runs, the map, the top/bottom chrome and the buddy dock. |
 | `types.ts` | `Find`, `Settings`, `Mode`. |
-| `storage.ts` | IndexedDB (`FieldMapperKids`): `finds`, `settings`, `trails`, `huntRuns`, `customHunts`. |
+| `storage.ts` | IndexedDB (`FieldMapperKids` — the pre-rename name, kept so nobody's finds are orphaned): `finds`, `settings`, `trails`, `huntRuns`, `customHunts`. |
 | `mapView.ts` | MapLibre map, OpenFreeMap style with an offline fallback, HTML markers, walk trail. |
 | `capture.ts` | The "I found something!" flow, one step per screen. |
 | `screens.ts` | Celebration, sticker book, find detail, badges, challenges. |

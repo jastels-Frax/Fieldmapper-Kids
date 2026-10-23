@@ -1,4 +1,4 @@
-# Field Mapper Kids 🧭
+# Scout 🧭
 
 A child-friendly (ages 5–10) companion to Fraxinus Field Mapper, for exploring and observing the
 world around you. Children find things outside, save them as stickers on a map, and go on

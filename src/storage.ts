@@ -9,6 +9,7 @@ export interface TrailDay {
   points: [number, number, number][];
 }
 
+// The app was called Field Mapper Kids before it was Scout; renaming the database would orphan every find.
 const DB_NAME = 'FieldMapperKids';
 const DB_VERSION = 1;
 

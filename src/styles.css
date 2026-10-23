@@ -1,4 +1,4 @@
-/* Field Mapper Kids. Big, round, bright, and readable outdoors. */
+/* Scout. Big, round, bright, and readable outdoors. */
 :root {
   --bg: #fff9db;
   --ink: #212529;
@@ -373,6 +373,7 @@ textarea.text-in { resize: vertical; }
 .welcome-card h1 { font-size: 30px; font-weight: 900; margin: 6px 0 10px; }
 .welcome-logo { font-size: 84px; line-height: 1.1; }
 .welcome-sub { font-size: 19px; font-weight: 700; }
+.welcome-tag { font-size: 17px; font-weight: 800; color: var(--green-dark); margin: -4px 0 14px; }
 .welcome .avatar-row { justify-content: center; margin: 12px 0; }
 
 /* Together mode reads more; Explorer mode keeps words short and pictures large. */
