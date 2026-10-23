@@ -1,3 +1,4 @@
+import { setJournalGuide } from './guides.ts';
 import { lookAttributes, normalizeLook, themeBar, type Look } from './look.ts';
 
 /** Paints a look onto the page: one data- attribute per choice, plus the browser bar colour. */
@@ -7,6 +8,8 @@ export function applyLook(raw: Partial<Look> | undefined): Look {
   for (const [k, v] of Object.entries(lookAttributes(look))) root.dataset[k] = v;
   root.dataset.party = look.party;
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeBar(look.theme));
+  setJournalGuide(look.theme === 'journal');
+  window.dispatchEvent(new Event('look-changed'));
   return look;
 }
 

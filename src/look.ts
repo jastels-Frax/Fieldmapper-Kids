@@ -48,7 +48,7 @@ export interface Choice<T extends string> {
  * `suggestedFont` is offered with it).
  */
 export const THEMES: (Choice<ThemeId> & { swatch: [string, string, string]; bar: string; dark?: boolean; art?: boolean; suggestedFont?: FontId })[] = [
-  { id: 'journal', emoji: '📜', label: 'Field Journal', hint: 'Like a storybook, on old paper', swatch: ['#ecdfbf', '#5e6d38', '#c4652a'], bar: '#4a3826', art: true, suggestedFont: 'storybook' },
+  { id: 'journal', emoji: '📜', label: 'Field Journal', hint: 'A storybook, with Scout the Survey Squirrel', swatch: ['#ecdfbf', '#5e6d38', '#c4652a'], bar: '#4a3826', art: true, suggestedFont: 'storybook' },
   { id: 'forest', emoji: '🌲', label: 'Forest', hint: 'Green and sunny', swatch: ['#fff9db', '#2f9e44', '#f76707'], bar: '#2f9e44' },
   { id: 'ocean', emoji: '🌊', label: 'Ocean', hint: 'Blue like the sea', swatch: ['#e7f5ff', '#1971c2', '#f59f00'], bar: '#1971c2' },
   { id: 'sunset', emoji: '🌅', label: 'Sunset', hint: 'Warm and glowing', swatch: ['#fff4e6', '#d9480f', '#d6336c'], bar: '#d9480f' },
@@ -171,8 +171,12 @@ export function partyPieces(p: PartyId): string[] {
  * explorer who chose letters (Easy read above all) keeps them.
  */
 export function withTheme(l: Look, theme: ThemeId): Look {
-  const t = THEMES.find(x => x.id === theme);
-  const font = t?.suggestedFont && l.font === DEFAULT_LOOK.font ? t.suggestedFont : l.font;
+  const from = THEMES.find(x => x.id === l.theme);
+  const to = THEMES.find(x => x.id === theme);
+  let font = l.font;
+  // Leaving a whole look takes its letters with it; letters the explorer picked themselves stay.
+  if (from?.suggestedFont && font === from.suggestedFont && from.id !== theme) font = DEFAULT_LOOK.font;
+  if (to?.suggestedFont && font === DEFAULT_LOOK.font) font = to.suggestedFont;
   return { ...l, theme, font };
 }
 

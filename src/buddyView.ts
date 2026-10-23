@@ -5,7 +5,10 @@ import { h } from './ui.ts';
 import { say } from './speech.ts';
 import { critterSvg, type Critter } from './critters.ts';
 import { CAST } from './cast.ts';
-import { GUIDE_INFO, guideSvg } from './guides.ts';
+import { GUIDE_INFO, activeGuide, guideSvg } from './guides.ts';
+import { scoutHtml } from './scoutArt.ts';
+
+const figureHtml = (g: GuideId, pose: Expression) => (g === 'scout' ? scoutHtml(pose) : guideSvg(g, pose));
 
 /**
  * The explorer may rename their guide ("Mr Whiskers"), and the guide may be one
@@ -23,8 +26,9 @@ export function nameOf(g: GuideId): string {
 
 /** Any character, drawn. The SVG is our own constant markup, never user text. */
 export function guideFigure(g: GuideId, pose: Expression = 'hello', cls = 'buddy-fig'): HTMLElement {
-  const el = h('span', { class: cls, role: 'img', 'aria-label': `${nameOf(g)} the ${GUIDE_INFO[g].species}` });
-  el.innerHTML = guideSvg(g, pose);
+  const label = g === 'scout' ? nameOf(g) : `${nameOf(g)} the ${GUIDE_INFO[g].species}`;
+  const el = h('span', { class: `${cls} ${g === 'scout' ? 'scout' : ''}`, role: 'img', 'aria-label': label });
+  el.innerHTML = figureHtml(g, pose);
   return el;
 }
 
@@ -44,7 +48,8 @@ function says(g: GuideId, label: string, line: Line, opts: { quiet?: boolean; bi
 
 /** The explorer's own guide saying something. Speaks it too unless `quiet`. */
 export function buddySays(g: GuideId, line: Line, opts: { quiet?: boolean; big?: boolean } = {}): HTMLElement {
-  return says(g, nameOf(g), line, opts, false);
+  const a = activeGuide(g);
+  return says(a, nameOf(a), line, opts, false);
 }
 
 /** A crew member in their job (Fern on the hunts…). */
@@ -62,17 +67,21 @@ export class BuddyDock {
   constructor(private guide: GuideId, private onTap: () => Line) {
     this.fig = guideFigure(guide, 'hello', 'buddy-fig dock-fig');
     this.bubble = h('div', { class: 'dock-bubble', hidden: true, role: 'status' });
-    this.el = h('button', { class: 'buddy-dock', 'aria-label': `Talk to ${nameOf(guide)}`, onclick: () => this.speak(this.onTap()) }, this.bubble, this.fig);
+    this.el = h('button', { class: 'buddy-dock', 'aria-label': `Talk to ${nameOf(activeGuide(guide))}`, onclick: () => this.speak(this.onTap()) }, this.bubble, this.fig);
+    // The look can bring Scout in or take him away while the dock sits on the map.
+    window.addEventListener('look-changed', () => this.setGuide(this.guide));
   }
 
   setGuide(g: GuideId): void {
     this.guide = g;
-    this.el.setAttribute('aria-label', `Talk to ${nameOf(g)}`);
+    this.el.setAttribute('aria-label', `Talk to ${nameOf(activeGuide(g))}`);
     this.pose('hello');
   }
 
   pose(p: Expression): void {
-    this.fig.innerHTML = guideSvg(this.guide, p);
+    const a = activeGuide(this.guide);
+    this.fig.classList.toggle('scout', a === 'scout');
+    this.fig.innerHTML = figureHtml(a, p);
   }
 
   speak(line: Line, ms = 7000): void {

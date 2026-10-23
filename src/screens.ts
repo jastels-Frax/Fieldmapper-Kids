@@ -1,3 +1,4 @@
+import { activeGuide } from './guides.ts';
 import type { CategoryId, Find, Profile, Settings } from './types.ts';
 import { CATEGORIES, COLOURS, COUNTS, SIGNS, SIZES, categoryOf } from './categories.ts';
 import { askYesNo, blobUrl, h, openSheet, whenWords } from './ui.ts';
@@ -308,7 +309,7 @@ export function openChallenges(host: ScreenHost): void {
 export function openCrew(host: ScreenHost): void {
   const { body } = openSheet({ title: 'My Explorer Crew', emoji: '🌲', className: 'crew' });
   const g = host.profile.guide;
-  body.append(buddySays(g, { text: `I am ${nameOf(g)}, your guide! Meet the crew. Tap anyone to say hi.`, pose: 'hello' }));
+  body.append(buddySays(g, { text: `I am ${nameOf(activeGuide(g))}, your guide! Meet the crew. Tap anyone to say hi.`, pose: 'hello' }));
   const grid = h('div', { class: 'crew-grid' });
   for (const c of CRITTERS) {
     const m = CAST[c];

@@ -68,6 +68,8 @@ test('the Field Journal brings storybook letters, but never over letters an expl
   assert.equal(withTheme(DEFAULT_LOOK, 'journal').font, 'storybook');
   assert.equal(withTheme({ ...DEFAULT_LOOK, font: 'easy' }, 'journal').font, 'easy');
   assert.equal(withTheme(DEFAULT_LOOK, 'ocean').font, DEFAULT_LOOK.font);
+  assert.equal(withTheme(withTheme(DEFAULT_LOOK, 'journal'), 'forest').font, DEFAULT_LOOK.font, 'leaving takes the letters back');
+  assert.equal(withTheme({ ...DEFAULT_LOOK, theme: 'journal', font: 'chunky' }, 'forest').font, 'chunky');
 });
 
 test('every Field Journal plate the stylesheet names is in the repo', () => {

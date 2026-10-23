@@ -55,3 +55,19 @@ test('any crew member can be the guide, and renaming is bounded', () => {
   assert.equal(normalizeGuide('dragon'), 'frog');
   assert.equal(normalizeGuide('bear'), 'bear');
 });
+
+import { activeGuide, setJournalGuide } from '../src/guides.ts';
+test('the Field Journal look brings Scout the Survey Squirrel in, and takes him away again', () => {
+  assert.equal(activeGuide('frog'), 'frog');
+  assert.match(cheer('frog', () => 0).text, /Ribbit/);
+  setJournalGuide(true);
+  try {
+    assert.equal(activeGuide('frog'), 'scout');
+    assert.equal(GUIDE_INFO[activeGuide('fox')].name, 'Scout the Survey Squirrel');
+    assert.doesNotMatch(cheer('frog', () => 0).text, /Ribbit/);
+    assert.doesNotMatch(greet('frog', () => 0).text, /Ribbit/);
+  } finally { setJournalGuide(false); }
+  assert.equal(activeGuide('frog'), 'frog');
+  assert.equal(normalizeGuide('scout'), 'frog', 'Scout is never stored as a choice');
+  assert.ok(!GUIDES.includes('scout'));
+});

@@ -688,6 +688,12 @@ html[data-theme="journal"] .sheet.capture .sheet-body::before { aspect-ratio: 3.
 html[data-theme="journal"] .sheet.celebrate .sheet-body::before, html[data-theme="journal"] .sheet.look .sheet-body::before { aspect-ratio: 1.75 / 1; }
 .look-art { display: block; width: 100%; height: 120px; border: 2px solid var(--line); background: #e9dcbc url("./assets/journal/cover.webp") center 62% / cover no-repeat; }
 .look-card.feature { grid-column: 1 / -1; }
+/* Scout the Survey Squirrel: a painted oval portrait, so a little bigger than the stickers and never sepia-filtered again. */
+.buddy-fig.scout { filter: drop-shadow(1px 3px 3px rgba(58, 43, 27, 0.35)) !important; }
+.scout-img { display: block; width: 100%; height: 100%; object-fit: contain; -webkit-user-drag: none; user-select: none; }
+.buddy-says .buddy-fig.scout { width: 92px; height: 92px; }
+.buddy-says.big .buddy-fig.scout { width: 140px; height: 140px; }
+.dock-fig.scout { width: 112px; height: 112px; }
 html[data-theme="journal"] .toast { color: var(--ink); font-weight: 700; }
 
 /* Button styles. Each one reshapes every control: edge, corners, shadow, fill and lettering.

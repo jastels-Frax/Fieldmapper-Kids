@@ -24,13 +24,35 @@ export const GUIDE_INFO: Record<GuideId, GuideInfo> = {
   owl: { id: 'owl', name: CAST.owl.name, species: 'owl', sound: 'Hoo hoo' },
   squirrel: { id: 'squirrel', name: CAST.squirrel.name, species: 'squirrel', sound: 'Chitter chitter' },
   raccoon: { id: 'raccoon', name: CAST.raccoon.name, species: 'raccoon', sound: 'Psst' },
+  scout: { id: 'scout', name: 'Scout the Survey Squirrel', species: 'survey squirrel', sound: 'Chitter chitter' },
 };
 
+/**
+ * The Field Journal look is the storybook "Scout the Survey Squirrel", so while it is on, Scout
+ * stands in for the explorer's own guide: their figure, their name and their lines. The choice
+ * on the profile is untouched and comes back with any other look. The crew keep their jobs.
+ * Set by lookApply; module state, so the pure line and name helpers can ask it.
+ */
+let journal = false;
+
+export function setJournalGuide(on: boolean): void {
+  journal = on;
+}
+
+export const journalGuideOn = (): boolean => journal;
+
+/** Who actually speaks for an explorer whose chosen guide is `g`. */
+export function activeGuide(g: GuideId): GuideId {
+  return journal ? 'scout' : g;
+}
+
 export function isCrew(g: GuideId): g is Critter {
-  return g !== 'rat' && g !== 'frog';
+  return g !== 'rat' && g !== 'frog' && g !== 'scout';
 }
 
 export function guideSvg(g: GuideId, pose: Expression = 'hello'): string {
+  // Scout is a painted portrait (scoutArt.ts), never an SVG; a pure caller gets the crew's squirrel.
+  if (g === 'scout') return critterSvg('squirrel', pose);
   return isCrew(g) ? critterSvg(g, pose) : buddySvg(g, pose);
 }
 

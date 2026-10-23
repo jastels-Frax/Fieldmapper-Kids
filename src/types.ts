@@ -10,7 +10,8 @@ export type ColourId = 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple'
 export type SignId = 'track' | 'scat' | 'chewed' | 'nest' | 'feather' | 'burrow' | 'other';
 
 /** The character who guides an explorer: Pip, Hop or any of the woodland crew. */
-export type GuideId = 'rat' | 'frog' | 'fox' | 'moose' | 'bear' | 'owl' | 'squirrel' | 'raccoon';
+/** `scout` is never chosen or stored: he is the guide of the Field Journal look (guides.activeGuide). */
+export type GuideId = 'rat' | 'frog' | 'fox' | 'moose' | 'bear' | 'owl' | 'squirrel' | 'raccoon' | 'scout';
 
 /** One picture of a find. A find holds as many as the explorer likes. */
 export interface Picture {

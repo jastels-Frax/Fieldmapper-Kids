@@ -4,7 +4,7 @@ import { blobUrl, h, openSheet, toast, uid, askYesNo } from './ui.ts';
 import { say } from './speech.ts';
 import { sounds } from './sound.ts';
 import { downscale } from './image.ts';
-import { GUIDES, GUIDE_INFO, guideName } from './guides.ts';
+import { GUIDES, GUIDE_INFO, guideName, isCrew, journalGuideOn } from './guides.ts';
 import { guideFigure, crewSays, buddySays } from './buddyView.ts';
 import { CAST } from './cast.ts';
 import { askGrownUp } from './gateView.ts';
@@ -131,7 +131,7 @@ function profileForm(p: Profile, opts: { showMode: boolean; lockMode?: (to: Mode
   gname.addEventListener('input', () => { p.guideName = gname.value.trim() || undefined; });
   const paintGuides = () => guides.replaceChildren(...GUIDES.map(g => {
     const info = GUIDE_INFO[g];
-    const role = g === 'rat' || g === 'frog' ? 'Explorer buddy' : CAST[g].role;
+    const role = isCrew(g) ? CAST[g].role : 'Explorer buddy';
     return h('button', { class: `buddy-pick ${p.guide === g ? 'on' : ''}`, onclick: () => {
       if (p.guide !== g) { p.guide = g; p.guideName = undefined; gname.value = ''; }
       gname.placeholder = info.name;
@@ -142,7 +142,9 @@ function profileForm(p: Profile, opts: { showMode: boolean; lockMode?: (to: Mode
   paintGuides();
   wrap.append(
     h('h2', { class: 'section-title' }, 'My guide'),
-    h('p', { class: 'hint' }, 'Your guide goes everywhere with you and reads everything aloud.'),
+    h('p', { class: 'hint' }, journalGuideOn()
+      ? 'In the Field Journal look, Scout the Survey Squirrel is your guide. Your pick here comes back with any other look.'
+      : 'Your guide goes everywhere with you and reads everything aloud.'),
     guides,
     h('label', { class: 'field' }, h('span', {}, '🏷️ Give your guide a new name (if you like)'), gname),
   );
