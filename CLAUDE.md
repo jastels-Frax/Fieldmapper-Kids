@@ -37,11 +37,13 @@ There is no linter; `tsc` is the gate.
 | `grownUps.ts`, `gateView.ts` | Grown-up corner and the hold-then-sum gate. |
 | `welcome.ts` | First launch: mode, name, map picture, buddy. |
 | `buddies.ts` | Pip and Hop drawn as SVG — **copied from GPS2026felt `src/tour/avatars.ts`**; keep the art in step. |
-| `buddyView.ts`, `buddyLines.ts` | The buddy on screen, and what each buddy says. |
+| `buddyView.ts`, `buddyLines.ts` | The buddy and the crew on screen (`buddySays` / `crewSays`), and what each buddy says. |
+| `critters.ts`, `cast.ts` | The woodland crew, drawn in Pip and Hop's style, and who looks after what: Fern the fox (hunts), Maple the moose (badges), Bramble the bear (safety: tick check, grown-up gate), Hoot the owl (facts), Acorn the squirrel (sticker book), Bandit the raccoon (challenges). A new part of the app gets a crew member, not a new character. |
+| `tickGuide.ts`, `tickScreen.ts` | The end-of-adventure tick check and the grown-ups' how-to (CDC / Health Canada advice; general information, not medical advice). |
 | `voice.ts`, `drawPad.ts`, `image.ts`, `speech.ts`, `sound.ts`, `confetti.ts`, `gps.ts`, `trail.ts`, `exportData.ts` | One job each. |
 
 **Pure, DOM-free and unit-tested:** `badges.ts`, `challenges.ts`, `hunts.ts`, `gate.ts`, `csv.ts`,
-`geo.ts`, `categories.ts`, `buddies.ts`, `buddyLines.ts`. Keep logic there and the DOM out of them.
+`geo.ts`, `categories.ts`, `buddies.ts`, `buddyLines.ts`, `critters.ts`, `cast.ts`, `tickGuide.ts`. Keep logic there and the DOM out of them.
 
 ## Rules
 

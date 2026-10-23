@@ -34,6 +34,7 @@ const count = (finds: BadgeFind[], cat: CategoryId) => finds.filter(f => f.categ
 /** What a badge may know beyond the finds themselves. */
 export interface BadgeExtras {
   huntsCompleted?: number;
+  tickChecks?: number;
 }
 
 interface BadgeRule extends Badge {
@@ -86,6 +87,7 @@ const RULES: BadgeRule[] = [
   },
   { id: 'hunt1', emoji: '🔎', title: 'Treasure Hunter', how: 'Finish a scavenger hunt.', target: 1, measure: (_f, _c, x) => x.huntsCompleted ?? 0 },
   { id: 'hunt3', emoji: '🗺️', title: 'Hunt Master', how: 'Finish 3 scavenger hunts.', target: 3, measure: (_f, _c, x) => x.huntsCompleted ?? 0 },
+  { id: 'ticks', emoji: '🕷️', title: 'Tick Checker', how: 'Do a tick check after exploring, 3 times.', target: 3, measure: (_f, _c, x) => x.tickChecks ?? 0 },
   {
     id: 'far', emoji: '🚀', title: 'Far Explorer', how: 'Find things more than 1 kilometre apart.', target: 1,
     measure: f => (farthestApartM(f) >= 1000 ? 1 : 0),

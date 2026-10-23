@@ -1,6 +1,7 @@
 import { h } from './ui.ts';
 import { checkGateAnswer, makeGateQuestion } from './gate.ts';
 import { sounds } from './sound.ts';
+import { critterFigure } from './buddyView.ts';
 
 const HOLD_MS = 2000;
 
@@ -66,9 +67,9 @@ export function askGrownUp(reason: string): Promise<boolean> {
 
     const overlay = h('div', { class: 'gate-overlay', role: 'dialog', 'aria-label': 'Grown-ups only' },
       h('div', { class: 'gate-card' },
-        h('div', { class: 'gate-lock' }, '🔒'),
+        critterFigure('bear', 'point', 'buddy-fig gate-fig'),
         h('h2', {}, 'Grown-ups only'),
-        h('p', { class: 'gate-reason' }, reason),
+        h('p', { class: 'gate-reason' }, `Ranger Bramble says: this part is for grown-ups. ${reason}`),
         holdBtn, step2,
         h('button', { class: 'text-btn', onclick: () => finish(false) }, 'Cancel'),
       ),

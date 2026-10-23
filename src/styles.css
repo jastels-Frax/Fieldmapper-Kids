@@ -391,3 +391,35 @@ html[data-mode="explorer"] .choice-emoji { font-size: 60px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Crew */
+.buddy-says.crew .bubble-name { color: #a33f06; }
+.crew-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.crew-card {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 8px; text-align: center;
+  background: #fff; border: 3px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.crew-fig { width: 110px; height: 110px; }
+.crew-card strong { font-size: 20px; }
+.crew-role { font-weight: 900; color: var(--green-dark); }
+.crew-home { font-size: 13px; color: var(--soft-ink); font-weight: 700; }
+.gate-fig { width: 96px; height: 96px; margin: 0 auto; display: block; }
+
+/* Tick check */
+.tick-status { text-align: center; font-weight: 900; font-size: 18px; }
+.tick-spots { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 10px; }
+.tick-spot {
+  display: flex; align-items: center; gap: 8px; padding: 12px; text-align: left; background: #fff;
+  border: 3px solid var(--line); border-radius: 16px; font-weight: 800; font-size: 16px; min-height: 64px;
+}
+.tick-spot.on { background: #d3f9d8; }
+.tick-spot-emoji { font-size: 30px; }
+.tick-spot-text { flex: 1; }
+.tick-spot-box { font-size: 22px; }
+.danger-btn { background: #fff5f5; color: #c92a2a; }
+.tick-btn { background: #8d5524; }
+.tick-guide { background: #fff; border: 3px solid var(--line); border-radius: var(--radius); padding: 10px 14px; margin: 16px auto; }
+.tick-guide summary { font-weight: 900; font-size: 17px; cursor: pointer; padding: 6px 0; }
+.tick-guide h3 { font-size: 17px; margin: 14px 0 4px; }
+.tick-guide ul { margin: 0; padding-left: 22px; font-size: 16px; line-height: 1.5; }
+.tick-guide li { margin: 4px 0; }

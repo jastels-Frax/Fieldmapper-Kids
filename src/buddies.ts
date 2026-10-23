@@ -12,29 +12,29 @@ export const BUDDY_NAMES: Record<Buddy, string> = { rat: 'Pip', frog: 'Hop' };
 export const EXPRESSIONS = ['hello', 'think', 'excited', 'point', 'listen', 'confused', 'wink', 'success'] as const;
 export type Expression = typeof EXPRESSIONS[number];
 
-const INK = '#121512';
-const GREEN = '#1e8a3e';
-const DEEP = '#0f5a29';
-const WHITE = '#fbfcf8';
-const MOUTH = '#0b3319';
-const TONGUE = '#3fae5c';
-const LINE = `stroke="${INK}" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"`;
+export const INK = '#121512';
+export const GREEN = '#1e8a3e';
+export const DEEP = '#0f5a29';
+export const WHITE = '#fbfcf8';
+export const MOUTH = '#0b3319';
+export const TONGUE = '#3fae5c';
+export const LINE = `stroke="${INK}" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"`;
 
-const path = (d: string, fill: string, w = 5) => `<path d="${d}" fill="${fill}" stroke="${INK}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"/>`;
-const stroke = (d: string, color = INK, w = 3.5) => `<path d="${d}" fill="none" stroke="${color}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
-const ellipse = (cx: number, cy: number, rx: number, ry: number, fill: string, w = 5) =>
+export const path = (d: string, fill: string, w = 5) => `<path d="${d}" fill="${fill}" stroke="${INK}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"/>`;
+export const stroke = (d: string, color = INK, w = 3.5) => `<path d="${d}" fill="none" stroke="${color}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+export const ellipse = (cx: number, cy: number, rx: number, ry: number, fill: string, w = 5) =>
   `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" ${w ? `stroke="${INK}" stroke-width="${w}"` : ''}/>`;
 
 /** A limb: a black line under a narrower coloured one, so it reads as outlined. */
-function limb(d: string, color = GREEN, w = 13): string {
+export function limb(d: string, color = GREEN, w = 13): string {
   return `<path d="${d}" stroke="${INK}" stroke-width="${w + 9}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`
     + `<path d="${d}" stroke="${color}" stroke-width="${w}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
 }
 
-type Gaze = 'ahead' | 'up' | 'side';
+export type Gaze = 'ahead' | 'up' | 'side';
 
 /** A glossy eye; `closed` draws the happy arc, `wink` the closed one. */
-function eye(cx: number, cy: number, rx: number, ry: number, gaze: Gaze, state: 'open' | 'closed' | 'wink'): string {
+export function eye(cx: number, cy: number, rx: number, ry: number, gaze: Gaze, state: 'open' | 'closed' | 'wink'): string {
   if (state !== 'open') {
     const d = state === 'closed' ? `M${cx - rx},${cy + 3} q${rx},-${ry * 1.1} ${rx * 2},0` : `M${cx - rx},${cy} q${rx},${ry * 0.7} ${rx * 2},0`;
     return stroke(d, INK, 5);
@@ -49,16 +49,16 @@ function eye(cx: number, cy: number, rx: number, ry: number, gaze: Gaze, state: 
 }
 
 /** The question mark that floats beside a confused helper. */
-const QUESTION = stroke('M214,30 q0,-14 14,-14 q14,0 14,13 q0,10 -12,15 v8', DEEP, 7) + `<circle cx="230" cy="66" r="4.5" fill="${DEEP}"/>`;
+export const QUESTION = stroke('M214,30 q0,-14 14,-14 q14,0 14,13 q0,10 -12,15 v8', DEEP, 7) + `<circle cx="230" cy="66" r="4.5" fill="${DEEP}"/>`;
 
 /** An open hand of four rounded fingers, centred at (x, y), fingers up. */
-function openHand(x: number, y: number, tilt = 0): string {
+export function openHand(x: number, y: number, tilt = 0, colour = WHITE): string {
   const fingers = [-11, -4, 4, 11].map((o, i) => `M${x + o * 0.9},${y} l${(o * 0.35).toFixed(1)},-${i === 0 || i === 3 ? 13 : 17}`).join(' ');
-  return `<g transform="rotate(${tilt} ${x} ${y})">${limb(fingers, WHITE, 5)}${ellipse(x, y + 2, 12, 11, WHITE, 4.5)}</g>`;
+  return `<g transform="rotate(${tilt} ${x} ${y})">${limb(fingers, colour, 5)}${ellipse(x, y + 2, 12, 11, colour, 4.5)}</g>`;
 }
-const fist = (x: number, y: number) => ellipse(x, y, 11, 10, WHITE, 4.5) + stroke(`M${x - 4},${y + 9} v-5 M${x + 4},${y + 9} v-5`, INK, 2.5);
+export const fist = (x: number, y: number, colour = WHITE) => ellipse(x, y, 11, 10, colour, 4.5) + stroke(`M${x - 4},${y + 9} v-5 M${x + 4},${y + 9} v-5`, INK, 2.5);
 /** A pointing hand: a fist with the index finger out towards (x + dx). */
-const pointing = (x: number, y: number) => limb(`M${x},${y - 3} h20`, WHITE, 6) + fist(x, y);
+export const pointing = (x: number, y: number, colour = WHITE) => limb(`M${x},${y - 3} h20`, colour, 6) + fist(x, y, colour);
 
 function ratArms(e: Expression): string {
   const downL = limb('M92,176 q-14,22 -2,40') + fist(92, 218);
@@ -177,14 +177,18 @@ function frog(e: Expression): string {
 /** The buddy as an SVG string, sized by the caller's CSS. */
 let rimSeq = 0;
 
-export function buddySvg(persona: Buddy, e: Expression = 'hello'): string {
+/** Wraps a figure in the white sticker rim every character wears. */
+export function stickerSvg(figure: string): string {
   const rimId = `buddy-rim-${++rimSeq}`;
-  const pose = (EXPRESSIONS as readonly string[]).includes(e) ? e : 'hello';
-  // The sticker rim: the figure's own silhouette, dilated and filled white, under it.
   const filter = `<defs><filter id="${rimId}" x="-6%" y="-6%" width="112%" height="112%">`
     + `<feMorphology in="SourceAlpha" operator="dilate" radius="5" result="fat"/>`
     + `<feFlood flood-color="${WHITE}"/><feComposite operator="in" in2="fat" result="rim"/>`
     + `<feMerge><feMergeNode in="rim"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
   return `<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">`
-    + `${filter}<g filter="url(#${rimId})"><g transform="translate(12 10) scale(0.9)">${persona === 'frog' ? frog(pose) : rat(pose)}</g></g></svg>`;
+    + `${filter}<g filter="url(#${rimId})"><g transform="translate(12 10) scale(0.9)">${figure}</g></g></svg>`;
+}
+
+export function buddySvg(persona: Buddy, e: Expression = 'hello'): string {
+  const pose = (EXPRESSIONS as readonly string[]).includes(e) ? e : 'hello';
+  return stickerSvg(persona === 'frog' ? frog(pose) : rat(pose));
 }

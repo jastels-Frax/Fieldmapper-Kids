@@ -1,9 +1,12 @@
-# Publishes dist/ to GitHub Pages. Run by hand (Actions ▸ Deploy to Pages ▸ Run workflow)
-# once Pages is enabled for this repository with "GitHub Actions" as the source.
-# A private repository needs a paid GitHub plan for Pages.
+# Builds the app and publishes dist/ to GitHub Pages on every push to main.
+# Needs Settings > Pages > Build and deployment > Source = "GitHub Actions".
+# With "Deploy from a branch" Pages serves the raw source instead, whose
+# index.html asks for src/main.ts, which a browser cannot run: a white screen.
 name: Deploy to Pages
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:

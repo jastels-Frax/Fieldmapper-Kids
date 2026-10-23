@@ -65,3 +65,8 @@ test('hunt badges count finished hunts', () => {
   assert.equal(badgeProgress([], clock, { huntsCompleted: 1 }).find(b => b.id === 'hunt3')!.value, 1);
   assert.deepEqual(newlyEarned([], [], clock, { huntsCompleted: 0 }, { huntsCompleted: 1 }).map(b => b.id), ['hunt1']);
 });
+
+test('tick checker counts finished checks', () => {
+  assert.equal(badgeProgress([], clock, { tickChecks: 2 }).find(b => b.id === 'ticks')!.earned, false);
+  assert.equal(badgeProgress([], clock, { tickChecks: 3 }).find(b => b.id === 'ticks')!.earned, true);
+});

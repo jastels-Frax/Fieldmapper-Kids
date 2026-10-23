@@ -2,6 +2,8 @@ import { buddySvg, BUDDY_NAMES, type Buddy, type Expression } from './buddies.ts
 import type { Line } from './buddyLines.ts';
 import { h } from './ui.ts';
 import { say } from './speech.ts';
+import { critterSvg, type Critter } from './critters.ts';
+import { CAST } from './cast.ts';
 
 /** Pip or Hop, drawn. The SVG is our own constant markup, never user text. */
 export function buddyFigure(b: Buddy, pose: Expression = 'hello', cls = 'buddy-fig'): HTMLElement {
@@ -60,4 +62,25 @@ export class BuddyDock {
       this.pose('hello');
     }, ms);
   }
+}
+
+/** A crew member, drawn. */
+export function critterFigure(c: Critter, pose: Expression = 'hello', cls = 'buddy-fig'): HTMLElement {
+  const el = h('span', { class: cls, role: 'img', 'aria-label': `${CAST[c].name} the ${CAST[c].species}` });
+  el.innerHTML = critterSvg(c, pose);
+  return el;
+}
+
+/** A crew member saying something, the way buddySays does for Pip and Hop. */
+export function crewSays(c: Critter, line: Line, opts: { quiet?: boolean; big?: boolean } = {}): HTMLElement {
+  if (!opts.quiet) say(line.text);
+  const who = CAST[c];
+  return h('div', { class: `buddy-says crew ${opts.big ? 'big' : ''}` },
+    critterFigure(c, line.pose),
+    h('button', { class: 'bubble', onclick: () => say(line.text), 'aria-label': `${who.name} says: ${line.text}. Tap to hear it again.` },
+      h('span', { class: 'bubble-name' }, `${who.name} · ${who.role}`),
+      h('span', { class: 'bubble-text' }, line.text),
+      h('span', { class: 'bubble-say', 'aria-hidden': 'true' }, '🔊'),
+    ),
+  );
 }

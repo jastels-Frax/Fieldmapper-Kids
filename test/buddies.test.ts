@@ -33,3 +33,14 @@ test('every line exists for both buddies', () => {
   }
   assert.ok(greet('rat', () => 0.999).text);
 });
+
+import { critterSvg, CRITTERS } from '../src/critters.ts';
+import { CAST } from '../src/cast.ts';
+
+test('every crew member draws in every pose and has a role', () => {
+  for (const c of CRITTERS) {
+    for (const e of EXPRESSIONS) assert.match(critterSvg(c, e), /^<svg[\s\S]*<\/svg>$/);
+    assert.ok(CAST[c].name && CAST[c].role && CAST[c].intro);
+  }
+  assert.equal(new Set(CRITTERS.map(c => CAST[c].role)).size, CRITTERS.length);
+});

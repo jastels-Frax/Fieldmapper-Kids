@@ -4,8 +4,7 @@ import { askYesNo, h, openSheet, toast, uid } from './ui.ts';
 import { say } from './speech.ts';
 import { sounds } from './sound.ts';
 import { confetti } from './confetti.ts';
-import { buddySays } from './buddyView.ts';
-import { BUDDY_NAMES } from './buddies.ts';
+import { crewSays } from './buddyView.ts';
 import { askGrownUp } from './gateView.ts';
 
 export interface HuntHost {
@@ -14,7 +13,8 @@ export interface HuntHost {
   customHunts: () => Hunt[];
   liveFindIds: () => Set<string>;
   start: (hunt: Hunt) => Promise<void>;
-  stop: (run: HuntRun) => Promise<void>;
+  /** `switching` is true when another hunt is starting in its place. */
+  stop: (run: HuntRun, switching?: boolean) => Promise<void>;
   saveCustom: (hunt: Hunt) => Promise<void>;
   deleteCustom: (id: string) => Promise<void>;
   startCapture: () => void;
@@ -51,7 +51,7 @@ export function openHunts(host: HuntHost): void {
     if (run) {
       const p = huntProgress(run, live);
       body.append(
-        buddySays(buddy, { text: `You are on the ${run.hunt.title}! ${p.total - p.done} more to find.`, pose: 'point' }),
+        crewSays('fox', { text: `You are on the ${run.hunt.title}! ${p.total - p.done} more to find.`, pose: 'point' }),
         h('section', { class: 'hunt-now' },
           h('h2', {}, `${run.hunt.emoji} ${run.hunt.title}`),
           progressBar(p.done, p.total),
@@ -67,7 +67,7 @@ export function openHunts(host: HuntHost): void {
         ),
       );
     } else {
-      body.append(buddySays(buddy, { text: `Pick a hunt and ${buddy === 'frog' ? 'hop' : 'scurry'} off to find everything on the list!`, pose: 'excited' }));
+      body.append(crewSays('fox', { text: 'I am Fern, your hunt guide! Pick a hunt and find everything on the list!', pose: 'excited' }));
     }
 
     const all = [...host.customHunts(), ...HUNTS];
@@ -102,12 +102,12 @@ export function openHunts(host: HuntHost): void {
   const preview = (hunt: Hunt) => {
     const sheet = openSheet({ title: hunt.title, emoji: hunt.emoji, className: 'hunt-preview' });
     sheet.body.append(
-      buddySays(buddy, { text: `${hunt.title}! Can you find all ${hunt.items.length}? ${hunt.where}`, pose: 'excited' }),
+      crewSays('fox', { text: `${hunt.title}! Can you find all ${hunt.items.length}? ${hunt.where}`, pose: 'excited' }),
       itemGrid(null, hunt, new Set()),
       h('button', { class: 'big-btn', onclick: async () => {
         const run = activeRun(host.runs());
         if (run && !(await askYesNo(`Stop the ${run.hunt.title} and start this one?`, '🔎 Start this one', 'Keep the old one'))) return;
-        if (run) await host.stop(run);
+        if (run) await host.stop(run, true);
         await host.start(hunt);
         sounds.badge();
         confetti(['🔎', hunt.emoji]);
@@ -203,7 +203,7 @@ function openHuntMaker(host: HuntHost, editing: Hunt | null, after: () => void):
   } }, '💾 Save hunt');
 
   body.append(
-    h('p', { class: 'hint' }, `${BUDDY_NAMES[host.settings.buddy]} will read the list aloud. Ready-made things marked "auto" tick themselves when a matching find is saved; your own things are ticked by tapping "it counts" when saving a find.`),
+    h('p', { class: 'hint' }, `Fern the fox will read the list aloud. Ready-made things marked "auto" tick themselves when a matching find is saved; your own things are ticked by tapping "it counts" when saving a find.`),
     h('label', { class: 'field' }, h('span', {}, 'Hunt name'), title),
     h('div', { class: 'field' }, h('span', {}, 'Picture'), emojiRow),
     h('h2', { class: 'section-title' }, 'Things to find'), count, listEl,

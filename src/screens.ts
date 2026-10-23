@@ -8,8 +8,10 @@ import { badgeProgress, toBadgeFind, type BadgeProgress } from './badges.ts';
 import { challengesFor, completedChallenges, type Challenge } from './challenges.ts';
 import { localDay } from './geo.ts';
 import { askGrownUp } from './gateView.ts';
-import { buddySays } from './buddyView.ts';
-import { cheer, emptyBook } from './buddyLines.ts';
+import { buddySays, crewSays, critterFigure } from './buddyView.ts';
+import { CRITTERS, critterSvg } from './critters.ts';
+import { CAST } from './cast.ts';
+import { cheer } from './buddyLines.ts';
 import type { HuntItem, HuntRun } from './hunts.ts';
 
 export interface ScreenHost {
@@ -21,6 +23,9 @@ export interface ScreenHost {
   startCapture: () => void;
   openHunts: () => void;
   huntsCompleted: () => number;
+  tickChecks: () => number;
+  /** Opens the end-of-adventure tick check. */
+  tickCheck: () => void;
 }
 
 export interface HuntNews {
@@ -53,7 +58,7 @@ export function celebrate(host: ScreenHost, f: Find, newBadges: BadgeProgress[],
   const hooray = cheer(buddy);
   body.append(
     buddySays(buddy, { text: `${hooray.text} ${what}`, pose: hooray.pose }, { quiet: true, big: true }),
-    h('div', { class: 'fact-card' }, h('span', { class: 'fact-emoji' }, '💡'), h('p', {}, fact)),
+    crewSays('owl', { text: `Hoo! Did you know? ${fact}`, pose: 'point' }, { quiet: true }),
   );
   if (!locatedOk) body.append(h('p', { class: 'hint' }, '📍 I could not tell where you were, so this one is not on the map.'));
   if (hunt) {
@@ -63,6 +68,9 @@ export function celebrate(host: ScreenHost, f: Find, newBadges: BadgeProgress[],
     if (hunt.completed) {
       body.append(h('div', { class: 'win-card trophy' }, h('span', { class: 'win-emoji' }, '🏆'),
         h('div', {}, h('strong', {}, `You finished the ${hunt.run.hunt.title}!`), h('p', {}, 'A trophy for your shelf!'))));
+      if (host.settings.tickReminder) {
+        body.append(h('button', { class: 'big-btn tick-btn', onclick: () => { close(); host.tickCheck(); } }, '🕷️ Heading home? Do a tick check'));
+      }
     }
   }
   for (const c of newChallenges) {
@@ -78,7 +86,7 @@ export function celebrate(host: ScreenHost, f: Find, newBadges: BadgeProgress[],
   sounds.save();
   confetti([cat.emoji, ...newBadges.map(b => b.emoji), ...(hunt?.completed ? ['🏆'] : [])]);
   const huntWords = hunt ? [...hunt.ticked.map(i => `${i.text}, found it!`), hunt.completed ? `You finished the ${hunt.run.hunt.title}! A trophy for you!` : ''] : [];
-  const words = [hooray.text, what, ...huntWords, ...newChallenges.map(c => `Challenge done! ${c.text}.`), ...newBadges.map(b => `You earned the ${b.title} badge!`), fact];
+  const words = [hooray.text, what, ...huntWords, ...newChallenges.map(c => `Challenge done! ${c.text}.`), ...newBadges.map(b => `You earned the ${b.title} badge!`), `Hoot says: did you know? ${fact}`];
   say(words.join(' '));
   if (newBadges.length || hunt?.completed) setTimeout(() => sounds.badge(), 700);
 }
@@ -105,7 +113,7 @@ export function openBook(host: ScreenHost, start?: CategoryId): void {
       grid.append(h('div', { class: 'empty' },
         host.finds().length
           ? h('p', {}, 'Nothing here yet.')
-          : buddySays(host.settings.buddy, emptyBook(host.settings.buddy)),
+          : crewSays('squirrel', { text: 'I am Acorn! Your sticker book is empty. Go find something and I will keep it safe!', pose: 'confused' }),
         !host.finds().length && h('button', { class: 'big-btn', onclick: () => { close(); host.startCapture(); } }, '✨ I found something!'),
       ));
       return;
@@ -119,6 +127,10 @@ export function openBook(host: ScreenHost, start?: CategoryId): void {
       if (f.favourite) card.append(h('span', { class: 'sticker-fav' }, '❤️'));
     }
   };
+  if (host.finds().length) {
+    const n = host.finds().length;
+    body.append(crewSays('squirrel', { text: `Acorn here! You have ${n} ${n === 1 ? 'sticker' : 'stickers'}. Tap one to look closer.`, pose: 'excited' }));
+  }
   body.append(chips, grid);
   paint();
 }
@@ -168,7 +180,7 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void): v
       body.append(h('p', { class: 'hint' }, `📍 ${f.lat.toFixed(5)}, ${f.lon!.toFixed(5)}${f.accuracy ? ` (±${f.accuracy} m)` : ''}`));
     }
   }
-  body.append(h('div', { class: 'fact-card' }, h('span', { class: 'fact-emoji' }, '💡'), h('p', {}, cat.facts[0])));
+  body.append(crewSays('owl', { text: `Hoo! Did you know? ${cat.facts[0]}`, pose: 'point' }, { quiet: true }));
 
   const fav = h('button', { class: 'big-btn soft' }, f.favourite ? '💔 Not a favourite' : '❤️ Favourite');
   fav.addEventListener('click', async () => {
@@ -199,9 +211,9 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void): v
 
 export function openBadges(host: ScreenHost): void {
   const { body } = openSheet({ title: 'My Badges', emoji: '🏅', className: 'badges' });
-  const list = badgeProgress(host.finds().map(toBadgeFind), undefined, { huntsCompleted: host.huntsCompleted() });
+  const list = badgeProgress(host.finds().map(toBadgeFind), undefined, { huntsCompleted: host.huntsCompleted(), tickChecks: host.tickChecks() });
   const earned = list.filter(b => b.earned).length;
-  body.append(buddySays(host.settings.buddy, {
+  body.append(crewSays('moose', {
     text: earned ? `You have ${earned} of ${list.length} badges! Tap one to hear how to get it.` : 'No badges yet. Tap one to hear how to get it!',
     pose: earned ? 'excited' : 'point',
   }));
@@ -230,9 +242,9 @@ export function todaysChallenges(finds: Find[]): { list: Challenge[]; done: Set<
 export function openChallenges(host: ScreenHost): void {
   const { body, close } = openSheet({ title: "Today's Adventure", emoji: '⭐', className: 'challenges' });
   const { list, done } = todaysChallenges(host.finds());
-  body.append(buddySays(host.settings.buddy, done.size === list.length
+  body.append(crewSays('raccoon', done.size === list.length
     ? { text: 'You did them all! Amazing!', pose: 'success' }
-    : { text: `Can you do all three today? ${list.map(c => c.text).join('. ')}.`, pose: 'point' }, { quiet: false }));
+    : { text: `Bandit here! I hid three challenges for you today. ${list.map(c => c.text).join('. ')}.`, pose: 'point' }));
   for (const c of list) {
     const isDone = done.has(c.id);
     body.append(h('button', { class: `challenge-card ${isDone ? 'done' : ''}`, onclick: () => say(isDone ? `Done! ${c.text}` : c.text) },
@@ -247,4 +259,23 @@ export function openChallenges(host: ScreenHost): void {
     h('button', { class: 'big-btn soft', onclick: () => { close(); host.openHunts(); } }, '🔎 Go on a scavenger hunt'),
   );
   if (done.size === list.length) confetti(['⭐']);
+}
+
+/** Meet the crew: who looks after what. */
+export function openCrew(host: ScreenHost): void {
+  const { body } = openSheet({ title: 'My Explorer Crew', emoji: '🌲', className: 'crew' });
+  const buddy = host.settings.buddy;
+  body.append(buddySays(buddy, { text: buddy === 'rat' ? 'I am Pip, your buddy! Meet my friends. Tap anyone to say hi.' : 'I am Hop, your buddy! Meet my friends. Tap anyone to say hi.', pose: 'hello' }));
+  const grid = h('div', { class: 'crew-grid' });
+  for (const c of CRITTERS) {
+    const m = CAST[c];
+    const card = h('button', { class: 'crew-card', onclick: () => {
+      say(m.intro);
+      const fig = card.querySelector('.crew-fig') as HTMLElement;
+      fig.innerHTML = critterSvg(c, 'excited');
+      setTimeout(() => { fig.innerHTML = critterSvg(c, 'hello'); }, 1800);
+    } }, critterFigure(c, 'hello', 'buddy-fig crew-fig'), h('strong', {}, m.name), h('span', { class: 'crew-role' }, m.role), h('span', { class: 'crew-home' }, m.home));
+    grid.append(card);
+  }
+  body.append(grid);
 }

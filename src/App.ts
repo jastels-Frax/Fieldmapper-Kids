@@ -10,7 +10,7 @@ import { h, toast, uid } from './ui.ts';
 import { say, setReadAloud } from './speech.ts';
 import { setSounds, sounds } from './sound.ts';
 import { startCapture } from './capture.ts';
-import { celebrate, openBadges, openBook, openChallenges, openFind, todaysChallenges, type ScreenHost } from './screens.ts';
+import { celebrate, openCrew, openBadges, openBook, openChallenges, openFind, todaysChallenges, type ScreenHost } from './screens.ts';
 import { newlyEarned, toBadgeFind } from './badges.ts';
 import { askGrownUp } from './gateView.ts';
 import { openGrownUps } from './grownUps.ts';
@@ -19,6 +19,10 @@ import { BuddyDock } from './buddyView.ts';
 import { greet, tip } from './buddyLines.ts';
 import { huntProgress, openItems, tick, type Hunt, type HuntRun } from './hunts.ts';
 import { activeRun, openHunts, type HuntHost } from './huntScreens.ts';
+import { openTickCheck } from './tickScreen.ts';
+import { recordCheck } from './tickGuide.ts';
+import { localDay } from './geo.ts';
+import { askYesNo } from './ui.ts';
 
 export class App {
   private settings!: Settings;
@@ -65,7 +69,7 @@ export class App {
 
   private buildChrome(): void {
     const app = document.getElementById('app')!;
-    this.hello = h('button', { class: 'hello', onclick: () => say(this.helloText()) });
+    this.hello = h('button', { class: 'hello', 'aria-label': 'Meet my explorer crew', onclick: () => { say(this.helloText()); openCrew(this.screenHost()); } });
     this.starBtn = h('button', { class: 'pill star', 'aria-label': "Today's challenges", onclick: () => openChallenges(this.screenHost()) });
     this.gpsNote = h('div', { class: 'gps-note', hidden: true });
     this.walkNote = h('div', { class: 'walk-note', hidden: true });
@@ -86,7 +90,8 @@ export class App {
       h('div', { id: 'map' }),
       h('header', { class: 'top-bar' }, this.hello, this.starBtn, this.huntChip, lock),
       h('div', { class: 'side-btns' }, me,
-        h('button', { class: 'round-btn', 'aria-label': 'Scavenger hunts', onclick: () => this.openHuntsScreen() }, '🔎')),
+        h('button', { class: 'round-btn', 'aria-label': 'Scavenger hunts', onclick: () => this.openHuntsScreen() }, '🔎'),
+        h('button', { class: 'round-btn', 'aria-label': 'Done exploring: tick check', onclick: () => void this.endAdventure() }, '🏠')),
       this.dock.el,
       this.gpsNote,
       this.walkNote,
@@ -170,6 +175,37 @@ export class App {
     });
   }
 
+  private tickCount(): number {
+    return this.settings.tickChecks?.length ?? 0;
+  }
+
+  /** "Done exploring": what today held, then the tick check. */
+  private async endAdventure(): Promise<void> {
+    sounds.tap();
+    const today = localDay(new Date().toISOString());
+    const n = this.finds.filter(f => localDay(f.createdAt) === today).length;
+    const t = await loadToday();
+    const m = this.settings.trail ? trailLengthM(t) : 0;
+    const walked = m >= 50 ? ` and walked ${m < 1000 ? `${Math.round(m / 10) * 10} metres` : `${(m / 1000).toFixed(1)} kilometres`}` : '';
+    const summary = n ? `What an adventure! Today you found ${n} ${n === 1 ? 'thing' : 'things'}${walked}.` : walked ? `What an adventure! Today you${walked.replace(' and', '')}.` : '';
+    this.openTickCheckScreen(summary);
+  }
+
+  private openTickCheckScreen(summary?: string): void {
+    openTickCheck({
+      settings: this.settings,
+      done: async () => {
+        const before = this.tickCount();
+        this.settings = { ...this.settings, tickChecks: recordCheck(this.settings.tickChecks, new Date().toISOString()) };
+        await saveSettings(this.settings);
+        const earned = newlyEarned([], [], undefined, { tickChecks: before }, { tickChecks: this.tickCount() });
+        for (const b of earned) {
+          setTimeout(() => { sounds.badge(); toast(`${b.emoji} New badge: ${b.title}!`, 4000); say(`You earned the ${b.title} badge!`); }, 1800);
+        }
+      },
+    }, summary);
+  }
+
   private huntsDone(): number {
     return this.runs.filter(r => r.status === 'done').length;
   }
@@ -192,7 +228,7 @@ export class App {
       news = { run: next, ticked: run.hunt.items.filter(i => ids.includes(i.id)), completed: next.status === 'done' };
     }
 
-    const earned = newlyEarned(before, this.finds.map(toBadgeFind), undefined, { huntsCompleted: huntsBefore }, { huntsCompleted: this.huntsDone() });
+    const earned = newlyEarned(before, this.finds.map(toBadgeFind), undefined, { huntsCompleted: huntsBefore, tickChecks: this.tickCount() }, { huntsCompleted: this.huntsDone(), tickChecks: this.tickCount() });
     const { list, done } = todaysChallenges(this.finds);
     const newly = list.filter(c => done.has(c.id) && !challengesBefore.has(c.id));
     this.map.setFinds(this.finds);
@@ -213,11 +249,15 @@ export class App {
         this.runs.push(run);
         this.paintHunt();
       },
-      stop: async run => {
+      stop: async (run, switching) => {
         const next: HuntRun = { ...run, status: 'stopped', finishedAt: new Date().toISOString() };
         await saveHuntRun(next);
         this.runs = this.runs.map(r => (r.id === next.id ? next : r));
         this.paintHunt();
+        // Stopping a hunt usually means heading home; switching to another does not.
+        if (!switching && this.settings.tickReminder && (await askYesNo('Done exploring? Let\'s do a tick check!', '🕷️ Tick check', 'Not now'))) {
+          this.openTickCheckScreen();
+        }
       },
       saveCustom: async hunt => {
         await saveCustomHunt(hunt);
@@ -260,6 +300,8 @@ export class App {
       startCapture: () => this.capture(),
       openHunts: () => this.openHuntsScreen(),
       huntsCompleted: () => this.huntsDone(),
+      tickChecks: () => this.tickCount(),
+      tickCheck: () => this.openTickCheckScreen(),
     };
   }
 

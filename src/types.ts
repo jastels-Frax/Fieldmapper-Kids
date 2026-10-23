@@ -43,6 +43,10 @@ export interface Settings {
   trail: boolean;
   /** The explorer's buddy: Pip the rat or Hop the frog. */
   buddy: 'rat' | 'frog';
+  /** Offer a tick check when a hunt ends. */
+  tickReminder: boolean;
+  /** When each tick check was finished (ISO), newest last; feeds the Tick Checker badge. */
+  tickChecks?: string[];
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -52,4 +56,5 @@ export const DEFAULT_SETTINGS: Settings = {
   sounds: true,
   trail: true,
   buddy: 'frog',
+  tickReminder: true,
 };

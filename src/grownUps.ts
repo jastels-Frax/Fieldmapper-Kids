@@ -3,6 +3,7 @@ import { AVATARS } from './categories.ts';
 import { askYesNo, h, openSheet, toast } from './ui.ts';
 import { buildExport, saveFile } from './exportData.ts';
 import { buddyFigure } from './buddyView.ts';
+import { tickHowTo } from './tickScreen.ts';
 import { BUDDY_NAMES, type Buddy } from './buddies.ts';
 import type { Find } from './types.ts';
 
@@ -57,7 +58,7 @@ export function openGrownUps(host: GrownUpHost): void {
       buddyFigure(b, 'hello', 'buddy-fig pick-fig'), h('strong', {}, BUDDY_NAMES[b]))));
   paintBuddies();
 
-  const toggle = (key: 'readAloud' | 'sounds' | 'trail', label: string) => {
+  const toggle = (key: 'readAloud' | 'sounds' | 'trail' | 'tickReminder', label: string) => {
     const box = h('input', { type: 'checkbox' }) as HTMLInputElement;
     box.checked = s[key];
     box.addEventListener('change', async () => { s[key] = box.checked; await save(); });
@@ -108,6 +109,9 @@ export function openGrownUps(host: GrownUpHost): void {
     toggle('readAloud', '🔊 Read words aloud'),
     toggle('sounds', '🎵 Happy sounds'),
     toggle('trail', '👣 Show today\'s walk on the map'),
+    toggle('tickReminder', '🕷️ Offer a tick check when a hunt ends'),
+    h('p', { class: 'hint' }, 'The 🏠 button on the map starts a tick check any time.'),
+    tickHowTo(),
     h('h2', { class: 'section-title' }, 'Finds'),
     storage, exportBtn, wipe,
     h('h2', { class: 'section-title' }, 'Privacy'),

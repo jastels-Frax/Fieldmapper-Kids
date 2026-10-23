@@ -19,7 +19,12 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
   Five Senses, Beach, Flower). A find ticks the items it matches; the explorer can tick others
   ("a feather") by saying it counts. Finished hunts go on a trophy shelf. Grown-ups can make their own hunts.
 - **Daily challenges**: three new ones every day, the same on every device.
-- **Badges**: 25 badges for exploring, collecting, drawing, telling stories and finishing hunts.
+- **The woodland crew**: Fern the fox runs the hunts, Maple the moose keeps the badges, Bramble the
+  bear is the safety ranger, Hoot the owl shares facts, Acorn the squirrel keeps the sticker book and
+  Bandit the raccoon hides the daily challenges. Tap the name at the top of the map to meet them.
+- **Tick check**: when a hunt ends, or any time from 🏠 on the map, Bramble walks the explorer through
+  the places ticks hide, with a grown-ups' guide to checking and removing a tick.
+- **Badges**: 26 badges for exploring, collecting, drawing, telling stories and finishing hunts.
 - **Two modes**, chosen on first launch and changeable in the Grown-up corner:
   - *Explorer mode*: a child on their own. Big pictures, everything read aloud, no typing; deleting
     finds and settings need a grown-up.
@@ -51,6 +56,7 @@ See `CLAUDE.md` for the architecture.
 
 ## Deploy
 
-`.github/workflows/ci.yml` tests and builds on every push. `.github/workflows/pages.yml` publishes
-`dist/` to GitHub Pages when run by hand, once Pages is enabled with "GitHub Actions" as the source.
+`.github/workflows/ci.yml` tests and builds on every push. `.github/workflows/pages.yml` builds and
+publishes `dist/` to GitHub Pages on every push to `main`. In **Settings ▸ Pages**, the source must be
+**GitHub Actions**: "Deploy from a branch" serves the unbuilt source, which shows a white screen.
 The build uses relative URLs, so it works on any subpath.
