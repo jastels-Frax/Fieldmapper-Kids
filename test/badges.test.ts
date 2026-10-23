@@ -1,0 +1,67 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { badgeProgress, newlyEarned, farthestApartM, type BadgeFind } from '../src/badges.ts';
+
+const clock = { dayOf: (iso: string) => iso.slice(0, 10), hourOf: (iso: string) => Number(iso.slice(11, 13)) };
+const find = (over: Partial<BadgeFind> = {}): BadgeFind => ({ createdAt: '2026-05-01T12:00:00Z', category: 'mystery', colours: [], ...over });
+const byId = (finds: BadgeFind[]) => Object.fromEntries(badgeProgress(finds, clock).map(b => [b.id, b]));
+
+test('no finds earns nothing', () => {
+  assert.ok(badgeProgress([], clock).every(b => !b.earned && b.value === 0));
+});
+
+test('first find', () => {
+  assert.equal(byId([find()]).first.earned, true);
+  assert.equal(byId([find()]).ten.value, 1);
+});
+
+test('category badge counts only its category and caps at the target', () => {
+  const birds = Array.from({ length: 7 }, () => find({ category: 'bird' }));
+  const b = byId([...birds, find({ category: 'bug' })]);
+  assert.equal(b.birds.value, 5);
+  assert.equal(b.birds.earned, true);
+  assert.equal(b.bugs.value, 1);
+});
+
+test('rainbow counts distinct colours across finds', () => {
+  const b = byId([find({ colours: ['red', 'blue'] }), find({ colours: ['red', 'green', 'yellow'] })]);
+  assert.equal(b.rainbow.value, 4);
+});
+
+test('one of everything ignores mysteries', () => {
+  const cats = ['bird', 'bug', 'plant', 'tree', 'flower', 'animal', 'rock', 'water'] as const;
+  const b = byId([...cats.map(category => find({ category })), find({ category: 'mystery' })]);
+  assert.equal(b.everything.earned, false);
+  assert.equal(byId([...cats.map(category => find({ category })), find({ category: 'sky' })]).everything.earned, true);
+});
+
+test('time and day badges read the clock', () => {
+  const b = byId([find({ createdAt: '2026-05-01T07:30:00Z' }), find({ createdAt: '2026-05-02T20:00:00Z' }), find({ createdAt: '2026-05-03T12:00:00Z' })]);
+  assert.equal(b.early.earned, true);
+  assert.equal(b.evening.earned, true);
+  assert.equal(b.days3.earned, true);
+  assert.equal(b.days7.value, 3);
+});
+
+test('far explorer needs a kilometre between located finds', () => {
+  const a = find({ lat: 44.65, lon: -63.57 });
+  const near = find({ lat: 44.651, lon: -63.57 }); // ~111 m
+  const far = find({ lat: 44.66, lon: -63.57 });   // ~1.1 km
+  assert.ok(farthestApartM([a, near]) < 200);
+  assert.equal(byId([a, near]).far.earned, false);
+  assert.equal(byId([a, far]).far.earned, true);
+  assert.equal(byId([a, find()]).far.earned, false);
+});
+
+test('newlyEarned reports only the change', () => {
+  const before = [find({ category: 'bird' })];
+  const after = [...before, find({ category: 'bird', hasDrawing: true })];
+  assert.deepEqual(newlyEarned(before, after, clock).map(b => b.id), []);
+  assert.deepEqual(newlyEarned([], before, clock).map(b => b.id), ['first']);
+});
+
+test('hunt badges count finished hunts', () => {
+  assert.equal(badgeProgress([], clock, { huntsCompleted: 1 }).find(b => b.id === 'hunt1')!.earned, true);
+  assert.equal(badgeProgress([], clock, { huntsCompleted: 1 }).find(b => b.id === 'hunt3')!.value, 1);
+  assert.deepEqual(newlyEarned([], [], clock, { huntsCompleted: 0 }, { huntsCompleted: 1 }).map(b => b.id), ['hunt1']);
+});
