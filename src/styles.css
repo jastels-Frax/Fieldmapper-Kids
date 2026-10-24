@@ -37,7 +37,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 4px
 [hidden] { display: none !important; }
 
 #app { position: fixed; inset: 0; }
-#map { position: absolute; inset: 0; }
+#map { position: absolute; inset: 0; z-index: 0; } /* its own stacking context: a marker's z-index ranks it among the map's pins, never over the chrome */
 .maplibregl-ctrl-attrib { font-size: 11px; }
 .maplibregl-ctrl-bottom-right { bottom: calc(118px + var(--safe-b)); }
 
@@ -657,8 +657,9 @@ html[data-theme="journal"] .text-in {
 /* The map is left exactly as it is: the explorer has to read it. Only the pins take the journal's ink edge. */
 html[data-theme="journal"] .find-pin { border-color: var(--line); box-shadow: 1px 2px 0 rgba(58, 43, 27, 0.4); }
 
-/* A plate from the book, taped to the top of the page. Plates are cropped clear of the book's own words: those are
-   the book's text, not this screen's. */
+/* A plate from the book, taped to the top of the page. Plates may keep text that is PART OF THE PICTURE (a
+   sign, a pinned note, a specimen label) but never the book's dialogue or story text (speech bubbles, narration,
+   page titles, Field Note boxes): those are the book's words, not this screen's. */
 html[data-theme="journal"] .sheet.book { --plate: url("./assets/journal/book.webp"); }
 html[data-theme="journal"] .sheet.badges { --plate: url("./assets/journal/badges.webp"); }
 html[data-theme="journal"] .sheet.challenges { --plate: url("./assets/journal/challenges.webp"); }
