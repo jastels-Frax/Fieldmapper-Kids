@@ -654,29 +654,24 @@ html[data-theme="journal"] .text-in {
   background: repeating-linear-gradient(transparent 0 30px, rgba(74, 56, 38, 0.12) 30px 31px); background-color: transparent;
 }
 
-/* The map is an old survey sheet: sepia, faded at the edges. */
-html[data-theme="journal"] #map .maplibregl-canvas { filter: sepia(0.42) saturate(0.78) contrast(0.95) brightness(1.03); }
-html[data-theme="journal"] #map::after {
-  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
-  background: var(--paper), radial-gradient(ellipse at center, transparent 55%, rgba(110, 76, 38, 0.38));
-  background-size: 260px 260px, 100% 100%; mix-blend-mode: multiply;
-}
-html[data-theme="journal"] .find-pin { border-color: var(--line); box-shadow: 1px 2px 0 rgba(58, 43, 27, 0.4); filter: sepia(0.25); }
+/* The map is left exactly as it is: the explorer has to read it. Only the pins take the journal's ink edge. */
+html[data-theme="journal"] .find-pin { border-color: var(--line); box-shadow: 1px 2px 0 rgba(58, 43, 27, 0.4); }
 
-/* A plate from the book, taped to the top of the page. */
+/* A plate from the book, taped to the top of the page. Plates are cropped clear of the book's own words: those are
+   the book's text, not this screen's. */
 html[data-theme="journal"] .sheet.book { --plate: url("./assets/journal/book.webp"); }
 html[data-theme="journal"] .sheet.badges { --plate: url("./assets/journal/badges.webp"); }
 html[data-theme="journal"] .sheet.challenges { --plate: url("./assets/journal/challenges.webp"); }
 html[data-theme="journal"] .sheet.crew { --plate: url("./assets/journal/crew.webp"); }
 html[data-theme="journal"] .sheet.capture { --plate: url("./assets/journal/capture.webp"); }
 html[data-theme="journal"] .sheet.hunts { --plate: url("./assets/journal/hunts.webp"); }
-html[data-theme="journal"] .sheet.hunt-preview { --plate: url("./assets/journal/hunt-preview.webp"); }
+html[data-theme="journal"] .sheet.hunt-preview { --plate: url("./assets/journal/hunts.webp"); }
 html[data-theme="journal"] .sheet.ticks { --plate: url("./assets/journal/ticks.webp"); }
 html[data-theme="journal"] .sheet.grownups { --plate: url("./assets/journal/grownups.webp"); }
 html[data-theme="journal"] .sheet.walks { --plate: url("./assets/journal/walks.webp"); }
 html[data-theme="journal"] .sheet.walk-done { --plate: url("./assets/journal/walks.webp"); }
 html[data-theme="journal"] .sheet.profiles { --plate: url("./assets/journal/profiles.webp"); }
-html[data-theme="journal"] .sheet.look { --plate: url("./assets/journal/look.webp"); }
+html[data-theme="journal"] .sheet.look { --plate: url("./assets/journal/book.webp"); }
 html[data-theme="journal"] .sheet.celebrate { --plate: url("./assets/journal/celebrate.webp"); }
 html[data-theme="journal"] .sheet.book .sheet-body::before, html[data-theme="journal"] .sheet.badges .sheet-body::before, html[data-theme="journal"] .sheet.challenges .sheet-body::before, html[data-theme="journal"] .sheet.crew .sheet-body::before, html[data-theme="journal"] .sheet.capture .sheet-body::before, html[data-theme="journal"] .sheet.hunts .sheet-body::before, html[data-theme="journal"] .sheet.hunt-preview .sheet-body::before, html[data-theme="journal"] .sheet.ticks .sheet-body::before, html[data-theme="journal"] .sheet.grownups .sheet-body::before, html[data-theme="journal"] .sheet.walks .sheet-body::before, html[data-theme="journal"] .sheet.walk-done .sheet-body::before, html[data-theme="journal"] .sheet.profiles .sheet-body::before, html[data-theme="journal"] .sheet.look .sheet-body::before, html[data-theme="journal"] .sheet.celebrate .sheet-body::before {
   content: ""; display: block; max-width: 720px; margin: 2px auto 18px; aspect-ratio: 2.1 / 1;
@@ -686,7 +681,7 @@ html[data-theme="journal"] .sheet.book .sheet-body::before, html[data-theme="jou
 }
 html[data-theme="journal"] .sheet.capture .sheet-body::before { aspect-ratio: 3.4 / 1; }
 html[data-theme="journal"] .sheet.celebrate .sheet-body::before, html[data-theme="journal"] .sheet.look .sheet-body::before { aspect-ratio: 1.75 / 1; }
-.look-art { display: block; width: 100%; height: 120px; border: 2px solid var(--line); background: #e9dcbc url("./assets/journal/cover.webp") center 62% / cover no-repeat; }
+.look-art { display: block; width: 100%; height: 120px; border: 2px solid var(--line); background: #e9dcbc url("./assets/journal/cover.webp") center 45% / cover no-repeat; }
 .look-card.feature { grid-column: 1 / -1; }
 .look-grid.locked { opacity: 0.45; filter: grayscale(0.6); pointer-events: none; }
 .look-locked-note { margin: -4px 0 8px; font-style: italic; }
