@@ -1,9 +1,13 @@
+import { steadyFix, STEADY_WINDOW_MS, type SteadySample } from './gpsSteady.ts';
+
 /** The one location watcher. Everything that needs "where am I" reads it here. */
 export interface Fix {
   lat: number;
   lon: number;
   accuracy: number;
   time: number;
+  /** Set on a steadied position (gpsSteady.ts): it is unsettled when the fixes it came from were not steady. */
+  unsettled?: boolean;
 }
 
 type Listener = (fix: Fix | null, error?: string) => void;
@@ -35,8 +39,14 @@ export function fixProblem(): string | undefined {
   return lastError;
 }
 
+/** The last few seconds of fixes, by the FIX's time, for the steadied position (Field Mapper's `recentFixes`). */
+let recent: SteadySample[] = [];
+
 const accept = (p: GeolocationPosition) => {
   last = { lat: p.coords.latitude, lon: p.coords.longitude, accuracy: p.coords.accuracy, time: Date.now() };
+  const t = Number.isFinite(p.timestamp) ? p.timestamp : last.time;
+  recent = recent.filter(f => f.timestamp >= t - 3 * STEADY_WINDOW_MS);
+  recent.push({ lat: last.lat, lon: last.lon, elevation: p.coords.altitude, accuracy: p.coords.accuracy, timestamp: t });
   lastError = undefined;
   listeners.forEach(l => l(last));
 };
@@ -59,6 +69,35 @@ export function refreshFix(timeoutMs = 10000): Promise<Fix | null> {
       { enableHighAccuracy: true, maximumAge: 0, timeout: timeoutMs },
     );
   });
+}
+
+/**
+ * Where the explorer is, steadied over the last few seconds of fixes (gpsSteady.ts) so one jumped fix cannot
+ * place a find metres away. Null when there is no fresh fix.
+ */
+export function steadyNow(): Fix | null {
+  const now = lastFix();
+  if (!now) return null;
+  const s = steadyFix(recent);
+  if (!s) return now;
+  return { lat: s.lat, lon: s.lon, accuracy: s.accuracy ?? now.accuracy, time: now.time, unsettled: s.unsettled };
+}
+
+/** How long a steadied position waits for the fixes to settle: Field Mapper's `STEADY_WAIT_MS`. */
+export const STEADY_WAIT_MS = 4000;
+
+/**
+ * The steadied position, waiting up to `STEADY_WAIT_MS` for a settled window (polled every half second) and
+ * then taking what there is — Field Mapper's `CaptureManager.steadiedPosition`.
+ */
+export async function steadiedFix(): Promise<Fix | null> {
+  let fix = steadyNow();
+  const until = Date.now() + STEADY_WAIT_MS;
+  while ((!fix || fix.unsettled) && Date.now() < until) {
+    await new Promise(r => setTimeout(r, 500));
+    fix = steadyNow() ?? fix;
+  }
+  return fix;
 }
 
 export function onFix(fn: Listener): () => void {

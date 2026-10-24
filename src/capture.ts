@@ -6,7 +6,7 @@ import { sounds } from './sound.ts';
 import { downscale } from './image.ts';
 import { drawPad } from './drawPad.ts';
 import { voiceControl } from './voice.ts';
-import { accuracyWords, bestFix, lastFix, type Fix } from './gps.ts';
+import { accuracyWords, bestFix, steadiedFix, steadyNow, type Fix } from './gps.ts';
 import { buddySays } from './buddyView.ts';
 import { stepLine } from './buddyLines.ts';
 import type { Expression } from './buddies.ts';
@@ -44,7 +44,13 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
   const guide = host.profile.guide;
   const editing = !!existing;
   // The place is taken when the explorer says "I found something", not after they finish drawing.
-  let fix: Fix | null = editing ? null : lastFix();
+  // Steadied over the last few seconds (gpsSteady.ts), and given up to four more to settle, as Field Mapper's
+  // GPS point is.
+  let fix: Fix | null = editing ? null : steadyNow();
+  if (!editing && fix?.unsettled) {
+    const started = fix;
+    void steadiedFix().then(f => { if (f && fix === started) fix = f; });
+  }
   /** Where the find goes: GPS, a tapped spot, kept as it was (editing), or nowhere. */
   type Place = { kind: 'gps' } | { kind: 'map'; lat: number; lon: number } | { kind: 'keep' } | { kind: 'none' };
   let place: Place = editing ? (typeof existing!.lat === 'number' ? { kind: 'keep' } : { kind: 'none' })
@@ -367,7 +373,7 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
         paint();
       };
       // Editing with GPS chosen means "where I am now": ask for a fresh fix.
-      if (editing) fix = lastFix();
+      if (editing) fix = steadyNow();
       put(title(), cards, note, h('button', { class: 'big-btn', onclick: next }, nextLabel()), prevBtn());
       paint();
       if (!fix && !editing) void bestFix(8000, 30).then(f => { if (f) { fix = f; if (place.kind === 'none') place = { kind: 'gps' }; paint(); } });
