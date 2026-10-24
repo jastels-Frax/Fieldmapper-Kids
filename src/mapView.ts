@@ -47,6 +47,8 @@ export class MapView {
   private findMarkers = new Map<string, Marker>();
   private followed = false;
   onFindTap: (id: string) => void = () => {};
+  /** A press and hold on the map (or a right-click): where it was. */
+  onLongPress: (at: { lat: number; lon: number }) => void = () => {};
   offline = false;
 
   private baseVisibility = new Map<string, 'visible' | 'none'>();
@@ -65,6 +67,7 @@ export class MapView {
       dragRotate: false,
     });
     this.map.touchZoomRotate.disableRotation();
+    this.bindLongPress();
     this.setAvatar(avatar);
     await new Promise<void>(r => (this.map.loaded() ? r() : this.map.once('load', () => r())));
     this.map.addSource('trail', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
@@ -109,6 +112,61 @@ export class MapView {
       else vis = original === 'visible' && keptInHybrid(l) ? 'visible' : 'none';
       this.map.setLayoutProperty(l.id, 'visibility', vis);
     }
+  }
+
+  /**
+   * Press and hold → onLongPress, copied from Field Mapper's MapManager.bindLongPress: rolled by hand because
+   * mobile browsers fire their own long-press `contextmenu` inconsistently and with their callout UI, and
+   * MapLibre's `contextmenu` is mouse-only (kept here too, for a right-click). Abandoned on real movement
+   * (a pan starts as a touch that sits still a moment) and on a second finger (so does a pinch), and never
+   * started on a pin, which has its own tap. A ring fills under the finger while it is held, so a child can
+   * see the press is working.
+   */
+  private bindLongPress(): void {
+    const box = this.map.getCanvasContainer();
+    const HOLD_MS = 550;
+    const SLOP_PX = 12;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let startX = 0, startY = 0;
+    const ring = document.createElement('div');
+    ring.className = 'press-ring';
+    const cancel = () => {
+      if (timer) { clearTimeout(timer); timer = null; }
+      ring.remove();
+    };
+    const fire = (x: number, y: number) => {
+      const r = this.map.getContainer().getBoundingClientRect();
+      const ll = this.map.unproject([x - r.left, y - r.top]);
+      this.onLongPress({ lat: ll.lat, lon: ll.lng });
+    };
+    box.addEventListener('touchstart', (e: TouchEvent) => {
+      cancel();
+      if (e.touches.length !== 1 || (e.target as Element).closest?.('.maplibregl-marker')) return;
+      const t = e.touches[0];
+      startX = t.clientX; startY = t.clientY;
+      const r = this.map.getContainer().getBoundingClientRect();
+      ring.style.left = `${startX - r.left}px`;
+      ring.style.top = `${startY - r.top}px`;
+      this.map.getContainer().append(ring);
+      timer = setTimeout(() => {
+        timer = null;
+        ring.remove();
+        navigator.vibrate?.(30);
+        fire(startX, startY);
+      }, HOLD_MS);
+    }, { passive: true });
+    box.addEventListener('touchmove', (e: TouchEvent) => {
+      if (!timer) return;
+      const t = e.touches[0];
+      if (!t || e.touches.length > 1 || Math.hypot(t.clientX - startX, t.clientY - startY) > SLOP_PX) cancel();
+    }, { passive: true });
+    box.addEventListener('touchend', cancel, { passive: true });
+    box.addEventListener('touchcancel', cancel, { passive: true });
+    this.map.on('contextmenu', e => {
+      if ((e.originalEvent.target as Element)?.closest?.('.maplibregl-marker')) return;
+      e.preventDefault();
+      this.onLongPress({ lat: e.lngLat.lat, lon: e.lngLat.lng });
+    });
   }
 
   setAvatar(face: Face): void {

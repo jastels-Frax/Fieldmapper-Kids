@@ -38,7 +38,8 @@ export const MAX_PICTURES = 12;
  * but the kind of thing. Passing `existing` edits a saved find instead: same id,
  * same place and time, with every answer pre-filled.
  */
-export function startCapture(host: CaptureHost, existing?: Find): void {
+/** `at`: a spot already chosen on the map (a press and hold there), so the find starts placed on it. */
+export function startCapture(host: CaptureHost, existing?: Find, at?: { lat: number; lon: number }): void {
   const together = host.profile.mode === 'together';
   const guide = host.profile.guide;
   const editing = !!existing;
@@ -46,7 +47,9 @@ export function startCapture(host: CaptureHost, existing?: Find): void {
   let fix: Fix | null = editing ? null : lastFix();
   /** Where the find goes: GPS, a tapped spot, kept as it was (editing), or nowhere. */
   type Place = { kind: 'gps' } | { kind: 'map'; lat: number; lon: number } | { kind: 'keep' } | { kind: 'none' };
-  let place: Place = editing ? (typeof existing!.lat === 'number' ? { kind: 'keep' } : { kind: 'none' }) : (fix ? { kind: 'gps' } : { kind: 'none' });
+  let place: Place = editing ? (typeof existing!.lat === 'number' ? { kind: 'keep' } : { kind: 'none' })
+    : at ? { kind: 'map', ...at }
+    : (fix ? { kind: 'gps' } : { kind: 'none' });
   const draft: Partial<Find> & { colours: ColourId[]; pictures: Picture[] } = existing
     ? { ...existing, colours: [...existing.colours], pictures: [...existing.pictures] }
     : { colours: [], pictures: [] };

@@ -24,6 +24,7 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
 - **Map styles**: streets, satellite or hybrid.
 - **Which way am I facing?** (🧭): an arrow on the map turns with the device compass (iPhone/iPad ask permission
   once). It reads the phone's own compass, so no data leaves the device.
+- **Hold a finger on the map** to save a find right at that spot, as well as with "I found something!".
 - **Record my path** (👣): streams GPS into a saved path with live distance and time, can keep the screen
   awake while recording, and keeps every path to see on the map, list and export. The button and the
   paths on the map can each be switched off in the Grown-up corner.

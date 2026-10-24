@@ -89,6 +89,12 @@ export class App {
     this.buildChrome();
     await this.map.mount(document.getElementById('map')!, { emoji: this.profile.avatar, photo: this.profile.photo }, this.settings.basemap);
     this.map.onFindTap = id => openFind(this.screenHost(), id, () => this.refresh());
+    // Press and hold the map: a find already placed on that spot. Not while a spot is being picked for a find.
+    this.map.onLongPress = at => {
+      if (document.body.classList.contains('picking') || document.querySelector('.sheet')) return;
+      say('Ooh, right here! What did you find?');
+      this.capture(undefined, at);
+    };
     this.map.setFinds(this.finds);
     if (!first) {
       const p = await saveProfile(await welcome());
@@ -457,7 +463,7 @@ export class App {
     startGps();
   }
 
-  private capture(existing?: Find): void {
+  private capture(existing?: Find, at?: { lat: number; lon: number }): void {
     sounds.tap();
     startCapture({
       settings: this.settings,
@@ -469,7 +475,7 @@ export class App {
       save: (f, items) => this.saveNew(f, items),
       update: f => this.updateFind(f),
       pickOnMap: start => pickOnMap(this.map, start),
-    }, existing);
+    }, existing, at);
   }
 
   private tickCount(): number {
