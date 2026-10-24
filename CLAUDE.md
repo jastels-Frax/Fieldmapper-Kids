@@ -26,7 +26,7 @@ There is no linter; `tsc` is the gate.
 
 | File | Role |
 |---|---|
-| `main.ts` | Registers the service worker (update applies only at launch) and starts `App`. |
+| `main.ts`, `swUpdate.ts` | Registers the service worker and starts `App`. The update policy is Field Mapper's `SwUpdate`, ported: at most one check every 6 h (none offline, on Data Saver or 2G), and a waiting version takes over only in the first 8 s after launch (with a cooldown against reload loops) — never mid-find, and with no prompt. |
 | `App.ts` | The orchestrator: owns settings, profiles (and the active one), every find and hunt run (scoped to the active explorer on screen), the map, the chrome and the guide dock. The right-hand map buttons fold behind one caret (`sideRail`, Field Mapper's `#btn-collapse-right`; device-local `scout.rail.collapsed`). The bottom bar's height and bottom padding are the `--bar-h` / `--bar-pad-b` tokens, which the buddy, the notes and the map credits sit above — change them there, not per element. |
 | `types.ts` | `Find` (with `pictures[]`, `species`, `sign`, `placeBy`), `Profile`, `Settings` (device-wide), `GuideId`. |
 | `findModel.ts`, `findSplit.ts` | `normalizeFind`: a stored find in the current shape (pictures are `{ id, kind }` only). `splitStoredFind`: any older find (version-1 `photo` / `drawing`, pictures inline) split into its light record and its media, run once by the version-4 upgrade. |
