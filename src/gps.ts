@@ -17,6 +17,48 @@ export function lastFix(): Fix | null {
   return last && Date.now() - last.time < 120_000 ? last : null;
 }
 
+/**
+ * The last position whatever its age: where the explorer's avatar is drawn. Standing still, a phone often
+ * sends no new position for minutes (and none at all while the app is in the background), so a "fresh
+ * only" answer left the 📍 button saying it was still looking while the avatar sat on the map.
+ */
+export function knownFix(): Fix | null {
+  return last;
+}
+
+let lastError: string | undefined;
+
+/** Why there is no position, if the phone said (e.g. location not allowed). */
+export function fixProblem(): string | undefined {
+  return lastError;
+}
+
+const accept = (p: GeolocationPosition) => {
+  last = { lat: p.coords.latitude, lon: p.coords.longitude, accuracy: p.coords.accuracy, time: Date.now() };
+  lastError = undefined;
+  listeners.forEach(l => l(last));
+};
+
+const problem = (err: GeolocationPositionError) => {
+  const msg = err.code === err.PERMISSION_DENIED
+    ? 'Ask a grown-up to let this app use your location.'
+    : 'Looking for where you are…';
+  lastError = msg;
+  listeners.forEach(l => l(null, msg));
+};
+
+/** Asks the phone for a position right now, not one it remembers. Resolves null if none comes in time. */
+export function refreshFix(timeoutMs = 10000): Promise<Fix | null> {
+  if (!('geolocation' in navigator)) return Promise.resolve(null);
+  return new Promise(resolve => {
+    navigator.geolocation.getCurrentPosition(
+      p => { accept(p); resolve(last); },
+      err => { problem(err); resolve(null); },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: timeoutMs },
+    );
+  });
+}
+
 export function onFix(fn: Listener): () => void {
   listeners.add(fn);
   return () => listeners.delete(fn);
@@ -27,19 +69,13 @@ export function startGps(): void {
     if (!('geolocation' in navigator)) listeners.forEach(l => l(null, 'This device cannot tell where it is.'));
     return;
   }
-  watchId = navigator.geolocation.watchPosition(
-    p => {
-      last = { lat: p.coords.latitude, lon: p.coords.longitude, accuracy: p.coords.accuracy, time: Date.now() };
-      listeners.forEach(l => l(last));
-    },
-    err => {
-      const msg = err.code === err.PERMISSION_DENIED
-        ? 'Ask a grown-up to let this app use your location.'
-        : 'Looking for where you are…';
-      listeners.forEach(l => l(null, msg));
-    },
-    { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 },
-  );
+  watchId = navigator.geolocation.watchPosition(accept, problem, { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 });
+  // A home-screen app on iOS can come back from the background with its watch quietly stopped: restart it.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || watchId === null) return;
+    navigator.geolocation.clearWatch(watchId);
+    watchId = navigator.geolocation.watchPosition(accept, problem, { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 });
+  });
 }
 
 /**

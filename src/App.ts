@@ -9,7 +9,7 @@ import { closeOrphan, distanceWords, durationWords, walkDurationMs, walkLengthM,
 import { finishWalk, openWalks, type WalkHost } from './walkScreens.ts';
 import type { BadgeExtras } from './badges.ts';
 import { MapView } from './mapView.ts';
-import { lastFix, onFix, startGps } from './gps.ts';
+import { fixProblem, knownFix, lastFix, onFix, refreshFix, startGps } from './gps.ts';
 import { addToTrail, loadToday, trailLengthM } from './trail.ts';
 import { askYesNo, h, toast, uid } from './ui.ts';
 import { say, setNarrator, setReadAloud, setVoice, setVoiceMode } from './speech.ts';
@@ -335,9 +335,7 @@ export class App {
     this.recBtn = h('button', { class: 'round-btn rec-btn', onclick: () => void this.toggleRecording() }, '👣');
     this.recChip = h('button', { class: 'rec-chip', hidden: true, 'aria-label': 'Recording my path. Tap to stop', onclick: () => void this.toggleRecording() });
     this.recorder.onChange = () => this.paintRecording();
-    const me = h('button', { class: 'round-btn me-btn', 'aria-label': 'Where am I?', onclick: () => {
-      if (this.map.goToMe(lastFix())) { sounds.tap(); say('Here you are!'); } else say('I am still looking for you.');
-    } }, '📍');
+    const me = h('button', { class: 'round-btn me-btn', 'aria-label': 'Where am I?', onclick: () => void this.findMe() }, '📍');
     this.modeBtn = h('button', { class: 'round-btn mode-btn', onclick: () => void this.toggleMode() });
     this.compassBtn = h('button', { class: 'round-btn compass-btn', onclick: () => void this.toggleCompass() }, '🧭');
     const layers = h('button', { class: 'round-btn', 'aria-label': 'Map style: streets, satellite or hybrid', onclick: () => openBasemapPicker(this.settings.basemap, async b => {
@@ -365,6 +363,29 @@ export class App {
     this.applyAudio();
     this.paintCompass();
     this.resumeCompass();
+  }
+
+  /**
+   * 📍: straight to the last known spot (where the avatar is), then a fresh position from the phone, which
+   * moves the map again only if it is somewhere else.
+   */
+  private async findMe(): Promise<void> {
+    sounds.tap();
+    const known = knownFix();
+    if (known) { this.map.goToMe(known); say('Here you are!'); }
+    else say('Looking for you…');
+    const fresh = await refreshFix(known ? 8000 : 15000);
+    if (fresh) {
+      this.map.showMe(fresh);
+      if (!known || Math.hypot(fresh.lat - known.lat, (fresh.lon - known.lon) * Math.cos(fresh.lat * Math.PI / 180)) * 111_000 > 15) {
+        this.map.goToMe(fresh);
+        if (!known) say('Here you are!');
+      }
+    } else if (!known) {
+      const why = fixProblem();
+      say(why ?? 'I cannot find you yet. Try again outside, away from tall buildings.');
+      toast(`📍 ${why ?? 'Still looking for where you are'}`);
+    }
   }
 
   /**
