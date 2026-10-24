@@ -87,13 +87,13 @@ Everything" would take that badge away from every explorer who already earned it
 - **Badges and challenges are derived** from the finds (and finished-hunt and tick-check counts); nothing is stored for them.
 - **Finds, hunt runs, recorded paths and tick checks belong to a profile**; custom hunts, species lists and device settings are shared.
 - **A place is only what was chosen**: GPS (accuracy kept), a tapped spot (`placeBy: 'map'`, no accuracy), or none.
-- **Every save writes fresh copies of its blobs** (`storage.detach`): Safari can return a Blob read from IndexedDB that
-  still points at the stored record's file, and writing it into a new version of the same record can lose it — which is
-  how an edit lost a drawing. Never `put` a blob you read back without going through `saveFind` / `saveProfile`.
-  **And keep what they RETURN**: both resolve to the stored copy, whose blobs are in-memory bytes. Safari also deletes
-  the OLD record's files when it is replaced, so an object read before the save is left pointing at nothing — keeping
-  it is how an edited find's photo became a broken image. `ProfileHost.save` returns the copy for the same reason
-  (My look saves the same profile on every tap).
+- **Pictures are stored as BYTES, never as Blobs** (`storedBytes.ts`: `{ __bytes: ArrayBuffer, type }` for every
+  picture, thumbnail, voice note and profile photo). Safari keeps a stored Blob as a separate file the page can lose
+  its hold on — photos turned into broken images after an edit, then just from opening a find (WebKitBlobResource
+  error 1). Bytes live inside the record and come back as memory. `storage.ts` is the only place that knows:
+  `reviveFind` / `allProfiles` rebuild in-memory Blobs on read and rewrite any record still holding a Blob, once,
+  while it can still be read (never one Safari can no longer read: rewriting it would delete the file for good);
+  `saveFind` / `saveProfile` store bytes and **return the copy, which callers must keep** (`ProfileHost.save` too).
 - **`#map` is its own stacking context (`z-index: 0`)**, so a marker's `z-index` (the explorer above the pins) ranks it among the map's markers only; without it the explorer's avatar drew over the bottom buttons.
 - **Never style a MapLibre marker's own element with `position` or `transform`**: MapLibre positions it (absolute plus an
   inline transform). A `position: relative` there put every pin in normal flow, so pins drifted as the map zoomed. Draw

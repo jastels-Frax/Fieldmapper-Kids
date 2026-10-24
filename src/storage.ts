@@ -5,6 +5,7 @@ import { uid } from './ids.ts';
 import type { Hunt, HuntRun } from './hunts.ts';
 import type { Walk } from './walk.ts';
 import { DEFAULT_SETTINGS } from './types.ts';
+import { revive, toBytes, fromBytes, type StoredBytes } from './storedBytes.ts';
 
 export interface TrailDay {
   day: string;
@@ -47,35 +48,49 @@ function db(): Promise<IDBPDatabase> {
 
 /** Every find on the device, every explorer's, newest first, in the current shape. */
 export async function allFinds(): Promise<Find[]> {
-  const list = (await (await db()).getAllFromIndex('finds', 'createdAt')) as Find[];
-  return list.reverse().map(f => normalizeFind(f, uid));
+  const raw = (await (await db()).getAllFromIndex('finds', 'createdAt')) as Record<string, unknown>[];
+  const revived = await Promise.all(raw.reverse().map(reviveFind));
+  // Finds stored before pictures were bytes are rewritten once, now that their pictures are safely in memory.
+  for (const r of revived) if (r.migrate) await (await db()).put('finds', await packFind(r.find));
+  return revived.map(r => r.find);
 }
 
 export async function getFind(id: string): Promise<Find | undefined> {
-  const f = (await (await db()).get('finds', id)) as Find | undefined;
-  return f && normalizeFind(f, uid);
+  const raw = (await (await db()).get('finds', id)) as Record<string, unknown> | undefined;
+  return raw && (await reviveFind(raw)).find;
 }
 
-/**
- * A fresh, in-memory copy of a blob. Safari can hand back a Blob read from
- * IndexedDB that still points at the stored record's file; written into a new
- * version of the same record, it can vanish when the old version is replaced,
- * which is how an edit lost a drawing. Every save writes copies, never the
- * handles it was given.
- */
-async function detach(b: Blob | undefined): Promise<Blob | undefined> {
-  if (!b) return undefined;
-  return new Blob([await b.arrayBuffer()], { type: b.type });
+/** A stored find back to the app's shape: every picture an in-memory Blob (storedBytes.ts). */
+async function reviveFind(raw: Record<string, unknown>): Promise<{ find: Find; migrate: boolean }> {
+  let legacy = false, lost = false;
+  const one = async (v: unknown) => { const r = await revive(v); legacy ||= r.legacy; lost ||= r.lost; return r.blob; };
+  const out: Record<string, unknown> = { ...raw };
+  if (Array.isArray(raw.pictures)) {
+    out.pictures = await Promise.all((raw.pictures as Record<string, unknown>[]).map(async p => ({ ...p, blob: await one(p.blob) })));
+  }
+  // thumb and voice, plus the version-1 single photo / drawing that normalizeFind folds into pictures.
+  for (const k of ['thumb', 'voice', 'photo', 'drawing']) {
+    if (raw[k] == null) continue;
+    const b = await one(raw[k]);
+    if (b) out[k] = b; else delete out[k];
+  }
+  return { find: normalizeFind(out as unknown as Find, uid), migrate: legacy && !lost };
 }
 
-async function detachFind(f: Find): Promise<Find> {
-  const pictures = await Promise.all(f.pictures.map(async p => ({ ...p, blob: (await detach(p.blob))! })));
-  const out: Find = { ...f, pictures };
-  const thumb = await detach(f.thumb);
-  const voice = await detach(f.voice);
-  if (thumb) out.thumb = thumb; else delete out.thumb;
-  if (voice) out.voice = voice; else delete out.voice;
+/** The find as stored: every Blob as bytes. */
+async function packFind(f: Find): Promise<Record<string, unknown>> {
+  const out: Record<string, unknown> = { ...f, pictures: await Promise.all(f.pictures.map(async p => ({ ...p, blob: await toBytes(p.blob) }))) };
+  if (f.thumb) out.thumb = await toBytes(f.thumb); else delete out.thumb;
+  if (f.voice) out.voice = await toBytes(f.voice); else delete out.voice;
   return out;
+}
+
+function unpackFind(stored: Record<string, unknown>): Find {
+  const pics = stored.pictures as (Find['pictures'][number] & { blob: unknown })[];
+  const out: Record<string, unknown> = { ...stored, pictures: pics.map(p => ({ ...p, blob: fromBytes(p.blob as unknown as StoredBytes) })) };
+  if (stored.thumb) out.thumb = fromBytes(stored.thumb as StoredBytes);
+  if (stored.voice) out.voice = fromBytes(stored.voice as StoredBytes);
+  return out as unknown as Find;
 }
 
 /**
@@ -86,9 +101,9 @@ async function detachFind(f: Find): Promise<Find> {
  * fresh in-memory bytes and stay good.
  */
 export async function saveFind(f: Find): Promise<Find> {
-  const copy = await detachFind(f);
-  await (await db()).put('finds', copy);
-  return copy;
+  const stored = await packFind(f);
+  await (await db()).put('finds', stored);
+  return unpackFind(stored);
 }
 
 export async function deleteFind(id: string): Promise<void> {
@@ -156,16 +171,24 @@ export async function loadSettings(): Promise<Settings> {
 }
 
 export async function allProfiles(): Promise<Profile[]> {
-  const list = (await (await db()).getAll('profiles')) as Profile[];
+  const raw = (await (await db()).getAll('profiles')) as Record<string, unknown>[];
+  const list: Profile[] = [];
+  for (const r of raw) {
+    const { blob, legacy, lost } = await revive(r.photo);
+    const p = { ...r } as unknown as Profile;
+    if (blob) p.photo = blob; else delete p.photo;
+    list.push(legacy && !lost ? await saveProfile(p) : p);
+  }
   return list.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
-/** As saveFind: returns the copy it stored, to be kept in place of the profile passed in. */
+/** As saveFind: stores the photo as bytes and returns the copy, to be kept in place of the profile passed in. */
 export async function saveProfile(p: Profile): Promise<Profile> {
-  const photo = await detach(p.photo);
+  const stored: Record<string, unknown> = { ...p };
+  if (p.photo) stored.photo = await toBytes(p.photo); else delete stored.photo;
+  await (await db()).put('profiles', stored);
   const copy: Profile = { ...p };
-  if (photo) copy.photo = photo; else delete copy.photo;
-  await (await db()).put('profiles', copy);
+  if (p.photo) copy.photo = fromBytes(stored.photo as StoredBytes);
   return copy;
 }
 
@@ -206,8 +229,8 @@ export async function migrateToProfiles(): Promise<Profile[]> {
     createdAt: new Date().toISOString(),
   };
   // Copies are made BEFORE the write transaction: awaiting a blob read inside one would let it close.
-  const oldFinds = (await d.getAll('finds')) as Find[];
-  const moved = await Promise.all(oldFinds.map(f => detachFind({ ...normalizeFind(f, uid), profileId: p.id })));
+  const oldFinds = (await d.getAll('finds')) as Record<string, unknown>[];
+  const moved = await Promise.all(oldFinds.map(async raw => packFind({ ...(await reviveFind(raw)).find, profileId: p.id })));
   const tx = d.transaction(['profiles', 'finds', 'huntRuns', 'settings'], 'readwrite');
   await tx.objectStore('profiles').put(p);
   for (const f of moved) await tx.objectStore('finds').put(f);
