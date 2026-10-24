@@ -128,24 +128,38 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
 
   const render: Record<Step, () => void> = {
     picture() {
+      // Two inputs, as on the profile card: with `capture` a phone opens the camera straight away and offers no
+      // library; without it, the phone's own chooser opens on the photo library — several at once (`multiple`),
+      // as Field Mapper's batch photo import picks them. A library photo's own location is NOT read: a find goes
+      // where the explorer chooses (Where step), and re-encoding drops the photo's hidden details anyway.
       const file = h('input', { type: 'file', accept: 'image/*', capture: 'environment', hidden: true }) as HTMLInputElement;
+      const library = h('input', { type: 'file', accept: 'image/*', multiple: true, hidden: true }) as HTMLInputElement;
       const addPicture = (p: Picture) => {
         if (draft.pictures.length >= MAX_PICTURES) return toast(`That's ${MAX_PICTURES} pictures, the most one find can hold.`);
         draft.pictures.push(p);
         sounds.pick();
       };
-      file.addEventListener('change', async () => {
-        const f = file.files?.[0];
-        file.value = '';
-        if (!f) return;
-        try {
-          addPicture({ id: uid(), kind: 'photo', blob: await downscale(f, 1600) });
-          say('Great picture!');
-          paint();
-        } catch {
-          toast('Hmm, that picture did not work. Try again?');
+      const takePictures = async (input: HTMLInputElement) => {
+        const files = [...(input.files ?? [])];
+        input.value = '';
+        if (!files.length) return;
+        const room = MAX_PICTURES - draft.pictures.length;
+        if (room <= 0) return toast(`That's ${MAX_PICTURES} pictures, the most one find can hold.`);
+        let added = 0, failed = 0;
+        count.textContent = '⏳ Adding pictures…';
+        for (const f of files.slice(0, room)) {
+          try {
+            addPicture({ id: uid(), kind: 'photo', blob: await downscale(f, 1600) });
+            added++;
+          } catch { failed++; }
         }
-      });
+        if (files.length > room) toast(`Only ${room} more ${room === 1 ? 'picture fits' : 'pictures fit'}: one find holds ${MAX_PICTURES}.`);
+        else if (failed) toast(added ? `${failed} ${failed === 1 ? 'picture' : 'pictures'} did not work.` : 'Hmm, that picture did not work. Try again?');
+        if (added) say(added === 1 ? 'Great picture!' : 'Great pictures!');
+        paint();
+      };
+      file.addEventListener('change', () => void takePictures(file));
+      library.addEventListener('change', () => void takePictures(library));
       const gallery = h('div', { class: 'pic-gallery' });
       const paint = () => {
         gallery.replaceChildren(...draft.pictures.map((p, i) => {
@@ -181,11 +195,12 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
       put(
         title(),
         gallery, count,
-        h('div', { class: 'choice-grid two' },
-          h('button', { class: 'choice', onclick: () => file.click() }, h('span', { class: 'choice-emoji' }, '📷'), 'Add a photo'),
-          h('button', { class: 'choice', onclick: showPad }, h('span', { class: 'choice-emoji' }, '🎨'), 'Add a drawing'),
+        h('div', { class: 'choice-grid three' },
+          h('button', { class: 'choice', onclick: () => file.click() }, h('span', { class: 'choice-emoji' }, '📷'), 'Take a photo'),
+          h('button', { class: 'choice', onclick: () => library.click() }, h('span', { class: 'choice-emoji' }, '🖼️'), 'My photos'),
+          h('button', { class: 'choice', onclick: showPad }, h('span', { class: 'choice-emoji' }, '🎨'), 'Draw it'),
         ),
-        nextBtn, file,
+        nextBtn, file, library,
       );
       paint();
     },
