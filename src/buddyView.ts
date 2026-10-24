@@ -35,10 +35,10 @@ export function guideFigure(g: GuideId, pose: Expression = 'hello', cls = 'buddy
 export const critterFigure = (c: Critter, pose: Expression = 'hello', cls = 'buddy-fig') => guideFigure(c, pose, cls);
 
 function says(g: GuideId, label: string, line: Line, opts: { quiet?: boolean; big?: boolean }, crew: boolean): HTMLElement {
-  if (!opts.quiet) say(line.text);
+  if (!opts.quiet) say(line.text, g);
   return h('div', { class: `buddy-says ${crew ? 'crew' : ''} ${opts.big ? 'big' : ''}` },
     guideFigure(g, line.pose),
-    h('button', { class: 'bubble', onclick: () => say(line.text), 'aria-label': `${nameOf(g)} says: ${line.text}. Tap to hear it again.` },
+    h('button', { class: 'bubble', onclick: () => say(line.text, g), 'aria-label': `${nameOf(g)} says: ${line.text}. Tap to hear it again.` },
       h('span', { class: 'bubble-name' }, label),
       h('span', { class: 'bubble-text' }, line.text),
       h('span', { class: 'bubble-say', 'aria-hidden': 'true' }, '🔊'),
@@ -91,7 +91,7 @@ export class BuddyDock {
     this.el.classList.remove('hop');
     void this.el.offsetWidth;
     this.el.classList.add('hop');
-    say(line.text);
+    say(line.text, activeGuide(this.guide));
     clearTimeout(this.hideTimer);
     this.hideTimer = window.setTimeout(() => {
       this.bubble.hidden = true;

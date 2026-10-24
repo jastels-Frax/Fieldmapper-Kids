@@ -24,3 +24,48 @@ test('a chosen voice wins while it is installed', () => {
   assert.equal(pickVoice(list, 'Daniel')!.name, 'Daniel');
   assert.equal(pickVoice(list, 'Gone')!.name, 'Samantha (Enhanced)');
 });
+
+import { CHARACTER_VOICES, castVoices, voiceRange } from '../src/voiceRank.ts';
+import { GUIDES } from '../src/guides.ts';
+
+const mk = (name: string, lang = 'en-US', local = true) => ({ name, lang, localService: local, voiceURI: name });
+
+test('every character is cast, and each pitch stays in the natural range', () => {
+  const cast = castVoices([mk('Samantha (Enhanced)'), mk('Daniel (Enhanced)', 'en-GB')]);
+  for (const g of [...GUIDES, 'scout' as const]) {
+    assert.ok(cast[g], g);
+    const c = CHARACTER_VOICES[g];
+    assert.ok(c.pitch >= 0.8 && c.pitch <= 1.2, `${g} pitch`);
+    assert.ok(c.rate >= 0.85 && c.rate <= 1.1, `${g} rate`);
+  }
+  assert.equal(cast.bear?.name, 'Daniel (Enhanced)', 'a deeper character gets the deeper voice');
+  assert.equal(cast.frog?.name, 'Samantha (Enhanced)', 'a higher character gets the higher voice');
+});
+
+test('with plenty of voices the characters are spread over different ones', () => {
+  const voices = ['Samantha (Enhanced)', 'Ava (Premium)', 'Allison (Enhanced)', 'Daniel (Enhanced)', 'Oliver (Enhanced)', 'Evan (Enhanced)'].map(n => mk(n));
+  const cast = castVoices(voices);
+  assert.notEqual(cast.frog?.name, cast.rat?.name);
+  assert.notEqual(cast.moose?.name, cast.bear?.name);
+  assert.ok(new Set(Object.values(cast).map(v => v?.name)).size >= 5);
+});
+
+test('one voice, or none: everyone shares it, or nobody crashes', () => {
+  const one = castVoices([mk('Karen', 'en-AU')]);
+  assert.ok(Object.values(one).every(v => v?.name === 'Karen'));
+  const none = castVoices([]);
+  assert.ok(Object.values(none).every(v => v === null));
+});
+
+test('a robotic voice is never cast just to be different', () => {
+  const cast = castVoices([mk('Samantha (Enhanced)'), mk('Daniel (Enhanced)'), mk('eSpeak English'), mk('Fred')]);
+  for (const v of Object.values(cast)) assert.ok(!/espeak|fred/i.test(v!.name));
+});
+
+test('voice range from the voice name', () => {
+  assert.equal(voiceRange('Google UK English Male'), 'deeper');
+  assert.equal(voiceRange('Google UK English Female'), 'higher');
+  assert.equal(voiceRange('Microsoft Aria Online (Natural)'), 'higher');
+  assert.equal(voiceRange('Microsoft Guy Online (Natural)'), 'deeper');
+  assert.equal(voiceRange('Mystery voice'), 'unknown');
+});

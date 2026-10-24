@@ -12,7 +12,7 @@ import { MapView } from './mapView.ts';
 import { lastFix, onFix, startGps } from './gps.ts';
 import { addToTrail, loadToday, trailLengthM } from './trail.ts';
 import { askYesNo, h, toast, uid } from './ui.ts';
-import { say, setReadAloud, setVoice } from './speech.ts';
+import { say, setNarrator, setReadAloud, setVoice, setVoiceMode } from './speech.ts';
 import { setSounds, sounds } from './sound.ts';
 import { startCapture } from './capture.ts';
 import { FINDS_CHANGED, celebrate, openCrew, openBadges, openBook, openChallenges, openFind, todaysChallenges, type ScreenHost } from './screens.ts';
@@ -114,6 +114,7 @@ export class App {
     this.walks = this.everyWalk.filter(mine);
     this.profile.guide = normalizeGuide(this.profile.guide);
     setGuideName(this.profile.guide, guideName(this.profile.guide, this.profile.guideName));
+    setNarrator(this.profile.guide);
   }
 
   private async switchTo(id: string): Promise<void> {
@@ -145,6 +146,7 @@ export class App {
     setReadAloud(this.settings.readAloud);
     setSounds(this.settings.sounds);
     setVoice(this.settings.voiceURI);
+    setVoiceMode(this.settings.voiceMode);
     if (this.soundBtn) {
       this.soundBtn.textContent = this.settings.readAloud ? '🔊' : '🔇';
       this.soundBtn.setAttribute('aria-label', this.settings.readAloud ? 'Reading aloud is on. Tap to turn it off' : 'Reading aloud is off. Tap to turn it on');
@@ -377,6 +379,7 @@ export class App {
     this.hello.replaceChildren(profileFace(this.profile, 'face hello-face'), h('span', { class: 'hello-name' }, this.profile.name || 'Explorer'));
     this.map.setAvatar?.({ emoji: this.profile.avatar, photo: this.profile.photo });
     this.dock?.setGuide(this.profile.guide);
+    setNarrator(this.profile.guide);
     if (this.recBtn) this.recBtn.hidden = !this.settings.pathRecording && !this.recorder.recording;
     this.paintStar();
     this.paintHunt();

@@ -111,6 +111,11 @@ export interface Settings {
   keepAwake: boolean;
   /** Show an arrow on the map pointing the way the explorer is facing (the device compass). */
   compass: boolean;
+  /**
+   * 'characters': every guide and crew member speaks in a voice of their own (the default).
+   * 'one': everyone speaks in one voice, `voiceURI` or the best installed.
+   */
+  voiceMode: 'characters' | 'one';
   /** The speech voice a grown-up chose; absent = the best one installed. */
   voiceURI?: string;
 }
@@ -125,6 +130,7 @@ export const DEFAULT_SETTINGS: Settings = {
   tickReminder: true,
   basemap: 'streets',
   compass: false,
+  voiceMode: 'characters',
 };
 
 /** Pre-profile settings, as version 1 stored them: read once, by the migration. */

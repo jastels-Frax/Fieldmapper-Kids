@@ -314,7 +314,7 @@ export function openCrew(host: ScreenHost): void {
   for (const c of CRITTERS) {
     const m = CAST[c];
     const card = h('button', { class: 'crew-card', onclick: () => {
-      say(m.intro.replace(m.name, nameOf(c)));
+      say(m.intro.replace(m.name, nameOf(c)), c);
       const fig = card.querySelector('.crew-fig') as HTMLElement;
       fig.innerHTML = critterSvg(c, 'excited');
       setTimeout(() => { fig.innerHTML = critterSvg(c, 'hello'); }, 1800);

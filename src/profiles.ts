@@ -135,7 +135,7 @@ function profileForm(p: Profile, opts: { showMode: boolean; lockMode?: (to: Mode
     return h('button', { class: `buddy-pick ${p.guide === g ? 'on' : ''}`, onclick: () => {
       if (p.guide !== g) { p.guide = g; p.guideName = undefined; gname.value = ''; }
       gname.placeholder = info.name;
-      say(`${info.sound}! I am ${info.name} the ${info.species}!`);
+      say(`${info.sound}! I am ${info.name} the ${info.species}!`, g);
       paintGuides();
     } }, guideFigure(g, p.guide === g ? 'excited' : 'hello', 'buddy-fig pick-fig'), h('strong', {}, info.name), h('span', {}, `the ${info.species}`), h('span', { class: 'crew-role' }, role));
   }));

@@ -31,8 +31,9 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
   whole storybook look built from the "Scout the Survey Squirrel" art, where Scout himself becomes the guide), button style (Bubbly, Sticker,
   Flat, Jelly, Outline, Pixel, Pop), background pattern, top strip, map pin shape, celebration (confetti, stars,
   leaves or bubbles), text size, letters and how lively it is, from "Who's exploring?" — or taps "Surprise me!".
-- **Reading aloud** uses the best voice the device has (a grown-up can pick and preview any installed
-  voice), and the 🔊 / 🔇 button on the map turns it on and off.
+- **Reading aloud**: every character speaks in a voice of their own, from the voices built into the device,
+  each with their own pitch and pace. A grown-up can switch to one voice for everyone (the best one, or
+  any installed voice they pick and preview), and the 🔊 / 🔇 button on the map turns it on and off.
 - **Sticker book**: every find as a sticker, filtered by kind, with favourites.
 - **Scavenger hunts**: eight ready-made hunts (Backyard, Rainbow, Forest, Pond & Stream, Tiny Things,
   Five Senses, Beach, Flower). A find ticks the items it matches; the explorer can tick others

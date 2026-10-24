@@ -1,16 +1,17 @@
-import type { Find, Profile, Settings } from './types.ts';
+import type { Find, GuideId, Profile, Settings } from './types.ts';
 import { askYesNo, h, openSheet, toast, uid } from './ui.ts';
 import { buildExport, saveFile } from './exportData.ts';
 import { tickHowTo } from './tickScreen.ts';
 import { profileFace, openProfileEditor, newProfile, type ProfileHost } from './profiles.ts';
-import { guideName } from './guides.ts';
+import { GUIDE_INFO, guideName } from './guides.ts';
+import { CRITTERS } from './critters.ts';
 import { tierOf } from './tiers.ts';
 import { parseFieldMapperList, parseSpeciesCsv } from './species.ts';
 import { allSpeciesLists, deleteSpeciesList, saveSpeciesList } from './storage.ts';
 import { invalidateSpecies, loadSpecies } from './speciesStore.ts';
 import { photoCount } from './findModel.ts';
 import type { Walk } from './walk.ts';
-import { availableVoices, currentVoice, preview } from './speech.ts';
+import { availableVoices, characterVoice, currentVoice, preview, previewCharacter } from './speech.ts';
 import { englishVoices, voiceScore } from './voiceRank.ts';
 
 export interface GrownUpHost {
@@ -50,21 +51,37 @@ export function openGrownUps(host: GrownUpHost): void {
 
   // Voice
   const voiceList = h('div', { class: 'profile-list' });
+  const sample = "Hi! Let's go exploring and see what we can find!";
   const paintVoices = () => {
     const list = englishVoices(availableVoices()).sort((a, b) => voiceScore(b) - voiceScore(a));
     const now = currentVoice();
-    voiceList.replaceChildren(
+    const setMode = async (m: Settings['voiceMode']) => { s.voiceMode = m; await save(); paintVoices(); };
+    const modeRow = (m: Settings['voiceMode'], emoji: string, title: string, hint: string) =>
+      h('button', { class: `mode-card ${s.voiceMode === m ? 'on' : ''}`, 'aria-pressed': String(s.voiceMode === m), onclick: () => void setMode(m) },
+        h('strong', {}, `${emoji} ${title}`), h('span', {}, hint));
+    const modes = h('div', { class: 'mode-pick' },
+      modeRow('characters', '🎭', 'Every character has their own voice', 'Hop, Pip, Scout and the crew each sound different. Uses the voices on this device, with their own pitch and pace.'),
+      modeRow('one', '🗣️', 'One voice for everyone', 'Everyone speaks in the same voice. Pick it below.'));
+    if (s.voiceMode === 'characters') {
+      const who: GuideId[] = ['frog', 'rat', 'scout', ...CRITTERS];
+      voiceList.replaceChildren(modes, ...who.map(g => h('div', { class: 'maker-row' }, h('span', { class: 'hunt-item-emoji' }, '🎭'),
+        h('span', { class: 'maker-text' }, h('strong', {}, GUIDE_INFO[g].name), h('br'), h('span', { class: 'hint' }, characterVoice(g)?.name ?? 'The device voice')),
+        h('button', { class: 'round-btn small', 'aria-label': `Hear ${GUIDE_INFO[g].name}`, onclick: () => previewCharacter(`Hi! I am ${GUIDE_INFO[g].name}. Let's go exploring!`, g) }, '▶️'))),
+        list.length ? h('span') : h('p', { class: 'hint' }, 'This device has no English speech voices installed.'));
+      return;
+    }
+    voiceList.replaceChildren(modes,
       h('div', { class: 'maker-row' }, h('span', { class: 'hunt-item-emoji' }, '✨'),
         h('span', { class: 'maker-text' }, h('strong', {}, 'Best voice on this device'), h('br'), h('span', { class: 'hint' }, now && !s.voiceURI ? `Using ${now.name}` : 'Picked automatically')),
         h('button', { class: `round-btn small ${!s.voiceURI ? 'on' : ''}`, 'aria-label': 'Use the best voice', onclick: async () => { s.voiceURI = undefined; await save(); paintVoices(); speakSample(); } }, !s.voiceURI ? '✅' : '○')),
       ...list.slice(0, 12).map(v => h('div', { class: 'maker-row' }, h('span', { class: 'hunt-item-emoji' }, '🗣️'),
         h('span', { class: 'maker-text' }, h('strong', {}, v.name), h('br'), h('span', { class: 'hint' }, `${v.lang}${v.localService ? '' : ' · needs internet'}`)),
-        h('button', { class: 'round-btn small', 'aria-label': `Hear ${v.name}`, onclick: () => preview('Hi! Let\'s go exploring and see what we can find!', v) }, '▶️'),
+        h('button', { class: 'round-btn small', 'aria-label': `Hear ${v.name}`, onclick: () => preview(sample, v) }, '▶️'),
         h('button', { class: 'round-btn small', 'aria-label': `Use ${v.name}`, onclick: async () => { s.voiceURI = v.voiceURI; await save(); paintVoices(); } }, s.voiceURI === v.voiceURI ? '✅' : '○'))),
       list.length ? h('span') : h('p', { class: 'hint' }, 'This device has no English speech voices installed.'),
     );
   };
-  const speakSample = () => { const v = currentVoice(); if (v) preview("Hi! Let's go exploring and see what we can find!", v); };
+  const speakSample = () => { const v = currentVoice(); if (v) preview(sample, v); };
   paintVoices();
   window.speechSynthesis?.addEventListener?.('voiceschanged', paintVoices);
 
