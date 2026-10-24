@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { DEFAULT_LOOK, normalizeLook, LOOK_KEYS, choicesFor, lookAttributes, surpriseLook, FONT_STACKS, FONTS, PARTIES, type Look } from '../src/look.ts';
+import { BASE_LOOK, DEFAULT_LOOK, normalizeLook, LOOK_KEYS, choicesFor, lookAttributes, surpriseLook, FONT_STACKS, FONTS, PARTIES, type Look } from '../src/look.ts';
 
 test('absence and unknown ids fall back to the default', () => {
   assert.deepEqual(normalizeLook(undefined), DEFAULT_LOOK);
@@ -20,13 +20,13 @@ test('a withdrawn button style folds onto its successor', () => {
   assert.equal(normalizeLook({ buttons: 'blocky' }).buttons, 'pixel');
 });
 
-test('every non-default choice has CSS, and the default needs none', () => {
+test('every choice but the unstyled base has CSS', () => {
   const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
   const attrs = lookAttributes(DEFAULT_LOOK);
   assert.deepEqual(Object.keys(attrs).sort(), LOOK_KEYS.filter(k => k !== 'party').slice().sort());
   for (const k of Object.keys(attrs) as (keyof Look)[]) {
     for (const c of choicesFor(k)) {
-      if (c.id === DEFAULT_LOOK[k]) continue;
+      if (c.id === BASE_LOOK[k]) continue;
       assert.ok(css.includes(`html[data-${k}="${c.id}"]`), `no CSS for data-${k}="${c.id}"`);
     }
   }
@@ -66,8 +66,8 @@ import { withTheme } from '../src/look.ts';
 test('the Field Journal draws its own buttons and title strip, and gives the picks back after', () => {
   const picked = { ...DEFAULT_LOOK, buttons: 'sticker', header: 'rainbow', pattern: 'dots' } as Look;
   const j = lookAttributes({ ...picked, theme: 'journal' });
-  assert.equal(j.buttons, DEFAULT_LOOK.buttons);
-  assert.equal(j.header, DEFAULT_LOOK.header);
+  assert.equal(j.buttons, BASE_LOOK.buttons);
+  assert.equal(j.header, BASE_LOOK.header);
   assert.equal(j.pattern, 'dots', 'only what the journal draws itself rests');
   const o = lookAttributes({ ...picked, theme: 'ocean' });
   assert.equal(o.buttons, 'sticker');
@@ -76,11 +76,18 @@ test('the Field Journal draws its own buttons and title strip, and gives the pic
 import { existsSync } from 'node:fs';
 
 test('the Field Journal brings storybook letters, but never over letters an explorer chose', () => {
-  assert.equal(withTheme(DEFAULT_LOOK, 'journal').font, 'storybook');
-  assert.equal(withTheme({ ...DEFAULT_LOOK, font: 'easy' }, 'journal').font, 'easy');
-  assert.equal(withTheme(DEFAULT_LOOK, 'ocean').font, DEFAULT_LOOK.font);
-  assert.equal(withTheme(withTheme(DEFAULT_LOOK, 'journal'), 'forest').font, DEFAULT_LOOK.font, 'leaving takes the letters back');
-  assert.equal(withTheme({ ...DEFAULT_LOOK, theme: 'journal', font: 'chunky' }, 'forest').font, 'chunky');
+  assert.equal(withTheme(BASE_LOOK, 'journal').font, 'storybook');
+  assert.equal(withTheme({ ...BASE_LOOK, font: 'easy' }, 'journal').font, 'easy');
+  assert.equal(withTheme(BASE_LOOK, 'ocean').font, BASE_LOOK.font);
+  assert.equal(withTheme(withTheme(BASE_LOOK, 'journal'), 'forest').font, BASE_LOOK.font, 'leaving takes the letters back');
+  assert.equal(withTheme(DEFAULT_LOOK, 'forest').font, BASE_LOOK.font, 'leaving the default journal gives Round letters');
+  assert.equal(withTheme({ ...DEFAULT_LOOK, font: 'chunky' }, 'forest').font, 'chunky');
+});
+
+test('the Field Journal is the default look, and a chosen look is kept', () => {
+  assert.equal(normalizeLook(undefined).theme, 'journal');
+  assert.equal(normalizeLook(undefined).font, 'storybook');
+  assert.equal(normalizeLook({ theme: 'forest', font: 'rounded' }).theme, 'forest');
 });
 
 test('every Field Journal plate the stylesheet names is in the repo', () => {

@@ -4,7 +4,7 @@ import { say } from './speech.ts';
 import { buddySays } from './buddyView.ts';
 import { MODE_INFO, newProfile, tierPicker, welcomeForm } from './profiles.ts';
 import { TIERS, tierOf } from './tiers.ts';
-import { guideName } from './guides.ts';
+import { GUIDE_INFO, activeGuide, guideName } from './guides.ts';
 
 /** First launch: who is exploring, how, and with which guide. Resolves with the first explorer. */
 export function welcome(): Promise<Profile> {
@@ -63,7 +63,7 @@ export function welcome(): Promise<Profile> {
     };
 
     const stepGo = () => {
-      const g = guideName(p.guide, p.guideName);
+      const g = activeGuide(p.guide) === 'scout' ? GUIDE_INFO.scout.name : guideName(p.guide, p.guideName);
       card.replaceChildren(
         buddySays(p.guide, { text: `Ready, ${p.name}? I am ${g}. Let's explore!`, pose: 'excited' }, { quiet: true, big: true }),
         h('p', { class: 'welcome-sub' }, 'The map needs to know where you are. Your phone will ask: tap "Allow".'),

@@ -27,7 +27,7 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
 - **Record my path** (👣): streams GPS into a saved path with live distance and time, can keep the screen
   awake while recording, and keeps every path to see on the map, list and export. The button and the
   paths on the map can each be switched off in the Grown-up corner.
-- **My look**: each explorer picks their colours (ten themes, two of them dark, plus **Field Journal**, a
+- **My look**: each explorer picks their colours (ten themes, two of them dark, plus **Field Journal** — the default — a
   whole storybook look built from the "Scout the Survey Squirrel" art, where Scout himself becomes the guide), button style (Bubbly, Sticker,
   Flat, Jelly, Outline, Pixel, Pop), background pattern, top strip, map pin shape, celebration (confetti, stars,
   leaves or bubbles), text size, letters and how lively it is, from "Who's exploring?" — or taps "Surprise me!".

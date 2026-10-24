@@ -29,7 +29,20 @@ export interface Look {
   motion: MotionId;
 }
 
+/**
+ * What an explorer gets until they choose: the Field Journal, in its Storybook letters. Absence is
+ * this, so a profile that never opened My look follows it; one that did keeps exactly what it chose.
+ */
 export const DEFAULT_LOOK: Look = {
+  theme: 'journal', buttons: 'bubbly', pattern: 'plain', header: 'solid', pins: 'drop', party: 'confetti',
+  text: 'normal', font: 'storybook', motion: 'lively',
+};
+
+/**
+ * What the stylesheet's :root draws with no switch at all: Forest, Bubbly, Round letters... A choice
+ * equal to its base needs no CSS block. It is no longer the default look, only the unstyled one.
+ */
+export const BASE_LOOK: Look = {
   theme: 'forest', buttons: 'bubbly', pattern: 'plain', header: 'solid', pins: 'drop', party: 'confetti',
   text: 'normal', font: 'rounded', motion: 'lively',
 };
@@ -162,7 +175,7 @@ export function lookAttributes(l: Look): Record<string, string> {
   // A whole-look theme draws its own buttons and title strip. Mixing another style in drew a round
   // Sticker button under the journal's square paper one, so those switches rest while it is on.
   // The explorer's picks stay stored and come back with any other theme.
-  for (const k of lockedBy(l.theme)) (rest as Record<string, string>)[k] = DEFAULT_LOOK[k];
+  for (const k of lockedBy(l.theme)) (rest as Record<string, string>)[k] = BASE_LOOK[k];
   return { ...rest };
 }
 
@@ -184,8 +197,8 @@ export function withTheme(l: Look, theme: ThemeId): Look {
   const to = THEMES.find(x => x.id === theme);
   let font = l.font;
   // Leaving a whole look takes its letters with it; letters the explorer picked themselves stay.
-  if (from?.suggestedFont && font === from.suggestedFont && from.id !== theme) font = DEFAULT_LOOK.font;
-  if (to?.suggestedFont && font === DEFAULT_LOOK.font) font = to.suggestedFont;
+  if (from?.suggestedFont && font === from.suggestedFont && from.id !== theme) font = BASE_LOOK.font;
+  if (to?.suggestedFont && font === BASE_LOOK.font) font = to.suggestedFont;
   return { ...l, theme, font };
 }
 
