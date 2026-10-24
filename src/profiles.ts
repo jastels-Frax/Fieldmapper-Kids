@@ -99,18 +99,24 @@ function profileForm(p: Profile, opts: { showMode: boolean; lockMode?: (to: Mode
   // Picture: a photo and/or an emoji
   const preview = h('div', { class: 'face-preview' });
   const paintPreview = () => preview.replaceChildren(profileFace(p, 'face big-face'));
-  const file = h('input', { type: 'file', accept: 'image/*', capture: 'user', hidden: true }) as HTMLInputElement;
-  file.addEventListener('change', async () => {
-    const f = file.files?.[0];
-    file.value = '';
+  // Two inputs, because `capture` decides it: with it a phone opens the camera straight away and offers no
+  // library; without it, the phone's own chooser opens on the photo library.
+  const camera = h('input', { type: 'file', accept: 'image/*', capture: 'user', hidden: true }) as HTMLInputElement;
+  const library = h('input', { type: 'file', accept: 'image/*', hidden: true }) as HTMLInputElement;
+  const takePicture = async (input: HTMLInputElement) => {
+    const f = input.files?.[0];
+    input.value = '';
     if (!f) return;
     try {
       p.photo = await downscale(f, 400, 0.85);
       sounds.pick();
+      say('Great picture!');
       paintPreview();
       removePhoto.hidden = false;
     } catch { toast('That picture did not work. Try another?'); }
-  });
+  };
+  camera.addEventListener('change', () => void takePicture(camera));
+  library.addEventListener('change', () => void takePicture(library));
   const removePhoto = h('button', { class: 'text-btn', hidden: !p.photo, onclick: () => { p.photo = undefined; paintPreview(); removePhoto.hidden = true; } }, '✖ Use my animal instead');
   const avatars = h('div', { class: 'avatar-row' });
   const paintAvatars = () => avatars.replaceChildren(...AVATARS.map(a =>
@@ -120,9 +126,12 @@ function profileForm(p: Profile, opts: { showMode: boolean; lockMode?: (to: Mode
   wrap.append(
     h('h2', { class: 'section-title' }, 'My picture'),
     h('div', { class: 'face-row' }, preview,
-      h('div', {}, h('button', { class: 'big-btn soft', onclick: () => file.click() }, '📸 Take or pick a photo'), removePhoto)),
+      h('div', { class: 'face-btns' },
+        h('button', { class: 'big-btn soft', onclick: () => camera.click() }, '📸 Take a photo'),
+        h('button', { class: 'big-btn soft', onclick: () => library.click() }, '🖼️ From my photos'),
+        removePhoto)),
     h('p', { class: 'hint' }, 'Pick an animal for the map. A photo shows instead, if there is one.'),
-    avatars, file,
+    avatars, camera, library,
   );
 
   // Guide: anyone from the crew, with their own name
