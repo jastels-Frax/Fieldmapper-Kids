@@ -225,6 +225,7 @@ export async function loadSettings(): Promise<Settings> {
     walksOnMap: s?.walksOnMap ?? DEFAULT_SETTINGS.walksOnMap,
     keepAwake: s?.keepAwake ?? DEFAULT_SETTINGS.keepAwake,
     compass: s?.compass ?? DEFAULT_SETTINGS.compass,
+    follow: s?.follow ?? DEFAULT_SETTINGS.follow,
     // Absence: a device whose grown-up already picked a voice meant one voice; everyone else gets the characters.
     voiceMode: s?.voiceMode === 'one' || s?.voiceMode === 'characters' ? s.voiceMode : (s?.voiceURI ? 'one' : 'characters'),
     ...(s?.voiceURI ? { voiceURI: s.voiceURI } : {}),

@@ -62,6 +62,7 @@ export class App {
   private recorder = new PathRecorder();
   private compass = new Compass();
   private compassBtn!: HTMLElement;
+  private followBtn!: HTMLElement;
   private facingDeg: number | null = null;
   private everyWalk: Walk[] = [];
   private walks: Walk[] = [];
@@ -226,6 +227,30 @@ export class App {
     document.addEventListener('pointerup', once, { once: true });
   }
 
+  /** Field Mapper's Follow button: a switch, remembered on the device, that keeps the map on the explorer. */
+  private async toggleFollow(): Promise<void> {
+    sounds.tap();
+    this.settings = { ...this.settings, follow: !this.settings.follow };
+    await saveSettings(this.settings);
+    this.paintFollow();
+    if (this.settings.follow) {
+      const fix = knownFix();
+      if (fix) this.map.follow(fix);
+      say('I will keep the map on you.');
+      toast('🎯 Following you');
+    } else {
+      say('OK, the map stays put.');
+      toast('🎯 Not following');
+    }
+  }
+
+  private paintFollow(): void {
+    const on = this.settings.follow;
+    this.followBtn.classList.toggle('on', on);
+    this.followBtn.setAttribute('aria-pressed', String(on));
+    this.followBtn.setAttribute('aria-label', on ? 'Following me. Tap to stop' : 'Follow me');
+  }
+
   private paintCompass(): void {
     const on = this.settings.compass;
     this.compassBtn.classList.toggle('on', on);
@@ -338,6 +363,7 @@ export class App {
     const me = h('button', { class: 'round-btn me-btn', 'aria-label': 'Where am I?', onclick: () => void this.findMe() }, '📍');
     this.modeBtn = h('button', { class: 'round-btn mode-btn', onclick: () => void this.toggleMode() });
     this.compassBtn = h('button', { class: 'round-btn compass-btn', onclick: () => void this.toggleCompass() }, '🧭');
+    this.followBtn = h('button', { class: 'round-btn follow-btn', onclick: () => void this.toggleFollow() }, '🎯');
     const layers = h('button', { class: 'round-btn', 'aria-label': 'Map style: streets, satellite or hybrid', onclick: () => openBasemapPicker(this.settings.basemap, async b => {
       this.settings = { ...this.settings, basemap: b };
       this.map.setBasemap(b);
@@ -347,7 +373,7 @@ export class App {
       h('div', { id: 'map' }),
       h('header', { class: 'top-bar' }, this.hello, this.starBtn, this.huntChip, this.soundBtn, lock),
       this.recChip,
-      this.sideRail(me, this.compassBtn, layers, this.modeBtn, this.recBtn,
+      this.sideRail(me, this.followBtn, this.compassBtn, layers, this.modeBtn, this.recBtn,
         h('button', { class: 'round-btn', 'aria-label': 'Scavenger hunts', onclick: () => this.openHuntsScreen() }, '🔎'),
         h('button', { class: 'round-btn', 'aria-label': 'Done exploring: tick check', onclick: () => void this.endAdventure() }, '🏠')),
       this.dock.el,
@@ -362,6 +388,7 @@ export class App {
     this.applySettingsToChrome();
     this.applyAudio();
     this.paintCompass();
+    this.paintFollow();
     this.resumeCompass();
   }
 
@@ -475,6 +502,8 @@ export class App {
       }
       this.gpsNote.hidden = true;
       this.map.showMe(fix);
+      // Not while a spot is being picked: the target sits at the map's centre, and following would move it.
+      if (this.settings.follow && !document.body.classList.contains('picking')) this.map.follow(fix);
       if (this.settings.trail && (await addToTrail(fix))) {
         const t = await loadToday();
         this.map.setTrail(t.points, true);

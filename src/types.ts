@@ -121,6 +121,8 @@ export interface Settings {
   keepAwake: boolean;
   /** Show an arrow on the map pointing the way the explorer is facing (the device compass). */
   compass: boolean;
+  /** Keep the map centred on the explorer as they move: Field Mapper's Follow (`follow_user`). */
+  follow: boolean;
   /**
    * 'characters': every guide and crew member speaks in a voice of their own (the default).
    * 'one': everyone speaks in one voice, `voiceURI` or the best installed.
@@ -140,6 +142,7 @@ export const DEFAULT_SETTINGS: Settings = {
   tickReminder: true,
   basemap: 'streets',
   compass: false,
+  follow: false,
   voiceMode: 'characters',
 };
 

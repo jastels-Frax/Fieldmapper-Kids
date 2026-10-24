@@ -247,6 +247,11 @@ export class MapView {
     return true;
   }
 
+  /** Re-centres on the explorer at the current zoom: Field Mapper's follow (`MapManager.flyTo` on each fix). */
+  follow(fix: Fix): void {
+    this.map.flyTo({ center: [fix.lon, fix.lat], zoom: this.map.getZoom(), duration: 800 });
+  }
+
   flyTo(lat: number, lon: number): void {
     this.map.flyTo({ center: [lon, lat], zoom: 18 });
   }
