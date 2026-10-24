@@ -27,7 +27,7 @@ There is no linter; `tsc` is the gate.
 | File | Role |
 |---|---|
 | `main.ts` | Registers the service worker (update applies only at launch) and starts `App`. |
-| `App.ts` | The orchestrator: owns settings, profiles (and the active one), every find and hunt run (scoped to the active explorer on screen), the map, the chrome and the guide dock. |
+| `App.ts` | The orchestrator: owns settings, profiles (and the active one), every find and hunt run (scoped to the active explorer on screen), the map, the chrome and the guide dock. The right-hand map buttons fold behind one caret (`sideRail`, Field Mapper's `#btn-collapse-right`; device-local `scout.rail.collapsed`). The bottom bar's height and bottom padding are the `--bar-h` / `--bar-pad-b` tokens, which the buddy, the notes and the map credits sit above — change them there, not per element. |
 | `types.ts` | `Find` (with `pictures[]`, `species`, `sign`, `placeBy`), `Profile`, `Settings` (device-wide), `GuideId`. |
 | `findModel.ts` | `normalizeFind`: reads a version-1 find (one `photo` / one `drawing`) into the `pictures` list. Every read goes through it. |
 | `storage.ts` | IndexedDB (`FieldMapperKids` — the pre-rename name, kept so nobody's finds are orphaned), `DB_VERSION` 3: `finds`, `settings`, `trails`, `huntRuns`, `customHunts`, `profiles`, `speciesLists`, `walks`. `migrateToProfiles` turns a version-1 device's single explorer (in the settings) into the first profile and files every find and hunt run under it. |

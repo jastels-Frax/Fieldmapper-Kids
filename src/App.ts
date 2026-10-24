@@ -343,7 +343,7 @@ export class App {
       h('div', { id: 'map' }),
       h('header', { class: 'top-bar' }, this.hello, this.starBtn, this.huntChip, this.soundBtn, lock),
       this.recChip,
-      h('div', { class: 'side-btns' }, me, this.compassBtn, layers, this.modeBtn, this.recBtn,
+      this.sideRail(me, this.compassBtn, layers, this.modeBtn, this.recBtn,
         h('button', { class: 'round-btn', 'aria-label': 'Scavenger hunts', onclick: () => this.openHuntsScreen() }, '🔎'),
         h('button', { class: 'round-btn', 'aria-label': 'Done exploring: tick check', onclick: () => void this.endAdventure() }, '🏠')),
       this.dock.el,
@@ -359,6 +359,34 @@ export class App {
     this.applyAudio();
     this.paintCompass();
     this.resumeCompass();
+  }
+
+  /**
+   * The map buttons down the right edge, folding away behind one caret like Field Mapper's right rail
+   * (#btn-collapse-right): more map when they are not needed. Remembered on this device (`scout.rail`).
+   */
+  private sideRail(...buttons: HTMLElement[]): HTMLElement {
+    const KEY = 'scout.rail.collapsed';
+    let folded = false;
+    try { folded = localStorage.getItem(KEY) === '1'; } catch { /* private mode: start open */ }
+    const body = h('div', { class: 'side-body', id: 'side-body' }, ...buttons);
+    const toggle = h('button', { class: 'round-btn rail-toggle', 'aria-controls': 'side-body' });
+    // Field Mapper's caret (Phosphor caret-left), our own constant markup.
+    toggle.innerHTML = '<svg viewBox="0 0 256 256" width="26" height="26" fill="currentColor" aria-hidden="true"><path d="M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L91.31,128Z"/></svg>';
+    const rail = h('div', { class: 'side-btns' }, toggle, body);
+    const paint = () => {
+      rail.classList.toggle('folded', folded);
+      toggle.setAttribute('aria-expanded', String(!folded));
+      toggle.setAttribute('aria-label', folded ? 'Show the map buttons' : 'Hide the map buttons');
+    };
+    toggle.addEventListener('click', () => {
+      folded = !folded;
+      try { localStorage.setItem(KEY, folded ? '1' : '0'); } catch { /* not remembered: fine */ }
+      sounds.tap();
+      paint();
+    });
+    paint();
+    return rail;
   }
 
   private helloText(): string {
