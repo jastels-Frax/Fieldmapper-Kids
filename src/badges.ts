@@ -139,6 +139,6 @@ export function toBadgeFind(f: Find): BadgeFind {
   return {
     createdAt: f.createdAt, category: f.category, colours: f.colours, size: f.size, count: f.count,
     lat: f.lat, lon: f.lon, species: f.species?.name,
-    hasPhoto: pics.some(p => p.kind === 'photo'), hasDrawing: pics.some(p => p.kind === 'drawing'), hasVoice: !!f.voice,
+    hasPhoto: pics.some(p => p.kind === 'photo'), hasDrawing: pics.some(p => p.kind === 'drawing'), hasVoice: !!f.hasVoice,
   };
 }

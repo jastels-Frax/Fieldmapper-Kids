@@ -20,6 +20,18 @@ export interface Picture {
   blob: Blob;
 }
 
+/** Which pictures a find has, without their bytes: what the app holds for every find (findSplit.ts). */
+export type PictureInfo = Pick<Picture, 'id' | 'kind'>;
+
+/** A find's pictures and voice note, read only when the find is opened, changed or exported. */
+export interface FindMedia {
+  pictures: Picture[];
+  voice?: Blob;
+}
+
+/** A find with its media: what the capture flow edits and what saveFind stores. */
+export type FullFind = Omit<Find, 'pictures' | 'hasVoice'> & FindMedia;
+
 /** A species the explorer (or a grown-up) named for a find. */
 export interface SpeciesPick {
   name: string;
@@ -57,15 +69,13 @@ export interface Find {
   accuracy?: number;
   /** How the place was set: the device's location, or a spot tapped on the map. */
   placeBy?: 'gps' | 'map';
-  /** Photos and drawings, in the order they were added. */
-  pictures: Picture[];
+  /** Photos and drawings, in the order they were added: which ones, not their bytes (`FindMedia`). */
+  pictures: PictureInfo[];
   /** A small square copy of the first picture, for the map and the sticker book. */
   thumb?: Blob;
-  voice?: Blob;
+  /** There is a voice note in the find's media. */
+  hasVoice?: boolean;
   favourite?: boolean;
-  /** Read only from records saved before pictures were a list; normalizeFind moves them. */
-  photo?: Blob;
-  drawing?: Blob;
 }
 
 /** One explorer on this device. */

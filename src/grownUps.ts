@@ -7,7 +7,7 @@ import { GUIDE_INFO, guideName } from './guides.ts';
 import { CRITTERS } from './critters.ts';
 import { tierOf } from './tiers.ts';
 import { parseFieldMapperList, parseSpeciesCsv } from './species.ts';
-import { allSpeciesLists, deleteSpeciesList, saveSpeciesList } from './storage.ts';
+import { allSpeciesLists, deleteSpeciesList, getFindMedia, saveSpeciesList } from './storage.ts';
 import { invalidateSpecies, loadSpecies } from './speciesStore.ts';
 import { photoCount } from './findModel.ts';
 import type { Walk } from './walk.ts';
@@ -126,7 +126,7 @@ export function openGrownUps(host: GrownUpHost): void {
   // Finds
   const finds = host.allFinds();
   const photos = finds.reduce((n, f) => n + photoCount(f), 0);
-  const voices = finds.filter(f => f.voice).length;
+  const voices = finds.filter(f => f.hasVoice).length;
   const storage = h('p', { class: 'hint' }, `${finds.length} finds · ${photos} photos · ${voices} voice notes`);
   void navigator.storage?.estimate?.().then(e => {
     if (e.usage) storage.textContent += ` · ${(e.usage / 1048576).toFixed(1)} MB used on this device`;
@@ -137,7 +137,7 @@ export function openGrownUps(host: GrownUpHost): void {
     exportBtn.setAttribute('disabled', '');
     exportBtn.textContent = '📦 Packing…';
     try {
-      const blob = await buildExport(host.allFinds(), host.profiles.profiles(), host.allWalks());
+      const blob = await buildExport(host.allFinds(), host.profiles.profiles(), host.allWalks(), getFindMedia);
       await saveFile(blob, `scout-finds-${new Date().toISOString().slice(0, 10)}.zip`);
     } catch {
       toast('Saving the file did not work.');

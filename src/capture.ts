@@ -1,4 +1,4 @@
-import type { CategoryId, ColourId, Find, Picture, Profile, Settings, SpeciesPick } from './types.ts';
+import type { CategoryId, ColourId, Find, FullFind, Picture, Profile, Settings, SpeciesPick } from './types.ts';
 import { CATEGORIES, COLOURS, COUNTS, SIGNS, SIZES, categoryOf } from './categories.ts';
 import { askYesNo, blobUrl, h, openSheet, toast, uid } from './ui.ts';
 import { say } from './speech.ts';
@@ -22,9 +22,9 @@ export interface CaptureHost {
   profile: Profile;
   /** The active scavenger hunt's open items, if a hunt is on. */
   hunt: () => { title: string; emoji: string; open: HuntItem[] } | null;
-  save: (f: Find, huntItems: string[]) => Promise<void>;
+  save: (f: FullFind, huntItems: string[]) => Promise<void>;
   /** Saves a change to a find that already exists. */
-  update: (f: Find) => Promise<void>;
+  update: (f: FullFind) => Promise<void>;
   /** Lets the explorer put the find on the map by hand. */
   pickOnMap: (start?: { lat: number; lon: number }) => Promise<{ lat: number; lon: number } | null>;
 }
@@ -39,7 +39,7 @@ export const MAX_PICTURES = 12;
  * same place and time, with every answer pre-filled.
  */
 /** `at`: a spot already chosen on the map (a press and hold there), so the find starts placed on it. */
-export function startCapture(host: CaptureHost, existing?: Find, at?: { lat: number; lon: number }): void {
+export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat: number; lon: number }): void {
   const together = host.profile.mode === 'together';
   const guide = host.profile.guide;
   const editing = !!existing;
@@ -50,7 +50,7 @@ export function startCapture(host: CaptureHost, existing?: Find, at?: { lat: num
   let place: Place = editing ? (typeof existing!.lat === 'number' ? { kind: 'keep' } : { kind: 'none' })
     : at ? { kind: 'map', ...at }
     : (fix ? { kind: 'gps' } : { kind: 'none' });
-  const draft: Partial<Find> & { colours: ColourId[]; pictures: Picture[] } = existing
+  const draft: Partial<FullFind> & { colours: ColourId[]; pictures: Picture[] } = existing
     ? { ...existing, colours: [...existing.colours], pictures: [...existing.pictures] }
     : { colours: [], pictures: [] };
   let stepIdx = 0;
@@ -425,7 +425,7 @@ export function startCapture(host: CaptureHost, existing?: Find, at?: { lat: num
       : place.kind === 'map' ? { lat: place.lat, lon: place.lon, placeBy: 'map' }
       : place.kind === 'gps' && fix ? { lat: fix.lat, lon: fix.lon, accuracy: Math.round(fix.accuracy), placeBy: 'gps' }
       : {};
-    const find: Find = {
+    const find: FullFind = {
       id: existing?.id ?? uid(),
       profileId: existing?.profileId ?? host.profile.id,
       createdAt: existing?.createdAt ?? new Date().toISOString(),

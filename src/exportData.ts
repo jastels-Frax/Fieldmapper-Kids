@@ -1,5 +1,5 @@
 import { zipSync, strToU8 } from 'fflate';
-import type { Find, Profile } from './types.ts';
+import type { Find, FindMedia, Profile } from './types.ts';
 import { categoryOf } from './categories.ts';
 import { csvCell } from './csv.ts';
 import { walkGeoJSON, type Walk } from './walk.ts';
@@ -18,7 +18,7 @@ function ext(b: Blob, fallback: string): string {
  * Every find as a zip: a GeoJSON a grown-up can open in a GIS, a CSV, and the
  * pictures and voices, named by find number. Each find carries its explorer's name.
  */
-export async function buildExport(finds: Find[], profiles: Profile[], walks: Walk[] = []): Promise<Blob> {
+export async function buildExport(finds: Find[], profiles: Profile[], walks: Walk[], media: (id: string) => Promise<FindMedia>): Promise<Blob> {
   const files: Record<string, Uint8Array> = {};
   const features = [];
   const who = new Map(profiles.map(p => [p.id, p.name || 'Explorer'] as const));
@@ -28,13 +28,14 @@ export async function buildExport(finds: Find[], profiles: Profile[], walks: Wal
     const n = String(i + 1).padStart(3, '0');
     const kind = categoryOf(f.category).label.toLowerCase().replace(/[^a-z]+/g, '-');
     const pictures: string[] = [];
-    for (const [k, p] of f.pictures.entries()) {
+    const m = await media(f.id);
+    for (const [k, p] of m.pictures.entries()) {
       const path = `${p.kind === 'photo' ? 'photos' : 'drawings'}/${n}_${kind}_${k + 1}.${ext(p.blob, p.kind === 'photo' ? 'jpg' : 'png')}`;
       files[path] = new Uint8Array(await p.blob.arrayBuffer());
       pictures.push(path);
     }
-    const voice = f.voice ? `voices/${n}_${kind}.${ext(f.voice, 'webm')}` : '';
-    if (f.voice) files[voice] = new Uint8Array(await f.voice.arrayBuffer());
+    const voice = m.voice ? `voices/${n}_${kind}.${ext(m.voice, 'webm')}` : '';
+    if (m.voice) files[voice] = new Uint8Array(await m.voice.arrayBuffer());
     const props = {
       id: f.id, explorer: (f.profileId && who.get(f.profileId)) || '', when: f.createdAt, changed: f.editedAt ?? '',
       kind: categoryOf(f.category).label, sign: f.sign ?? '', species: f.species?.name ?? '', scientific_name: f.species?.scientific ?? '',

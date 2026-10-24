@@ -1,8 +1,8 @@
-import type { Find, Profile, Settings } from './types.ts';
+import type { Find, FullFind, Profile, Settings } from './types.ts';
 import {
   allCustomHunts, allFinds, allHuntRuns, allProfiles, deleteAllFinds, deleteCustomHunt, deleteFind, deleteProfile,
   loadSettings, migrateToProfiles, saveCustomHunt, saveFind, saveHuntRun, saveProfile, saveSettings,
-  allWalks, saveWalk, deleteWalk,
+  allWalks, saveWalk, deleteWalk, getFullFind, getFindMedia, saveFindInfo,
 } from './storage.ts';
 import { PathRecorder } from './recorder.ts';
 import { closeOrphan, distanceWords, durationWords, walkDurationMs, walkLengthM, type Walk } from './walk.ts';
@@ -93,7 +93,7 @@ export class App {
     this.map.onLongPress = at => {
       if (document.body.classList.contains('picking') || document.querySelector('.sheet')) return;
       say('Ooh, right here! What did you find?');
-      this.capture(undefined, at);
+      void this.capture(undefined, at);
     };
     this.map.setFinds(this.finds);
     if (!first) {
@@ -355,7 +355,7 @@ export class App {
       this.walkNote,
       h('nav', { class: 'bottom-bar' },
         h('button', { class: 'nav-btn', onclick: () => openBook(this.screenHost()) }, h('span', { class: 'nav-emoji' }, '📖'), 'My Finds'),
-        h('button', { class: 'found-btn', onclick: () => this.capture() }, h('span', { class: 'found-emoji' }, '✨'), h('span', {}, 'I found something!')),
+        h('button', { class: 'found-btn', onclick: () => void this.capture() }, h('span', { class: 'found-emoji' }, '✨'), h('span', {}, 'I found something!')),
         h('button', { class: 'nav-btn', onclick: () => openBadges(this.screenHost()) }, h('span', { class: 'nav-emoji' }, '🏅'), 'Badges'),
       ),
     );
@@ -484,8 +484,11 @@ export class App {
     startGps();
   }
 
-  private capture(existing?: Find, at?: { lat: number; lon: number }): void {
+  private async capture(existing?: Find, at?: { lat: number; lon: number }): Promise<void> {
     sounds.tap();
+    // Changing a find works on its pictures too, which are read only now (Field Mapper's getFeature, hydrated).
+    const full = existing ? await getFullFind(existing.id) : undefined;
+    if (existing && !full) return;
     startCapture({
       settings: this.settings,
       profile: this.profile,
@@ -496,7 +499,7 @@ export class App {
       save: (f, items) => this.saveNew(f, items),
       update: f => this.updateFind(f),
       pickOnMap: start => pickOnMap(this.map, start),
-    }, existing, at);
+    }, full, at);
   }
 
   private tickCount(): number {
@@ -534,11 +537,11 @@ export class App {
     return this.runs.filter(r => r.status === 'done').length;
   }
 
-  private async saveNew(f: Find, huntItems: string[]): Promise<void> {
+  private async saveNew(full: FullFind, huntItems: string[]): Promise<void> {
     const before = this.finds.map(toBadgeFind);
     const huntsBefore = this.huntsDone();
     const challengesBefore = todaysChallenges(this.finds).done;
-    f = await saveFind(f);
+    const f = await saveFind(full);
     this.everyFind.unshift(f);
     this.finds.unshift(f);
 
@@ -561,8 +564,16 @@ export class App {
     celebrate(this.screenHost(), f, earned, newly, typeof f.lat === 'number', news);
   }
 
-  private async updateFind(f: Find): Promise<void> {
-    f = await saveFind(f);
+  private async updateFind(full: FullFind): Promise<void> {
+    this.replaceFind(await saveFind(full));
+  }
+
+  /** A change to a find's details only (the favourite star): its pictures stay as they are. */
+  private async updateFindInfo(f: Find): Promise<void> {
+    this.replaceFind(await saveFindInfo(f));
+  }
+
+  private replaceFind(f: Find): void {
     this.everyFind = this.everyFind.map(x => (x.id === f.id ? f : x));
     this.scopeToProfile();
     this.refresh();
@@ -604,7 +615,7 @@ export class App {
         await deleteCustomHunt(id);
         this.custom = this.custom.filter(x => x.id !== id);
       },
-      startCapture: () => this.capture(),
+      startCapture: () => void this.capture(),
     };
   }
 
@@ -634,9 +645,10 @@ export class App {
         this.scopeToProfile();
         this.refresh();
       },
-      update: f => this.updateFind(f),
-      editFind: f => this.capture(f),
-      startCapture: () => this.capture(),
+      update: f => this.updateFindInfo(f),
+      media: id => getFindMedia(id),
+      editFind: f => void this.capture(f),
+      startCapture: () => void this.capture(),
       openHunts: () => this.openHuntsScreen(),
       huntsCompleted: () => this.huntsDone(),
       tickChecks: () => this.tickCount(),

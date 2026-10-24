@@ -1,11 +1,12 @@
 import { openDB, type IDBPDatabase } from 'idb';
-import type { Find, LegacySettings, Profile, Settings } from './types.ts';
+import type { Find, FindMedia, FullFind, LegacySettings, Picture, Profile, Settings } from './types.ts';
 import { normalizeFind } from './findModel.ts';
 import { uid } from './ids.ts';
 import type { Hunt, HuntRun } from './hunts.ts';
 import type { Walk } from './walk.ts';
 import { DEFAULT_SETTINGS } from './types.ts';
 import { revive, toBytes, fromBytes, type StoredBytes } from './storedBytes.ts';
+import { holdsMedia, splitStoredFind, type StoredMedia } from './findSplit.ts';
 
 export interface TrailDay {
   day: string;
@@ -22,12 +23,12 @@ const DB_NAME = 'FieldMapperKids';
  *    first profile, finds stamped with it) is `migrateToProfiles`, run by App,
  *    because it needs to know whether the device was ever set up.
  */
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 let dbp: Promise<IDBPDatabase> | null = null;
 function db(): Promise<IDBPDatabase> {
   dbp ??= openDB(DB_NAME, DB_VERSION, {
-    upgrade(d, oldVersion) {
+    async upgrade(d, oldVersion, _newVersion, tx) {
       if (oldVersion < 1) {
         const finds = d.createObjectStore('finds', { keyPath: 'id' });
         finds.createIndex('createdAt', 'createdAt');
@@ -41,78 +42,138 @@ function db(): Promise<IDBPDatabase> {
         d.createObjectStore('speciesLists', { keyPath: 'id' });
       }
       if (oldVersion < 3) d.createObjectStore('walks', { keyPath: 'id' });
+      if (oldVersion < 4) {
+        // Pictures and voice notes move out of the finds into their own store (findSplit.ts). Done here, in the
+        // upgrade, record by record: values are only MOVED, never read as files, so nothing Safari backs with a
+        // file is touched on the way.
+        const media = d.createObjectStore('findMedia', { keyPath: 'id' });
+        if (oldVersion >= 1) {
+          let cur = await tx.objectStore('finds').openCursor();
+          while (cur) {
+            const raw = cur.value as Record<string, unknown>;
+            if (holdsMedia(raw)) {
+              const { light, media: m } = splitStoredFind(raw, uid);
+              await media.put(m);
+              await cur.update(light);
+            }
+            cur = await cur.continue();
+          }
+        }
+      }
     },
   });
   return dbp;
 }
 
-/** Every find on the device, every explorer's, newest first, in the current shape. */
+/**
+ * Every find on the device, every explorer's, newest first: LIGHT — which pictures each has, never their bytes
+ * (findMedia; `getFindMedia` reads them when a find is opened). The small thumbnail comes along for the map.
+ */
 export async function allFinds(): Promise<Find[]> {
   const raw = (await (await db()).getAllFromIndex('finds', 'createdAt')) as Record<string, unknown>[];
-  const revived = await Promise.all(raw.reverse().map(reviveFind));
-  // Finds stored before pictures were bytes are rewritten once, now that their pictures are safely in memory.
-  for (const r of revived) if (r.migrate) await (await db()).put('finds', await packFind(r.find));
-  return revived.map(r => r.find);
+  const out: Find[] = [];
+  for (const r of raw.reverse()) {
+    const { find, migrate } = await reviveLight(r);
+    if (migrate) await (await db()).put('finds', await packLight(find));
+    out.push(find);
+  }
+  return out;
 }
 
 export async function getFind(id: string): Promise<Find | undefined> {
   const raw = (await (await db()).get('finds', id)) as Record<string, unknown> | undefined;
-  return raw && (await reviveFind(raw)).find;
+  return raw && (await reviveLight(raw)).find;
 }
 
-/** A stored find back to the app's shape: every picture an in-memory Blob (storedBytes.ts). */
-async function reviveFind(raw: Record<string, unknown>): Promise<{ find: Find; migrate: boolean }> {
+/** A find's pictures and voice note, as in-memory Blobs (storedBytes.ts). */
+export async function getFindMedia(id: string): Promise<FindMedia> {
+  const raw = (await (await db()).get('findMedia', id)) as StoredMedia | undefined;
+  if (!raw) return { pictures: [] };
   let legacy = false, lost = false;
   const one = async (v: unknown) => { const r = await revive(v); legacy ||= r.legacy; lost ||= r.lost; return r.blob; };
-  const out: Record<string, unknown> = { ...raw };
-  if (Array.isArray(raw.pictures)) {
-    out.pictures = await Promise.all((raw.pictures as Record<string, unknown>[]).map(async p => ({ ...p, blob: await one(p.blob) })));
+  const pictures: Picture[] = [];
+  for (const p of raw.pictures) {
+    const blob = await one(p.blob);
+    if (blob) pictures.push({ id: p.id, kind: p.kind, blob });
   }
-  // thumb and voice, plus the version-1 single photo / drawing that normalizeFind folds into pictures.
-  for (const k of ['thumb', 'voice', 'photo', 'drawing']) {
-    if (raw[k] == null) continue;
-    const b = await one(raw[k]);
-    if (b) out[k] = b; else delete out[k];
-  }
-  return { find: normalizeFind(out as unknown as Find, uid), migrate: legacy && !lost };
+  const voice = await one(raw.voice);
+  const media: FindMedia = voice ? { pictures, voice } : { pictures };
+  // Moved here from a find stored before pictures were bytes: rewrite as bytes, once, while it can still be read.
+  if (legacy && !lost) await (await db()).put('findMedia', await packMedia(id, media));
+  return media;
 }
 
-/** The find as stored: every Blob as bytes. */
-async function packFind(f: Find): Promise<Record<string, unknown>> {
-  const out: Record<string, unknown> = { ...f, pictures: await Promise.all(f.pictures.map(async p => ({ ...p, blob: await toBytes(p.blob) }))) };
+/** A find with its media: what changing it works on. */
+export async function getFullFind(id: string): Promise<FullFind | undefined> {
+  const find = await getFind(id);
+  if (!find) return undefined;
+  const { pictures: _info, hasVoice: _v, ...rest } = find;
+  return { ...rest, ...(await getFindMedia(id)) };
+}
+
+async function reviveLight(raw: Record<string, unknown>): Promise<{ find: Find; migrate: boolean }> {
+  const out: Record<string, unknown> = { ...raw };
+  const t = await revive(raw.thumb);
+  if (t.blob) out.thumb = t.blob; else delete out.thumb;
+  return { find: normalizeFind(out as unknown as Find), migrate: t.legacy && !t.lost };
+}
+
+async function packLight(f: Find): Promise<Record<string, unknown>> {
+  const out: Record<string, unknown> = { ...f, pictures: f.pictures.map(p => ({ id: p.id, kind: p.kind })) };
   if (f.thumb) out.thumb = await toBytes(f.thumb); else delete out.thumb;
-  if (f.voice) out.voice = await toBytes(f.voice); else delete out.voice;
   return out;
 }
 
-function unpackFind(stored: Record<string, unknown>): Find {
-  const pics = stored.pictures as (Find['pictures'][number] & { blob: unknown })[];
-  const out: Record<string, unknown> = { ...stored, pictures: pics.map(p => ({ ...p, blob: fromBytes(p.blob as unknown as StoredBytes) })) };
-  if (stored.thumb) out.thumb = fromBytes(stored.thumb as StoredBytes);
-  if (stored.voice) out.voice = fromBytes(stored.voice as StoredBytes);
-  return out as unknown as Find;
+async function packMedia(id: string, m: FindMedia): Promise<StoredMedia> {
+  const out: StoredMedia = { id, pictures: await Promise.all(m.pictures.map(async p => ({ id: p.id, kind: p.kind, blob: await toBytes(p.blob) }))) };
+  if (m.voice) out.voice = await toBytes(m.voice);
+  return out;
+}
+
+/** The light find a full one stands for. */
+function lightOf(f: FullFind): Find {
+  const { pictures, voice, ...rest } = f;
+  const find: Find = { ...rest, pictures: pictures.map(p => ({ id: p.id, kind: p.kind })) };
+  if (voice) find.hasVoice = true;
+  return find;
 }
 
 /**
- * Saves a find and RETURNS THE COPY IT STORED, which the caller must keep in place of what it passed.
- * Safari backs a Blob read from IndexedDB with the stored record's file and deletes that file when the
- * record is replaced, so the find the caller was holding (read before the save) is left pointing at
- * nothing: its photo turned into a broken image the moment an edit was saved. The copy's pictures are
- * fresh in-memory bytes and stay good.
+ * Saves a find WITH its media (the capture flow) and returns the light find stored, which the caller keeps.
+ * Every Blob goes in as bytes (storedBytes.ts), so Safari has no file to lose; the returned thumbnail is fresh
+ * memory, not a handle on the record just replaced.
  */
-export async function saveFind(f: Find): Promise<Find> {
-  const stored = await packFind(f);
-  await (await db()).put('finds', stored);
-  return unpackFind(stored);
+export async function saveFind(f: FullFind): Promise<Find> {
+  const light = await packLight(lightOf(f));
+  const media = await packMedia(f.id, f);
+  const tx = (await db()).transaction(['finds', 'findMedia'], 'readwrite');
+  await tx.objectStore('finds').put(light);
+  await tx.objectStore('findMedia').put(media);
+  await tx.done;
+  return (await reviveLight(light)).find;
+}
+
+/**
+ * Saves a find's details only (a favourite star, a name), leaving its pictures as they are. Field Mapper's
+ * rule: a save from a copy that carries no pixels must never record "no pictures".
+ */
+export async function saveFindInfo(f: Find): Promise<Find> {
+  const light = await packLight(f);
+  await (await db()).put('finds', light);
+  return (await reviveLight(light)).find;
 }
 
 export async function deleteFind(id: string): Promise<void> {
-  await (await db()).delete('finds', id);
+  const tx = (await db()).transaction(['finds', 'findMedia'], 'readwrite');
+  await tx.objectStore('finds').delete(id);
+  await tx.objectStore('findMedia').delete(id);
+  await tx.done;
 }
 
 export async function deleteAllFinds(): Promise<void> {
   const d = await db();
   await d.clear('finds');
+  await d.clear('findMedia');
   await d.clear('trails');
   await d.clear('huntRuns');
   await d.clear('walks');
@@ -195,12 +256,17 @@ export async function saveProfile(p: Profile): Promise<Profile> {
 /** Deletes an explorer and everything that was theirs: finds and hunt runs. */
 export async function deleteProfile(id: string): Promise<void> {
   const d = await db();
-  const tx = d.transaction(['profiles', 'finds', 'huntRuns', 'walks'], 'readwrite');
+  const tx = d.transaction(['profiles', 'finds', 'findMedia', 'huntRuns', 'walks'], 'readwrite');
   await tx.objectStore('profiles').delete(id);
   for (const store of ['finds', 'huntRuns', 'walks'] as const) {
     let cur = await tx.objectStore(store).openCursor();
     while (cur) {
-      if ((cur.value as { profileId?: string }).profileId === id) await cur.delete();
+      const v = cur.value as { id: string; profileId?: string };
+      if (v.profileId === id) {
+        // A find's pictures go with it.
+        if (store === 'finds') await tx.objectStore('findMedia').delete(v.id);
+        await cur.delete();
+      }
       cur = await cur.continue();
     }
   }
@@ -210,7 +276,7 @@ export async function deleteProfile(id: string): Promise<void> {
 /**
  * Version 1 kept ONE explorer in the settings. If this device was set up
  * before profiles, that explorer becomes the first profile and every find and
- * hunt run is filed under it; photos and drawings move into `pictures`.
+ * hunt run is filed under it (its pictures already moved into findMedia, by the version-4 upgrade).
  * Returns the profiles after the move. Runs once: afterwards profiles exist.
  */
 export async function migrateToProfiles(): Promise<Profile[]> {
@@ -228,12 +294,13 @@ export async function migrateToProfiles(): Promise<Profile[]> {
     tickChecks: legacy.tickChecks,
     createdAt: new Date().toISOString(),
   };
-  // Copies are made BEFORE the write transaction: awaiting a blob read inside one would let it close.
-  const oldFinds = (await d.getAll('finds')) as Record<string, unknown>[];
-  const moved = await Promise.all(oldFinds.map(async raw => packFind({ ...(await reviveFind(raw)).find, profileId: p.id })));
   const tx = d.transaction(['profiles', 'finds', 'huntRuns', 'settings'], 'readwrite');
   await tx.objectStore('profiles').put(p);
-  for (const f of moved) await tx.objectStore('finds').put(f);
+  let fc = await tx.objectStore('finds').openCursor();
+  while (fc) {
+    await fc.update({ ...fc.value, profileId: p.id });
+    fc = await fc.continue();
+  }
   let rc = await tx.objectStore('huntRuns').openCursor();
   while (rc) {
     await rc.update({ ...rc.value, profileId: p.id });

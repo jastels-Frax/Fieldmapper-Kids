@@ -1,5 +1,5 @@
 import { activeGuide } from './guides.ts';
-import type { CategoryId, Find, Profile, Settings } from './types.ts';
+import type { CategoryId, Find, FindMedia, Profile, Settings } from './types.ts';
 import { CATEGORIES, COLOURS, COUNTS, SIGNS, SIZES, categoryOf } from './categories.ts';
 import { askYesNo, blobUrl, h, openSheet, whenWords } from './ui.ts';
 import { say } from './speech.ts';
@@ -25,6 +25,8 @@ export interface ScreenHost {
   showOnMap: (f: Find) => void;
   remove: (f: Find) => Promise<void>;
   update: (f: Find) => Promise<void>;
+  /** A find's pictures and voice, read on demand (finds in memory carry picture info only). */
+  media: (id: string) => Promise<FindMedia>;
   startCapture: () => void;
   openHunts: () => void;
   huntsCompleted: () => number;
@@ -42,7 +44,7 @@ export interface HuntNews {
 }
 
 function pictureOf(f: Find, owner: Element, cls: string): HTMLElement {
-  const blob = f.thumb ?? f.pictures[0]?.blob;
+  const blob = f.thumb;
   const cat = categoryOf(f.category);
   if (blob) {
     const img = h('img', { class: cls, alt: f.nickname || cat.label });
@@ -170,10 +172,19 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void): v
   if (f.pictures.length) {
     const strip = h('div', { class: `detail-pics ${f.pictures.length > 1 ? 'many' : ''}` });
     body.append(strip);
+    const imgs = new Map<string, HTMLImageElement>();
     f.pictures.forEach((p, i) => {
       const img = h('img', { class: 'detail-pic', alt: `${p.kind === 'photo' ? 'Photo' : 'Drawing'} ${i + 1} of ${f.pictures.length}` });
+      if (i === 0 && f.thumb) img.src = blobUrl(f.thumb, img);
       strip.append(img);
-      img.src = blobUrl(p.blob, img);
+      imgs.set(p.id, img);
+    });
+    // The pictures themselves are read only now, as Field Mapper's getFeaturePhotos does.
+    void host.media(f.id).then(m => {
+      for (const p of m.pictures) {
+        const img = imgs.get(p.id);
+        if (img) img.src = blobUrl(p.blob, img);
+      }
     });
     if (f.pictures.length > 1) body.append(h('p', { class: 'hint center' }, `👉 Swipe to see all ${f.pictures.length} pictures`));
   } else if (f.species && artFor(f.species.name)) {
@@ -205,10 +216,12 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void): v
     body.append(h('div', { class: 'talk-card art-card' }, fig, h('div', {}, h('h3', {}, `How to tell a ${art.label}`), h('p', {}, art.tell))));
   }
 
-  if (f.voice) {
+  if (f.hasVoice) {
     const play = h('button', { class: 'big-btn' }, '▶️ Listen to my story');
-    play.addEventListener('click', () => {
-      const url = URL.createObjectURL(f.voice!);
+    play.addEventListener('click', async () => {
+      const voice = (await host.media(f.id)).voice;
+      if (!voice) return;
+      const url = URL.createObjectURL(voice);
       const a = new Audio(url);
       a.onended = () => URL.revokeObjectURL(url);
       void a.play();
