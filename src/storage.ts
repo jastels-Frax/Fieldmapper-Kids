@@ -78,9 +78,17 @@ async function detachFind(f: Find): Promise<Find> {
   return out;
 }
 
-export async function saveFind(f: Find): Promise<void> {
+/**
+ * Saves a find and RETURNS THE COPY IT STORED, which the caller must keep in place of what it passed.
+ * Safari backs a Blob read from IndexedDB with the stored record's file and deletes that file when the
+ * record is replaced, so the find the caller was holding (read before the save) is left pointing at
+ * nothing: its photo turned into a broken image the moment an edit was saved. The copy's pictures are
+ * fresh in-memory bytes and stay good.
+ */
+export async function saveFind(f: Find): Promise<Find> {
   const copy = await detachFind(f);
   await (await db()).put('finds', copy);
+  return copy;
 }
 
 export async function deleteFind(id: string): Promise<void> {
@@ -152,11 +160,13 @@ export async function allProfiles(): Promise<Profile[]> {
   return list.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
-export async function saveProfile(p: Profile): Promise<void> {
+/** As saveFind: returns the copy it stored, to be kept in place of the profile passed in. */
+export async function saveProfile(p: Profile): Promise<Profile> {
   const photo = await detach(p.photo);
   const copy: Profile = { ...p };
   if (photo) copy.photo = photo; else delete copy.photo;
   await (await db()).put('profiles', copy);
+  return copy;
 }
 
 /** Deletes an explorer and everything that was theirs: finds and hunt runs. */

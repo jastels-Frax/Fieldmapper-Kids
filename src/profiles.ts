@@ -156,7 +156,8 @@ export interface ProfileHost {
   active: () => Profile | undefined;
   findCount: (profileId: string) => number;
   switchTo: (id: string) => Promise<void>;
-  save: (p: Profile) => Promise<void>;
+  /** Resolves to the copy stored, which a caller that saves again must use (see storage.saveFind). */
+  save: (p: Profile) => Promise<Profile>;
   remove: (p: Profile) => Promise<void>;
   openCrew: () => void;
   /** Explorer <-> Together for the active explorer (asks for a grown-up when relaxing the locks). */

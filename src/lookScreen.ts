@@ -23,7 +23,7 @@ const SMALL = new Set<keyof Look>(['text', 'motion', 'pins', 'party', 'header'])
  * names that all look alike is how the button styles came to seem identical.
  * No grown-up needed: nothing here changes data or safety.
  */
-export function openLook(profile: Profile, save: (p: Profile) => Promise<void>): void {
+export function openLook(profile: Profile, save: (p: Profile) => Promise<Profile>): void {
   let look = normalizeLook(profile.look);
   const { body } = openSheet({ title: 'My look', emoji: '🎨', className: 'look' });
 
@@ -32,8 +32,8 @@ export function openLook(profile: Profile, save: (p: Profile) => Promise<void>):
     applyLook(look);
     sounds.pick();
     say(words);
-    profile = { ...profile, look };
-    await save(profile);
+    // Keep the stored copy: the next tap saves again, and Safari has already let go of the old photo.
+    profile = await save({ ...profile, look });
     paint();
   };
 
@@ -90,8 +90,7 @@ export function openLook(profile: Profile, save: (p: Profile) => Promise<void>):
       h('button', { class: 'text-btn', onclick: () => void (async () => {
         look = normalizeLook(undefined);
         applyLook(look);
-        profile = { ...profile, look: undefined };
-        await save(profile);
+        profile = await save({ ...profile, look: undefined });
         say('Back to the start!');
         paint();
       })() }, '↩️ Back to how it started'),

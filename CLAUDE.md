@@ -90,6 +90,10 @@ Everything" would take that badge away from every explorer who already earned it
 - **Every save writes fresh copies of its blobs** (`storage.detach`): Safari can return a Blob read from IndexedDB that
   still points at the stored record's file, and writing it into a new version of the same record can lose it — which is
   how an edit lost a drawing. Never `put` a blob you read back without going through `saveFind` / `saveProfile`.
+  **And keep what they RETURN**: both resolve to the stored copy, whose blobs are in-memory bytes. Safari also deletes
+  the OLD record's files when it is replaced, so an object read before the save is left pointing at nothing — keeping
+  it is how an edited find's photo became a broken image. `ProfileHost.save` returns the copy for the same reason
+  (My look saves the same profile on every tap).
 - **`#map` is its own stacking context (`z-index: 0`)**, so a marker's `z-index` (the explorer above the pins) ranks it among the map's markers only; without it the explorer's avatar drew over the bottom buttons.
 - **Never style a MapLibre marker's own element with `position` or `transform`**: MapLibre positions it (absolute plus an
   inline transform). A `position: relative` there put every pin in normal flow, so pins drifted as the map zoomed. Draw

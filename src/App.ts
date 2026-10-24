@@ -91,8 +91,7 @@ export class App {
     this.map.onFindTap = id => openFind(this.screenHost(), id, () => this.refresh());
     this.map.setFinds(this.finds);
     if (!first) {
-      const p = await welcome();
-      await saveProfile(p);
+      const p = await saveProfile(await welcome());
       this.profiles = [p];
       await this.switchTo(p.id);
     }
@@ -466,9 +465,8 @@ export class App {
       settings: this.settings,
       done: async () => {
         const before = this.tickCount();
-        this.profile = { ...this.profile, tickChecks: recordCheck(this.profile.tickChecks, new Date().toISOString()) };
+        this.profile = await saveProfile({ ...this.profile, tickChecks: recordCheck(this.profile.tickChecks, new Date().toISOString()) });
         this.profiles = this.profiles.map(p => (p.id === this.profile.id ? this.profile : p));
-        await saveProfile(this.profile);
         const earned = newlyEarned([], [], undefined, { tickChecks: before }, { tickChecks: this.tickCount() });
         for (const b of earned) {
           setTimeout(() => { sounds.badge(); toast(`${b.emoji} New badge: ${b.title}!`, 4000); say(`You earned the ${b.title} badge!`); }, 1800);
@@ -485,7 +483,7 @@ export class App {
     const before = this.finds.map(toBadgeFind);
     const huntsBefore = this.huntsDone();
     const challengesBefore = todaysChallenges(this.finds).done;
-    await saveFind(f);
+    f = await saveFind(f);
     this.everyFind.unshift(f);
     this.finds.unshift(f);
 
@@ -509,7 +507,7 @@ export class App {
   }
 
   private async updateFind(f: Find): Promise<void> {
-    await saveFind(f);
+    f = await saveFind(f);
     this.everyFind = this.everyFind.map(x => (x.id === f.id ? f : x));
     this.scopeToProfile();
     this.refresh();
@@ -600,13 +598,14 @@ export class App {
       findCount: id => this.everyFind.filter(f => (f.profileId ?? this.profiles[0]?.id) === id).length,
       switchTo: id => this.switchTo(id),
       save: async p => {
-        await saveProfile(p);
+        p = await saveProfile(p);
         this.profiles = this.profiles.some(x => x.id === p.id) ? this.profiles.map(x => (x.id === p.id ? p : x)) : [...this.profiles, p];
         if (p.id === this.profile.id) {
           this.profile = p;
           this.scopeToProfile();
           this.applySettingsToChrome();
         }
+        return p;
       },
       remove: async p => {
         await deleteProfile(p.id);
