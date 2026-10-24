@@ -240,9 +240,10 @@ export class MapView {
     }
   }
 
+  /** As Field Mapper's #btn-locate (App.ts → MapManager.flyTo): the last fix, an 800 ms flight. */
   goToMe(fix: Fix | null): boolean {
     if (!fix) return false;
-    this.map.flyTo({ center: [fix.lon, fix.lat], zoom: Math.max(this.map.getZoom(), 17) });
+    this.map.flyTo({ center: [fix.lon, fix.lat], zoom: Math.max(this.map.getZoom(), 17), duration: 800 });
     return true;
   }
 

@@ -71,6 +71,15 @@ Everything" would take that badge away from every explorer who already earned it
 
 ## Rules
 
+- **Field Mapper first.** Before building anything Field Mapper already does — anything on the map, location,
+  compass, gestures, layers, capture, photos, storage, sync of state — read how `fraxinusenviro/GPS2026felt` does it
+  (cloned beside this repo at `../GPS2026felt`) and port its approach, naming the source in a comment ("Field Mapper's
+  `MapManager.bindLongPress`"). It has met the field problems already; a fresh design here re-meets them. Depart from
+  it only for a stated reason (a child's needs, a bug of its own) and say so in the comment. Counterparts so far:
+  long press (`MapManager.bindLongPress`), compass and facing arrow (`OrientationManager` + the orientation marker),
+  locate (`App.ts` `#btn-locate` + `CaptureManager.getGPSState`, watch options in `startGPSWatch`), the folding right
+  rail (`#btn-collapse-right`), avatars (`src/tour/avatars.ts`), species lists (ACCDC `db-*.json`).
+
 - **Child safety and privacy first.** No accounts, no uploads, no analytics, no third-party requests
   beyond the map tiles. Anything destructive or outward (delete, export, settings) sits behind the
   grown-up gate in Explorer mode. Exact coordinates are shown only in Together mode.

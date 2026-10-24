@@ -9,6 +9,8 @@ export interface Fix {
 type Listener = (fix: Fix | null, error?: string) => void;
 
 let last: Fix | null = null;
+/** Field Mapper's watch options (CaptureManager.startGPSWatch), so the two apps track position alike. */
+const WATCH_OPTIONS: PositionOptions = { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 };
 let watchId: number | null = null;
 const listeners = new Set<Listener>();
 
@@ -69,12 +71,12 @@ export function startGps(): void {
     if (!('geolocation' in navigator)) listeners.forEach(l => l(null, 'This device cannot tell where it is.'));
     return;
   }
-  watchId = navigator.geolocation.watchPosition(accept, problem, { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 });
+  watchId = navigator.geolocation.watchPosition(accept, problem, WATCH_OPTIONS);
   // A home-screen app on iOS can come back from the background with its watch quietly stopped: restart it.
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible' || watchId === null) return;
     navigator.geolocation.clearWatch(watchId);
-    watchId = navigator.geolocation.watchPosition(accept, problem, { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 });
+    watchId = navigator.geolocation.watchPosition(accept, problem, WATCH_OPTIONS);
   });
 }
 
