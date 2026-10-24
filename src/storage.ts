@@ -224,6 +224,7 @@ export async function loadSettings(): Promise<Settings> {
     pathRecording: s?.pathRecording ?? DEFAULT_SETTINGS.pathRecording,
     walksOnMap: s?.walksOnMap ?? DEFAULT_SETTINGS.walksOnMap,
     keepAwake: s?.keepAwake ?? DEFAULT_SETTINGS.keepAwake,
+    wakeLock: s?.wakeLock ?? DEFAULT_SETTINGS.wakeLock,
     compass: s?.compass ?? DEFAULT_SETTINGS.compass,
     follow: s?.follow ?? DEFAULT_SETTINGS.follow,
     // Absence: a device whose grown-up already picked a voice meant one voice; everyone else gets the characters.

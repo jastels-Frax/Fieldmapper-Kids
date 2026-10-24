@@ -42,7 +42,7 @@ export function openGrownUps(host: GrownUpHost): void {
   };
   paintPeople();
 
-  const toggle = (key: 'readAloud' | 'sounds' | 'trail' | 'tickReminder' | 'pathRecording' | 'walksOnMap' | 'keepAwake', label: string) => {
+  const toggle = (key: 'readAloud' | 'sounds' | 'trail' | 'tickReminder' | 'pathRecording' | 'walksOnMap' | 'keepAwake' | 'wakeLock', label: string) => {
     const box = h('input', { type: 'checkbox' }) as HTMLInputElement;
     box.checked = s[key];
     box.addEventListener('change', async () => { s[key] = box.checked; await save(); });
@@ -170,6 +170,7 @@ export function openGrownUps(host: GrownUpHost): void {
     toggle('pathRecording', '👣 Show the Record my path button'),
     toggle('walksOnMap', '🟣 Show saved paths on the map'),
     toggle('keepAwake', '💡 Keep the screen on while a path records'),
+    toggle('wakeLock', '💡 Keep the screen on whenever Scout is open (the 💡 button on the map)'),
     h('p', { class: 'hint' }, 'Phones and tablets stop reading the GPS when the screen goes off, so a path only records while Scout is open on the screen. Keeping the screen on uses more battery. Paths stay on this device like everything else.'),
     h('h2', { class: 'section-title' }, 'Voice'),
     h('p', { class: 'hint' }, 'Scout reads aloud with the voices built into this device, so nothing is sent anywhere. Tap ▶️ to hear one. For more natural voices, download an "Enhanced" or "Premium" English voice in the device settings (iPhone/iPad: Settings › Accessibility › Spoken Content › Voices; Android: Settings › Text-to-speech › Google › Install voice data), then come back here.'),

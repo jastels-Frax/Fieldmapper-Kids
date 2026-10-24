@@ -35,6 +35,7 @@ import { tierOf } from './tiers.ts';
 import { openLook } from './lookScreen.ts';
 import { openBasemapPicker } from './basemapPicker.ts';
 import { Compass } from './compass.ts';
+import { setKeepAwake, wakeLockSupported } from './wakeLock.ts';
 import { compassWord, smoothHeading } from './heading.ts';
 
 export class App {
@@ -63,6 +64,7 @@ export class App {
   private compass = new Compass();
   private compassBtn!: HTMLElement;
   private followBtn!: HTMLElement;
+  private wakeBtn!: HTMLElement;
   private facingDeg: number | null = null;
   private everyWalk: Walk[] = [];
   private walks: Walk[] = [];
@@ -244,6 +246,39 @@ export class App {
     }
   }
 
+  /**
+   * The screen stays on while the 💡 switch is on, or while a path records and the grown-ups left "keep the
+   * screen on while a path records" ticked. One holder (wakeLock.ts), as Field Mapper's `toggleWakeLock` learned.
+   */
+  private applyWakeLock(): void {
+    setKeepAwake(this.settings.wakeLock || (this.recorder.recording && this.settings.keepAwake));
+    if (!this.wakeBtn) return;
+    const on = this.settings.wakeLock;
+    this.wakeBtn.classList.toggle('on', on);
+    this.wakeBtn.setAttribute('aria-pressed', String(on));
+    this.wakeBtn.setAttribute('aria-label', on ? 'Screen stays on. Tap to let it sleep' : 'Keep the screen on');
+  }
+
+  /** Field Mapper's Wake Lock button (`#btn-wakelock`), the same switch as the grown-up corner's. */
+  private async toggleWakeLock(): Promise<void> {
+    sounds.tap();
+    if (!wakeLockSupported()) {
+      say('This device cannot keep the screen on.');
+      toast('💡 This device cannot keep the screen on.');
+      return;
+    }
+    this.settings = { ...this.settings, wakeLock: !this.settings.wakeLock };
+    await saveSettings(this.settings);
+    this.applyWakeLock();
+    if (this.settings.wakeLock) {
+      say('The screen will stay on. It uses more battery.');
+      toast('💡 Screen stays on');
+    } else {
+      say('OK, the screen can sleep.');
+      toast('💡 Screen can sleep');
+    }
+  }
+
   private paintFollow(): void {
     const on = this.settings.follow;
     this.followBtn.classList.toggle('on', on);
@@ -274,7 +309,7 @@ export class App {
       return;
     }
     if (!lastFix()) say('I am still looking for where you are. I will start the path as soon as I find you.');
-    await this.recorder.start(this.profile.id, this.settings.keepAwake);
+    await this.recorder.start(this.profile.id);
     sounds.pick();
     say("Recording your path! Tap the footprints again when you're done.");
     this.recTimer = window.setInterval(() => this.paintRecording(), 15000);
@@ -359,11 +394,12 @@ export class App {
     this.soundBtn = h('button', { class: 'round-btn lock sound-btn', onclick: () => void this.toggleReadAloud() });
     this.recBtn = h('button', { class: 'round-btn rec-btn', onclick: () => void this.toggleRecording() }, '👣');
     this.recChip = h('button', { class: 'rec-chip', hidden: true, 'aria-label': 'Recording my path. Tap to stop', onclick: () => void this.toggleRecording() });
-    this.recorder.onChange = () => this.paintRecording();
+    this.recorder.onChange = () => { this.paintRecording(); this.applyWakeLock(); };
     const me = h('button', { class: 'round-btn me-btn', 'aria-label': 'Where am I?', onclick: () => void this.findMe() }, '📍');
     this.modeBtn = h('button', { class: 'round-btn mode-btn', onclick: () => void this.toggleMode() });
     this.compassBtn = h('button', { class: 'round-btn compass-btn', onclick: () => void this.toggleCompass() }, '🧭');
     this.followBtn = h('button', { class: 'round-btn follow-btn', onclick: () => void this.toggleFollow() }, '🎯');
+    this.wakeBtn = h('button', { class: 'round-btn wake-btn', onclick: () => void this.toggleWakeLock() }, '💡');
     const layers = h('button', { class: 'round-btn', 'aria-label': 'Map style: streets, satellite or hybrid', onclick: () => openBasemapPicker(this.settings.basemap, async b => {
       this.settings = { ...this.settings, basemap: b };
       this.map.setBasemap(b);
@@ -373,7 +409,7 @@ export class App {
       h('div', { id: 'map' }),
       h('header', { class: 'top-bar' }, this.hello, this.starBtn, this.huntChip, this.soundBtn, lock),
       this.recChip,
-      this.sideRail(me, this.followBtn, this.compassBtn, layers, this.modeBtn, this.recBtn,
+      this.sideRail(me, this.followBtn, this.compassBtn, this.wakeBtn, layers, this.modeBtn, this.recBtn,
         h('button', { class: 'round-btn', 'aria-label': 'Scavenger hunts', onclick: () => this.openHuntsScreen() }, '🔎'),
         h('button', { class: 'round-btn', 'aria-label': 'Done exploring: tick check', onclick: () => void this.endAdventure() }, '🏠')),
       this.dock.el,
@@ -389,6 +425,7 @@ export class App {
     this.applyAudio();
     this.paintCompass();
     this.paintFollow();
+    this.applyWakeLock();
     this.resumeCompass();
   }
 
@@ -728,6 +765,7 @@ export class App {
         this.settings = s;
         await saveSettings(s);
         this.applyAudio();
+        this.applyWakeLock();
         this.applySettingsToChrome();
         const t = await loadToday();
         this.map.setTrail(t.points, s.trail);
