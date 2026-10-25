@@ -19,6 +19,7 @@ export interface GrownUpHost {
   /** Every explorer's finds. */
   allFinds: () => Find[];
   allWalks: () => Walk[];
+  allSketches: () => import('./types.ts').Sketch[];
   profiles: ProfileHost;
   applySettings: (s: Settings) => Promise<void>;
   deleteAll: () => Promise<void>;
@@ -137,7 +138,7 @@ export function openGrownUps(host: GrownUpHost): void {
     exportBtn.setAttribute('disabled', '');
     exportBtn.textContent = '📦 Packing…';
     try {
-      const blob = await buildExport(host.allFinds(), host.profiles.profiles(), host.allWalks(), getFindMedia);
+      const blob = await buildExport(host.allFinds(), host.profiles.profiles(), host.allWalks(), getFindMedia, host.allSketches());
       await saveFile(blob, `scout-finds-${new Date().toISOString().slice(0, 10)}.zip`);
     } catch {
       toast('Saving the file did not work.');

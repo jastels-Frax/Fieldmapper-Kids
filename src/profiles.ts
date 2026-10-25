@@ -9,6 +9,8 @@ import { guideFigure, crewSays, buddySays } from './buddyView.ts';
 import { CAST } from './cast.ts';
 import { askGrownUp } from './gateView.ts';
 import { MODE_WORDS, TIERS, tierOf, type TierId } from './tiers.ts';
+import { AVATAR_ART, cardPicture } from './avatarArt.ts';
+import { artUrl } from './avatars.ts';
 
 export const MODE_INFO: Record<Mode, { emoji: string; title: string; text: string }> = {
   explorer: {
@@ -48,12 +50,20 @@ export function newProfile(): Profile {
 
 /** The explorer's face: their photo if they have one, else their emoji. */
 export function profileFace(p: Profile, cls = 'face'): HTMLElement {
-  if (p.photo) {
+  const pic = cardPicture(p);
+  if (pic.kind === 'photo') {
     const img = h('img', { class: `${cls} face-photo`, alt: p.name || 'Explorer' });
     queueMicrotask(() => { img.src = blobUrl(p.photo!, img); });
     return img;
   }
-  return h('span', { class: `${cls} face-emoji`, 'aria-label': p.name || 'Explorer' }, p.avatar);
+  if (pic.kind === 'art') return h('img', { class: `${cls} face-photo face-art`, alt: p.name || 'Explorer', src: artUrl(pic.art) ?? '' });
+  return h('span', { class: `${cls} face-emoji`, 'aria-label': p.name || 'Explorer' }, pic.emoji);
+}
+
+/** A round storybook portrait to choose. */
+function artButton(id: string, label: string, on: boolean, onclick: () => void): HTMLElement {
+  return h('button', { class: `art-avatar ${on ? 'on' : ''}`, 'aria-label': label, 'aria-pressed': String(on), title: label, onclick },
+    h('img', { src: artUrl(id) ?? '', alt: '' }));
 }
 
 /** The editable parts of a profile, as form sections. `onChange` hears every edit. */
@@ -117,12 +127,55 @@ function profileForm(p: Profile, opts: { showMode: boolean; lockMode?: (to: Mode
   };
   camera.addEventListener('change', () => void takePicture(camera));
   library.addEventListener('change', () => void takePicture(library));
-  const removePhoto = h('button', { class: 'text-btn', hidden: !p.photo, onclick: () => { p.photo = undefined; paintPreview(); removePhoto.hidden = true; } }, '✖ Use my animal instead');
+  const removePhoto = h('button', { class: 'text-btn', hidden: !p.photo, onclick: () => { p.photo = undefined; paintPreview(); paintAvatars(); removePhoto.hidden = true; } }, '✖ Use a picture below instead');
+  // Choosing a storybook picture or an animal is choosing it over the photo (nothing is saved until Save).
   const avatars = h('div', { class: 'avatar-row' });
-  const paintAvatars = () => avatars.replaceChildren(...AVATARS.map(a =>
-    h('button', { class: `avatar ${p.avatar === a ? 'on' : ''}`, 'aria-label': `Choose ${a}`, onclick: () => { p.avatar = a; say('Nice!'); paintAvatars(); paintPreview(); } }, a)));
+  const artRow = h('div', { class: 'art-avatars' });
+  const pickCard = (art: string | undefined, emoji?: string) => {
+    p.art = art;
+    if (emoji) p.avatar = emoji;
+    p.photo = undefined;
+    removePhoto.hidden = true;
+    sounds.pick();
+    say('Nice!');
+    paintAvatars();
+    paintPreview();
+    paintMap();
+  };
+  const paintAvatars = () => {
+    const pic = cardPicture(p);
+    artRow.replaceChildren(...AVATAR_ART.map(a => artButton(a.id, a.label, pic.kind === 'art' && pic.art === a.id, () => pickCard(a.id))));
+    avatars.replaceChildren(...AVATARS.map(a =>
+      h('button', { class: `avatar ${pic.kind === 'emoji' && p.avatar === a ? 'on' : ''}`, 'aria-label': `Choose ${a}`, onclick: () => pickCard(undefined, a) }, a)));
+  };
+
+  // On the map: the same picture as the card, or one of its own.
+  const mapPick = h('div', { class: 'map-avatar-pick' });
+  const paintMap = () => {
+    const same = !p.mapAvatar;
+    const m = p.mapAvatar;
+    mapPick.replaceChildren(
+      h('div', { class: 'mode-pick' },
+        h('button', { class: `mode-card ${same ? 'on' : ''}`, 'aria-pressed': String(same), onclick: () => { p.mapAvatar = undefined; sounds.pick(); paintMap(); } },
+          h('span', { class: 'mode-emoji' }, '🪪'), h('strong', {}, 'Same as my card')),
+        h('button', { class: `mode-card ${!same ? 'on' : ''}`, 'aria-pressed': String(!same), onclick: () => {
+          if (!p.mapAvatar) p.mapAvatar = { kind: 'emoji', emoji: p.avatar };
+          sounds.pick(); paintMap();
+        } }, h('span', { class: 'mode-emoji' }, '🗺️'), h('strong', {}, 'Something different'))),
+      ...(same ? [] : [
+        h('div', { class: 'art-avatars' }, ...AVATAR_ART.map(a => artButton(a.id, a.label, m?.kind === 'art' && m.art === a.id, () => {
+          p.mapAvatar = { kind: 'art', art: a.id }; sounds.pick(); say(a.label); paintMap();
+        }))),
+        h('div', { class: 'avatar-row' }, ...AVATARS.map(a => h('button', {
+          class: `avatar ${m?.kind === 'emoji' && m.emoji === a ? 'on' : ''}`, 'aria-label': `Choose ${a} for the map`,
+          onclick: () => { p.mapAvatar = { kind: 'emoji', emoji: a }; sounds.pick(); paintMap(); },
+        }, a))),
+      ]),
+    );
+  };
   paintAvatars();
   paintPreview();
+  paintMap();
   wrap.append(
     h('h2', { class: 'section-title' }, 'My picture'),
     h('div', { class: 'face-row' }, preview,
@@ -130,8 +183,10 @@ function profileForm(p: Profile, opts: { showMode: boolean; lockMode?: (to: Mode
         h('button', { class: 'big-btn soft', onclick: () => camera.click() }, '📸 Take a photo'),
         h('button', { class: 'big-btn soft', onclick: () => library.click() }, '🖼️ From my photos'),
         removePhoto)),
-    h('p', { class: 'hint' }, 'Pick an animal for the map. A photo shows instead, if there is one.'),
-    avatars, camera, library,
+    h('p', { class: 'hint' }, 'Or pick a storybook picture, or an animal:'),
+    artRow, avatars, camera, library,
+    h('h2', { class: 'section-title' }, 'Me on the map'),
+    mapPick,
   );
 
   // Guide: anyone from the crew, with their own name
@@ -173,6 +228,8 @@ export interface ProfileHost {
   toggleMode: () => Promise<void>;
   /** Colours, buttons, text size, font and motion for the active explorer. */
   openLook: () => void;
+  /** "My buttons": the explorer's own map buttons. */
+  openButtons: () => void;
 }
 
 /** "Who's exploring?": switch explorer, add one, change your own card, meet the crew. */
@@ -205,6 +262,7 @@ export function openProfiles(host: ProfileHost): void {
         h('button', { class: 'big-btn soft', onclick: async () => { await host.toggleMode(); paint(); } },
           `${MODE_WORDS[other].emoji} Switch to ${MODE_WORDS[other].title.toLowerCase()}`),
         h('button', { class: 'big-btn soft', onclick: () => host.openLook() }, '🎨 My look'),
+        h('button', { class: 'big-btn soft', onclick: () => host.openButtons() }, '🔧 My buttons'),
         h('button', { class: 'big-btn soft', onclick: () => openProfileEditor(host, me, paint) }, '✏️ Change my card'),
       );
     }

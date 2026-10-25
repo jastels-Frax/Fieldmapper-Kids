@@ -1,6 +1,6 @@
 import { segmentsAtGaps } from './walk.ts';
 import maplibregl, { type Map as MlMap, type Marker, type StyleSpecification } from 'maplibre-gl';
-import type { Basemap, Find } from './types.ts';
+import type { Basemap, Find, Sketch } from './types.ts';
 import { categoryOf } from './categories.ts';
 import type { Fix } from './gps.ts';
 import { blobUrl } from './ui.ts';
@@ -9,7 +9,7 @@ const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 /** Esri World Imagery. Capped at z18: finer requests can fail, and MapLibre overzooms the last level. */
 const IMAGERY_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 /** Layers this app adds; a basemap switch never touches them. */
-const OWN_LAYERS = new Set(['sat', 'trail-line', 'walks-line', 'live-walk-line']);
+const OWN_LAYERS = new Set(['sat', 'trail-line', 'walks-line', 'live-walk-line', 'sketch-fill', 'sketch-line', 'draft-fill', 'draft-line', 'draft-pts']);
 
 /** What the map draws with no network and nothing cached: grass. Finds still show. */
 const OFFLINE_STYLE: StyleSpecification = {
@@ -52,6 +52,8 @@ export class MapView {
   onLongPress: (at: { lat: number; lon: number }) => void = () => {};
   /** The explorer dragged the map (never fired by the app's own camera moves). */
   onUserPan: () => void = () => {};
+  /** A tap on the map while a drawing tool is on (the ✏️ Draw and 📏 Measure tools). Null when none is. */
+  onToolTap: ((at: { lat: number; lon: number }) => void) | null = null;
   offline = false;
 
   private baseVisibility = new Map<string, 'visible' | 'none'>();
@@ -71,6 +73,7 @@ export class MapView {
     });
     this.map.touchZoomRotate.disableRotation();
     this.bindLongPress();
+    this.map.on('click', e => this.onToolTap?.({ lat: e.lngLat.lat, lon: e.lngLat.lng }));
     this.map.on('dragstart', e => { if ((e as { originalEvent?: Event }).originalEvent) this.onUserPan(); });
     this.setAvatar(avatar);
     await new Promise<void>(r => (this.map.loaded() ? r() : this.map.once('load', () => r())));
@@ -92,6 +95,19 @@ export class MapView {
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': '#e8590c', 'line-width': 7, 'line-opacity': 0.95 },
     });
+    // Drawings (saved sketches) and the shape being drawn or measured right now.
+    this.map.addSource('sketches', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    this.map.addLayer({ id: 'sketch-fill', type: 'fill', source: 'sketches', filter: ['==', ['geometry-type'], 'Polygon'],
+      paint: { 'fill-color': ['get', 'colour'], 'fill-opacity': 0.25 } });
+    this.map.addLayer({ id: 'sketch-line', type: 'line', source: 'sketches', layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': ['get', 'colour'], 'line-width': 5 } });
+    this.map.addSource('draft', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    this.map.addLayer({ id: 'draft-fill', type: 'fill', source: 'draft', filter: ['==', ['geometry-type'], 'Polygon'],
+      paint: { 'fill-color': ['get', 'colour'], 'fill-opacity': 0.2 } });
+    this.map.addLayer({ id: 'draft-line', type: 'line', source: 'draft', filter: ['==', ['geometry-type'], 'LineString'],
+      layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['get', 'colour'], 'line-width': 5, 'line-dasharray': [1.5, 1] } });
+    this.map.addLayer({ id: 'draft-pts', type: 'circle', source: 'draft', filter: ['==', ['geometry-type'], 'Point'],
+      paint: { 'circle-radius': 8, 'circle-color': '#ffffff', 'circle-stroke-color': ['get', 'colour'], 'circle-stroke-width': 4 } });
     for (const l of this.map.getStyle().layers ?? []) {
       if (OWN_LAYERS.has(l.id)) continue;
       this.baseVisibility.set(l.id, ((l.layout as { visibility?: 'visible' | 'none' } | undefined)?.visibility) ?? 'visible');
@@ -145,7 +161,7 @@ export class MapView {
     };
     box.addEventListener('touchstart', (e: TouchEvent) => {
       cancel();
-      if (e.touches.length !== 1 || (e.target as Element).closest?.('.maplibregl-marker')) return;
+      if (this.onToolTap || e.touches.length !== 1 || (e.target as Element).closest?.('.maplibregl-marker')) return;
       const t = e.touches[0];
       startX = t.clientX; startY = t.clientY;
       const r = this.map.getContainer().getBoundingClientRect();
@@ -167,7 +183,7 @@ export class MapView {
     box.addEventListener('touchend', cancel, { passive: true });
     box.addEventListener('touchcancel', cancel, { passive: true });
     this.map.on('contextmenu', e => {
-      if ((e.originalEvent.target as Element)?.closest?.('.maplibregl-marker')) return;
+      if (this.onToolTap || (e.originalEvent.target as Element)?.closest?.('.maplibregl-marker')) return;
       e.preventDefault();
       this.onLongPress({ lat: e.lngLat.lat, lon: e.lngLat.lng });
     });
@@ -196,6 +212,12 @@ export class MapView {
       if (this.mePhotoUrl) URL.revokeObjectURL(this.mePhotoUrl);
       this.mePhotoUrl = URL.createObjectURL(face.photo);
       img.src = this.mePhotoUrl;
+      slot.append(img);
+    } else if (face.art) {
+      const img = document.createElement('img');
+      img.alt = '';
+      img.className = 'me-photo';
+      img.src = face.art;
       slot.append(img);
     } else {
       slot.textContent = face.emoji;
@@ -314,6 +336,33 @@ export class MapView {
     (this.map?.getSource('live-walk') as maplibregl.GeoJSONSource | undefined)?.setData(fc(live ?? []));
   }
 
+  /** Saved drawings: lines, and shapes closed back to their first point. */
+  setSketches(sketches: Sketch[]): void {
+    (this.map?.getSource('sketches') as maplibregl.GeoJSONSource | undefined)?.setData({
+      type: 'FeatureCollection',
+      features: sketches.filter(s => s.points.length > 1).map(s => ({
+        type: 'Feature' as const, properties: { colour: s.colour },
+        geometry: s.kind === 'area' && s.points.length > 2
+          ? { type: 'Polygon' as const, coordinates: [[...s.points, s.points[0]]] }
+          : { type: 'LineString' as const, coordinates: s.points },
+      })),
+    });
+  }
+
+  /** The shape being drawn or measured: its points, its line, and (an area) its fill. */
+  setDraft(points: [number, number][], kind: 'line' | 'area', colour: string): void {
+    const props = { colour };
+    const features: { type: 'Feature'; properties: { colour: string }; geometry: { type: 'Point'; coordinates: [number, number] } | { type: 'LineString'; coordinates: [number, number][] } | { type: 'Polygon'; coordinates: [number, number][][] } }[] = points.map(p => ({ type: 'Feature', properties: props, geometry: { type: 'Point', coordinates: p } }));
+    if (points.length > 1) {
+      const line = kind === 'area' && points.length > 2 ? [...points, points[0]] : points;
+      features.push({ type: 'Feature', properties: props, geometry: { type: 'LineString', coordinates: line } });
+    }
+    if (kind === 'area' && points.length > 2) {
+      features.push({ type: 'Feature', properties: props, geometry: { type: 'Polygon', coordinates: [[...points, points[0]]] } });
+    }
+    (this.map?.getSource('draft') as maplibregl.GeoJSONSource | undefined)?.setData({ type: 'FeatureCollection', features });
+  }
+
   fitLine(coords: [number, number][]): void {
     if (coords.length < 2) return;
     const b = new maplibregl.LngLatBounds(coords[0], coords[0]);
@@ -345,6 +394,8 @@ export class MapView {
 export interface Face {
   emoji: string;
   photo?: Blob;
+  /** A storybook portrait's image (avatars.ts). */
+  art?: string;
 }
 
 /** Adds the imagery as a raster layer just above the style's own background. */

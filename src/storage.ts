@@ -4,6 +4,7 @@ import { normalizeFind } from './findModel.ts';
 import { uid } from './ids.ts';
 import type { Hunt, HuntRun } from './hunts.ts';
 import type { Walk } from './walk.ts';
+import type { Sketch } from './types.ts';
 import { DEFAULT_SETTINGS } from './types.ts';
 import { revive, toBytes, fromBytes, type StoredBytes } from './storedBytes.ts';
 import { holdsMedia, splitStoredFind, type StoredMedia } from './findSplit.ts';
@@ -19,11 +20,13 @@ const DB_NAME = 'FieldMapperKids';
 /**
  * 1: finds, settings, trails, hunt runs, custom hunts.
  * 3: recorded paths ("walks").
+ * 4: find media split out of the finds (`findMedia`).
+ * 5: sketches drawn on the map (`sketches`).
  * 2: explorer profiles and imported species lists. The DATA move (settings ->
  *    first profile, finds stamped with it) is `migrateToProfiles`, run by App,
  *    because it needs to know whether the device was ever set up.
  */
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 let dbp: Promise<IDBPDatabase> | null = null;
 function db(): Promise<IDBPDatabase> {
@@ -42,6 +45,7 @@ function db(): Promise<IDBPDatabase> {
         d.createObjectStore('speciesLists', { keyPath: 'id' });
       }
       if (oldVersion < 3) d.createObjectStore('walks', { keyPath: 'id' });
+      if (oldVersion < 5) d.createObjectStore('sketches', { keyPath: 'id' });
       if (oldVersion < 4) {
         // Pictures and voice notes move out of the finds into their own store (findSplit.ts). Done here, in the
         // upgrade, record by record: values are only MOVED, never read as files, so nothing Safari backs with a
@@ -181,6 +185,7 @@ export async function deleteAllFinds(): Promise<void> {
   await d.clear('trails');
   await d.clear('huntRuns');
   await d.clear('walks');
+  await d.clear('sketches');
 }
 
 export async function allWalks(): Promise<Walk[]> {
@@ -194,6 +199,19 @@ export async function saveWalk(w: Walk): Promise<void> {
 
 export async function deleteWalk(id: string): Promise<void> {
   await (await db()).delete('walks', id);
+}
+
+export async function allSketches(): Promise<Sketch[]> {
+  const list = (await (await db()).getAll('sketches')) as Sketch[];
+  return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function saveSketch(s: Sketch): Promise<void> {
+  await (await db()).put('sketches', s);
+}
+
+export async function deleteSketch(id: string): Promise<void> {
+  await (await db()).delete('sketches', id);
 }
 
 /** A species list a grown-up imported (a Field Mapper species file, or a CSV). */
@@ -268,9 +286,9 @@ export async function saveProfile(p: Profile): Promise<Profile> {
 /** Deletes an explorer and everything that was theirs: finds and hunt runs. */
 export async function deleteProfile(id: string): Promise<void> {
   const d = await db();
-  const tx = d.transaction(['profiles', 'finds', 'findMedia', 'huntRuns', 'walks'], 'readwrite');
+  const tx = d.transaction(['profiles', 'finds', 'findMedia', 'huntRuns', 'walks', 'sketches'], 'readwrite');
   await tx.objectStore('profiles').delete(id);
-  for (const store of ['finds', 'huntRuns', 'walks'] as const) {
+  for (const store of ['finds', 'huntRuns', 'walks', 'sketches'] as const) {
     let cur = await tx.objectStore(store).openCursor();
     while (cur) {
       const v = cur.value as { id: string; profileId?: string };

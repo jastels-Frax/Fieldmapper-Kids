@@ -34,6 +34,18 @@ export interface FindMedia {
 export type FullFind = Omit<Find, 'pictures' | 'hasVoice' | 'voiceCount'> & FindMedia;
 
 /** A species the explorer (or a grown-up) named for a find. */
+/** A line or a shape an explorer drew on the map (the ✏️ Draw tool). Belongs to a profile. */
+export interface Sketch {
+  id: string;
+  profileId?: string;
+  createdAt: string;
+  kind: 'line' | 'area';
+  /** [lon, lat], in the order tapped; an area is closed back to its first point when drawn. */
+  points: [number, number][];
+  colour: string;
+  name?: string;
+}
+
 export interface SpeciesPick {
   name: string;
   scientific?: string;
@@ -103,8 +115,17 @@ export interface Profile {
   tickChecks?: string[];
   /** How Scout looks for this explorer (look.ts); absent = the default look. */
   look?: Partial<import('./look.ts').Look>;
+  /** Their map buttons, in order ("My buttons", railTools.ts); absent = their age tier's default. */
+  tools?: string[];
+  /** A storybook portrait (avatars.ts) for their card, used when there is no photo. */
+  art?: string;
+  /** Their marker on the map; absent = the same picture as their card. */
+  mapAvatar?: MapAvatar;
   createdAt: string;
 }
+
+/** What stands for the explorer on the map, when it is not their card picture. */
+export type MapAvatar = { kind: 'emoji'; emoji: string } | { kind: 'art'; art: string };
 
 export type Basemap = 'streets' | 'satellite' | 'hybrid';
 

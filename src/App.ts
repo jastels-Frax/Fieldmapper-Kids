@@ -1,14 +1,16 @@
-import type { Find, FullFind, Profile, Settings } from './types.ts';
+import type { Find, FullFind, Profile, Settings, Sketch } from './types.ts';
 import {
   allCustomHunts, allFinds, allHuntRuns, allProfiles, deleteAllFinds, deleteCustomHunt, deleteFind, deleteProfile,
   loadSettings, migrateToProfiles, saveCustomHunt, saveFind, saveHuntRun, saveProfile, saveSettings,
-  allWalks, saveWalk, deleteWalk, getFullFind, getFindMedia, saveFindInfo,
+  allWalks, saveWalk, deleteWalk, allSketches, saveSketch, deleteSketch, getFullFind, getFindMedia, saveFindInfo,
 } from './storage.ts';
 import { PathRecorder } from './recorder.ts';
 import { closeOrphan, distanceWords, durationWords, segmentsAtGaps, walkDurationMs, walkLengthM, type Walk, type WalkPoint } from './walk.ts';
 import { finishWalk, openWalks, type WalkHost } from './walkScreens.ts';
 import type { BadgeExtras } from './badges.ts';
-import { MapView } from './mapView.ts';
+import { MapView, type Face } from './mapView.ts';
+import { mapPicture } from './avatarArt.ts';
+import { artUrl } from './avatars.ts';
 import { fixProblem, knownFix, lastFix, onFix, refreshFix, startGps, steadiedFix, steadyNow } from './gps.ts';
 import { addToTrail, loadToday, trailLengthM } from './trail.ts';
 import { askYesNo, h, toast, uid } from './ui.ts';
@@ -33,11 +35,14 @@ import { pickOnMap } from './mapPicker.ts';
 import { applyLook } from './lookApply.ts';
 import { tierOf } from './tiers.ts';
 import { openLook } from './lookScreen.ts';
+import { openMyButtons } from './buttonsScreen.ts';
 import { openMapSheet } from './basemapPicker.ts';
 import { Compass } from './compass.ts';
 import { setKeepAwake, wakeLockSupported } from './wakeLock.ts';
 import { compassWord, smoothHeading } from './heading.ts';
 import { quickKinds } from './quickFinds.ts';
+import { closeDrawTool, openDrawTool, type DrawMode } from './drawTool.ts';
+import { TOOLS, railFor, type ToolId } from './railTools.ts';
 import { categoryOf } from './categories.ts';
 import { downscale } from './image.ts';
 import { meetsRule } from './hunts.ts';
@@ -69,6 +74,12 @@ export class App {
   private facingDeg: number | null = null;
   private everyWalk: Walk[] = [];
   private walks: Walk[] = [];
+  private everySketch: Sketch[] = [];
+  private sketches: Sketch[] = [];
+  /** Every rail button, made once; `paintRail` shows the explorer's own choice of them. */
+  private toolBtns = new Map<ToolId, HTMLElement>();
+  private railBody!: HTMLElement;
+  private drawing: DrawMode | null = null;
 
   async init(): Promise<void> {
     this.settings = await loadSettings();
@@ -86,12 +97,13 @@ export class App {
       await saveWalk(closed);
       return closed;
     }));
+    this.everySketch = await allSketches();
     this.applyAudio();
     const first = this.profiles.find(p => p.id === this.settings.activeProfileId) ?? this.profiles[0];
     this.profile = first ?? { id: '', name: '', avatar: '🦊', mode: 'explorer', guide: 'frog', createdAt: '' };
     this.scopeToProfile();
     this.buildChrome();
-    await this.map.mount(document.getElementById('map')!, { emoji: this.profile.avatar, photo: this.profile.photo }, this.settings.basemap);
+    await this.map.mount(document.getElementById('map')!, this.mapFace(), this.settings.basemap);
     this.map.onFindTap = id => openFind(this.screenHost(), id, () => this.refresh());
     // Press and hold the map: a find already placed on that spot. Not while a spot is being picked for a find.
     this.map.onLongPress = at => {
@@ -102,6 +114,7 @@ export class App {
     // Dragging the map to look around stops following (see meTap).
     this.map.onUserPan = () => { if (this.settings.follow) void this.setFollow(false); };
     this.map.setFinds(this.finds);
+    this.map.setSketches(this.sketches);
     if (!first) {
       const p = await saveProfile(await welcome());
       this.profiles = [p];
@@ -123,6 +136,7 @@ export class App {
     this.finds = this.everyFind.filter(mine);
     this.runs = this.everyRun.filter(mine);
     this.walks = this.everyWalk.filter(mine);
+    this.sketches = this.everySketch.filter(mine);
     this.profile.guide = normalizeGuide(this.profile.guide);
     setGuideName(this.profile.guide, guideName(this.profile.guide, this.profile.guideName));
     setNarrator(this.profile.guide);
@@ -134,6 +148,7 @@ export class App {
     this.profile = p;
     this.settings = { ...this.settings, activeProfileId: id };
     await saveSettings(this.settings);
+    closeDrawTool();
     this.scopeToProfile();
     this.applySettingsToChrome();
     this.refresh();
@@ -398,20 +413,28 @@ export class App {
       return tip(this.profile.guide);
     });
     const lock = h('button', { class: 'round-btn lock', 'aria-label': 'Grown-up corner', onclick: () => void this.openGrownUpCorner() }, '🔒');
-    this.recBtn = railButton('👣', 'Path', 'Record my path', () => void this.toggleRecording(), 'rec-btn');
+    const act: Record<ToolId, () => void> = {
+      me: () => void this.meTap(),
+      map: () => this.openMapCard(),
+      draw: () => this.toggleDraw('sketch'),
+      measure: () => this.toggleDraw('measure'),
+      path: () => void this.toggleRecording(),
+      hunts: () => this.openHuntsScreen(),
+      done: () => void this.endAdventure(),
+    };
+    for (const t of TOOLS) this.toolBtns.set(t.id, railButton(t.emoji, t.word, t.what, act[t.id], `${t.id}-btn`));
+    this.recBtn = this.toolBtns.get('path')!;
     this.recChip = h('button', { class: 'rec-chip', hidden: true, 'aria-label': 'Recording my path. Tap to stop', onclick: () => void this.toggleRecording() });
     this.recorder.onChange = () => { this.paintRecording(); this.applyWakeLock(); };
-    this.meBtn = railButton('📍', 'Me', 'Where am I?', () => void this.meTap(), 'me-btn');
+    this.meBtn = this.toolBtns.get('me')!;
     this.quickRow = h('div', { class: 'quick-row', role: 'group', 'aria-label': 'Quick finds: take a photo and save' });
-    const mapBtn = railButton('🗺️', 'Map', 'Map: how it looks, and map helpers', () => this.openMapCard());
     app.append(
       h('div', { id: 'map' }),
       h('header', { class: 'top-bar' }, this.hello, this.starBtn, this.huntChip, lock),
       this.recChip,
-      // Five buttons, each with its word, as Field Mapper's rail labels every button (`tool-btn-label`).
-      this.sideRail(this.meBtn, mapBtn, this.recBtn,
-        railButton('🔎', 'Hunts', 'Scavenger hunts', () => this.openHuntsScreen()),
-        railButton('🏠', 'Done', 'Done exploring: tick check', () => void this.endAdventure())),
+      // Each button with its word, as Field Mapper's rail labels every button (`tool-btn-label`); which buttons,
+      // and in what order, is the explorer's own (railTools.ts, "My buttons").
+      this.sideRail(),
       this.dock.el,
       this.gpsNote,
       this.walkNote,
@@ -456,11 +479,12 @@ export class App {
    * The map buttons down the right edge, folding away behind one caret like Field Mapper's right rail
    * (#btn-collapse-right): more map when they are not needed. Remembered on this device (`scout.rail`).
    */
-  private sideRail(...buttons: HTMLElement[]): HTMLElement {
+  private sideRail(): HTMLElement {
     const KEY = 'scout.rail.collapsed';
     let folded = false;
     try { folded = localStorage.getItem(KEY) === '1'; } catch { /* private mode: start open */ }
-    const body = h('div', { class: 'side-body', id: 'side-body' }, ...buttons);
+    const body = h('div', { class: 'side-body', id: 'side-body' });
+    this.railBody = body;
     const toggle = h('button', { class: 'round-btn rail-toggle', 'aria-controls': 'side-body' });
     // Field Mapper's caret (Phosphor caret-left), our own constant markup.
     toggle.innerHTML = '<svg viewBox="0 0 256 256" width="26" height="26" fill="currentColor" aria-hidden="true"><path d="M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L91.31,128Z"/></svg>';
@@ -480,6 +504,51 @@ export class App {
     return rail;
   }
 
+  /** The explorer's own buttons, in their order (absent: their tier's). Path also needs the grown-ups' switch. */
+  private paintRail(): void {
+    if (!this.railBody) return;
+    const ids = railFor(this.profile.tools, tierOf(this.profile.tier).id)
+      .filter(id => id !== 'path' || this.settings.pathRecording || this.recorder.recording);
+    this.railBody.replaceChildren(...ids.map(id => this.toolBtns.get(id)!));
+    if (this.drawing && !ids.includes(this.drawing === 'sketch' ? 'draw' : 'measure')) closeDrawTool();
+  }
+
+  /** ✏️ Draw and 📏 Measure: one at a time; tapping the lit button again puts it away. */
+  private toggleDraw(mode: DrawMode): void {
+    sounds.tap();
+    if (this.drawing === mode) { closeDrawTool(); return; }
+    this.drawing = mode;
+    this.paintDrawBtns();
+    openDrawTool({
+      map: this.map,
+      profile: this.profile,
+      sketches: () => this.sketches,
+      save: async sk => {
+        await saveSketch(sk);
+        this.everySketch.unshift(sk);
+        this.scopeToProfile();
+        this.map.setSketches(this.sketches);
+      },
+      remove: async sk => {
+        await deleteSketch(sk.id);
+        this.everySketch = this.everySketch.filter(x => x.id !== sk.id);
+        this.scopeToProfile();
+        this.map.setSketches(this.sketches);
+      },
+    }, mode, () => {
+      if (this.drawing === mode) this.drawing = null;
+      this.paintDrawBtns();
+    });
+  }
+
+  private paintDrawBtns(): void {
+    for (const [id, mode] of [['draw', 'sketch'], ['measure', 'measure']] as const) {
+      const b = this.toolBtns.get(id);
+      b?.classList.toggle('on', this.drawing === mode);
+      b?.setAttribute('aria-pressed', String(this.drawing === mode));
+    }
+  }
+
   private helloText(): string {
     const n = this.finds.length;
     const who = this.profile.name || 'Explorer';
@@ -497,14 +566,22 @@ export class App {
     this.hello.replaceChildren(profileFace(this.profile, 'face hello-face'), h('span', { class: 'hello-name' }, this.profile.name || 'Explorer'),
       h('span', { class: 'hello-mode', title: together ? 'Exploring together' : 'Exploring on my own' }, together ? '👨‍👧' : '🧒'));
     this.hello.setAttribute('aria-label', `Who's exploring? ${this.profile.name || 'Explorer'}, ${together ? 'exploring together' : 'exploring on my own'}`);
-    this.map.setAvatar?.({ emoji: this.profile.avatar, photo: this.profile.photo });
+    this.map.setAvatar?.(this.mapFace());
     this.dock?.setGuide(this.profile.guide);
     setNarrator(this.profile.guide);
-    if (this.recBtn) this.recBtn.hidden = !this.settings.pathRecording && !this.recorder.recording;
+    this.paintRail();
     this.paintStar();
     this.paintHunt();
     if (this.recBtn) this.paintRecording();
     this.paintQuick();
+  }
+
+  /** The explorer on the map: their own map avatar, else their card picture (avatarArt.mapPicture). */
+  private mapFace(): Face {
+    const pic = mapPicture(this.profile);
+    if (pic.kind === 'photo') return { emoji: this.profile.avatar, photo: this.profile.photo };
+    if (pic.kind === 'art') return { emoji: this.profile.avatar, art: artUrl(pic.art) };
+    return { emoji: pic.emoji };
   }
 
   private liveIds(): Set<string> {
@@ -756,6 +833,7 @@ export class App {
     this.paintQuick();
     this.map.clearFinds();
     this.map.setFinds(this.finds);
+    this.map.setSketches(this.sketches);
     if (this.recBtn) this.drawWalks();
     this.paintStar();
     this.paintHunt();
@@ -807,12 +885,15 @@ export class App {
         this.profiles = this.profiles.filter(x => x.id !== p.id);
         this.everyFind = this.everyFind.filter(f => f.profileId !== p.id);
         this.everyRun = this.everyRun.filter(r => r.profileId !== p.id);
+        this.everyWalk = this.everyWalk.filter(w => w.profileId !== p.id);
+        this.everySketch = this.everySketch.filter(x => x.profileId !== p.id);
         if (this.profile.id === p.id && this.profiles[0]) await this.switchTo(this.profiles[0].id);
         else { this.scopeToProfile(); this.refresh(); }
       },
       openCrew: () => openCrew(this.screenHost()),
       toggleMode: () => this.toggleMode(),
       openLook: () => openLook(this.profile, p => this.profileHost().save(p)),
+      openButtons: () => openMyButtons(this.profile, p => this.profileHost().save(p)),
     };
   }
 
@@ -822,6 +903,7 @@ export class App {
       settings: this.settings,
       allFinds: () => this.everyFind,
       allWalks: () => this.everyWalk,
+      allSketches: () => this.everySketch,
       profiles: this.profileHost(),
       applySettings: async s => {
         this.settings = s;

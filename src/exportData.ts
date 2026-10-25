@@ -1,5 +1,5 @@
 import { zipSync, strToU8 } from 'fflate';
-import type { Find, FindMedia, Profile } from './types.ts';
+import type { Find, FindMedia, Profile, Sketch } from './types.ts';
 import { categoryOf } from './categories.ts';
 import { csvCell } from './csv.ts';
 import { walkGeoJSON, type Walk } from './walk.ts';
@@ -18,7 +18,7 @@ function ext(b: Blob, fallback: string): string {
  * Every find as a zip: a GeoJSON a grown-up can open in a GIS, a CSV, and the
  * pictures and voices, named by find number. Each find carries its explorer's name.
  */
-export async function buildExport(finds: Find[], profiles: Profile[], walks: Walk[], media: (id: string) => Promise<FindMedia>): Promise<Blob> {
+export async function buildExport(finds: Find[], profiles: Profile[], walks: Walk[], media: (id: string) => Promise<FindMedia>, sketches: Sketch[] = []): Promise<Blob> {
   const files: Record<string, Uint8Array> = {};
   const features = [];
   const who = new Map(profiles.map(p => [p.id, p.name || 'Explorer'] as const));
@@ -63,6 +63,18 @@ export async function buildExport(finds: Find[], profiles: Profile[], walks: Wal
       features: walks.filter(w => w.points.length >= 2).map(w => walkGeoJSON(w, (w.profileId && who.get(w.profileId)) || '')),
     }));
   }
+  if (sketches.length) {
+    files['drawings.geojson'] = strToU8(JSON.stringify({
+      type: 'FeatureCollection',
+      features: sketches.filter(s => s.points.length >= 2).map(s => ({
+        type: 'Feature',
+        geometry: s.kind === 'area' && s.points.length > 2
+          ? { type: 'Polygon', coordinates: [[...s.points, s.points[0]]] }
+          : { type: 'LineString', coordinates: s.points },
+        properties: { id: s.id, explorer: (s.profileId && who.get(s.profileId)) || '', when: s.createdAt, kind: s.kind, colour: s.colour, name: s.name ?? '' },
+      })),
+    }));
+  }
   files['finds.csv'] = strToU8(rows.map(r => r.map(csvCell).join(',')).join('\r\n'));
   files['README.txt'] = strToU8(
     `Scout - finds by ${profiles.map(p => p.name || 'Explorer').join(', ') || 'Explorer'}\n` +
@@ -70,6 +82,7 @@ export async function buildExport(finds: Find[], profiles: Profile[], walks: Wal
     `finds.geojson  every find as a point (WGS 84 longitude/latitude); finds with no location have no geometry\n` +
     `finds.csv      the same, as a table\n` +
     `paths.geojson  recorded paths as lines, with a time for every point\n` +
+    `drawings.geojson  lines and shapes drawn on the map with the Draw tool\n` +
     `photos/, drawings/, voices/  the pictures and recordings, named as in the table\n` +
     `species        names chosen from ACCDC species lists (via Fraxinus Field Mapper) or a list a grown-up imported\n`,
   );
