@@ -9,7 +9,7 @@ import { closeOrphan, distanceWords, durationWords, segmentsAtGaps, walkDuration
 import { finishWalk, openWalks, type WalkHost } from './walkScreens.ts';
 import type { BadgeExtras } from './badges.ts';
 import { MapView } from './mapView.ts';
-import { fixProblem, knownFix, lastFix, onFix, refreshFix, startGps } from './gps.ts';
+import { fixProblem, knownFix, lastFix, onFix, refreshFix, startGps, steadiedFix, steadyNow } from './gps.ts';
 import { addToTrail, loadToday, trailLengthM } from './trail.ts';
 import { askYesNo, h, toast, uid } from './ui.ts';
 import { say, setNarrator, setReadAloud, setVoice, setVoiceMode } from './speech.ts';
@@ -37,6 +37,10 @@ import { openMapSheet } from './basemapPicker.ts';
 import { Compass } from './compass.ts';
 import { setKeepAwake, wakeLockSupported } from './wakeLock.ts';
 import { compassWord, smoothHeading } from './heading.ts';
+import { quickKinds } from './quickFinds.ts';
+import { categoryOf } from './categories.ts';
+import { downscale } from './image.ts';
+import { meetsRule } from './hunts.ts';
 
 export class App {
   private settings!: Settings;
@@ -55,13 +59,13 @@ export class App {
   private walkNote!: HTMLElement;
   private huntChip!: HTMLElement;
   private dock!: BuddyDock;
-  private soundBtn!: HTMLElement;
   private recBtn!: HTMLElement;
   private recChip!: HTMLElement;
   private recTimer: number | undefined;
   private recorder = new PathRecorder();
   private compass = new Compass();
   private meBtn!: HTMLElement;
+  private quickRow!: HTMLElement;
   private facingDeg: number | null = null;
   private everyWalk: Walk[] = [];
   private walks: Walk[] = [];
@@ -154,21 +158,8 @@ export class App {
     setSounds(this.settings.sounds);
     setVoice(this.settings.voiceURI);
     setVoiceMode(this.settings.voiceMode);
-    if (this.soundBtn) {
-      this.soundBtn.textContent = this.settings.readAloud ? '🔊' : '🔇';
-      this.soundBtn.setAttribute('aria-label', this.settings.readAloud ? 'Reading aloud is on. Tap to turn it off' : 'Reading aloud is off. Tap to turn it on');
-    }
   }
 
-  /** The 🔊 / 🔇 button: reading aloud on and off, for anyone, any time. */
-  private async toggleReadAloud(): Promise<void> {
-    this.settings = { ...this.settings, readAloud: !this.settings.readAloud };
-    await saveSettings(this.settings);
-    this.applyAudio();
-    sounds.tap();
-    say('Reading aloud is on!');
-    toast(this.settings.readAloud ? '🔊 Reading aloud is on' : '🔇 Reading aloud is off');
-  }
 
   // ── Which way am I facing? ────────────────────────────────────
 
@@ -407,15 +398,15 @@ export class App {
       return tip(this.profile.guide);
     });
     const lock = h('button', { class: 'round-btn lock', 'aria-label': 'Grown-up corner', onclick: () => void this.openGrownUpCorner() }, '🔒');
-    this.soundBtn = h('button', { class: 'round-btn lock sound-btn', onclick: () => void this.toggleReadAloud() });
     this.recBtn = railButton('👣', 'Path', 'Record my path', () => void this.toggleRecording(), 'rec-btn');
     this.recChip = h('button', { class: 'rec-chip', hidden: true, 'aria-label': 'Recording my path. Tap to stop', onclick: () => void this.toggleRecording() });
     this.recorder.onChange = () => { this.paintRecording(); this.applyWakeLock(); };
     this.meBtn = railButton('📍', 'Me', 'Where am I?', () => void this.meTap(), 'me-btn');
+    this.quickRow = h('div', { class: 'quick-row', role: 'group', 'aria-label': 'Quick finds: take a photo and save' });
     const mapBtn = railButton('🗺️', 'Map', 'Map: how it looks, and map helpers', () => this.openMapCard());
     app.append(
       h('div', { id: 'map' }),
-      h('header', { class: 'top-bar' }, this.hello, this.starBtn, this.huntChip, this.soundBtn, lock),
+      h('header', { class: 'top-bar' }, this.hello, this.starBtn, this.huntChip, lock),
       this.recChip,
       // Five buttons, each with its word, as Field Mapper's rail labels every button (`tool-btn-label`).
       this.sideRail(this.meBtn, mapBtn, this.recBtn,
@@ -424,6 +415,7 @@ export class App {
       this.dock.el,
       this.gpsNote,
       this.walkNote,
+      this.quickRow,
       h('nav', { class: 'bottom-bar' },
         h('button', { class: 'nav-btn', onclick: () => openBook(this.screenHost()) }, h('span', { class: 'nav-emoji' }, '📖'), 'My Finds'),
         h('button', { class: 'found-btn', onclick: () => void this.capture() }, h('span', { class: 'found-emoji' }, '✨'), h('span', {}, 'I found something!')),
@@ -512,6 +504,7 @@ export class App {
     this.paintStar();
     this.paintHunt();
     if (this.recBtn) this.paintRecording();
+    this.paintQuick();
   }
 
   private liveIds(): Set<string> {
@@ -637,6 +630,7 @@ export class App {
     this.map.setFinds(this.finds);
     this.paintStar();
     this.paintHunt();
+    this.paintQuick();
     celebrate(this.screenHost(), f, earned, newly, typeof f.lat === 'number', news);
   }
 
@@ -700,8 +694,66 @@ export class App {
     openHunts(this.huntHost());
   }
 
+  /**
+   * Quick finds, ported from Field Mapper's Quick Entry bar (`ui/QuickEntryBar.ts`: labelled pills that capture in one
+   * tap): a small row above "I found something!" offering the kinds this explorer finds most (`quickKinds`). A tap
+   * opens the camera; the photo is saved as a find of that kind at the steadied GPS fix taken at the tap, with
+   * nothing else asked — the rest can be added from the sticker book. One row, so it costs the map one row.
+   */
+  private paintQuick(): void {
+    if (!this.quickRow) return;
+    const on = this.settings.quickFinds !== false;
+    this.quickRow.hidden = !on;
+    document.documentElement.classList.toggle('has-quick', on);
+    if (!on) return;
+    this.quickRow.replaceChildren(
+      h('span', { class: 'quick-label', 'aria-hidden': 'true' }, '📸'),
+      ...quickKinds(this.finds).map(id => {
+        const c = categoryOf(id);
+        return h('button', { class: 'quick-chip', style: `--cat:${c.colour}`, 'aria-label': `Quick find: take a photo of a ${c.label.toLowerCase()}`, onclick: () => this.quickFind(id) },
+          h('span', { class: 'quick-emoji', 'aria-hidden': 'true' }, c.emoji), c.label);
+      }),
+    );
+  }
+
+  private quickFind(category: Find['category']): void {
+    sounds.tap();
+    // The place is where the explorer was when they tapped (steadied while the camera is open), not where they are
+    // after framing the shot.
+    const atTap = steadyNow();
+    const settled = atTap?.unsettled ? steadiedFix() : Promise.resolve(atTap);
+    // The camera must open from inside the tap, or a phone refuses it.
+    const input = h('input', { type: 'file', accept: 'image/*', capture: 'environment', hidden: true }) as HTMLInputElement;
+    input.addEventListener('change', async () => {
+      const file = input.files?.[0];
+      input.remove();
+      if (!file) return;
+      try {
+        const blob = await downscale(file, 1600);
+        const fix = (await settled) ?? atTap;
+        const full: FullFind = {
+          id: uid(), profileId: this.profile.id, createdAt: new Date().toISOString(), category,
+          colours: [], pictures: [{ id: uid(), kind: 'photo', blob }], voices: [],
+          thumb: await downscale(blob, 240, 0.8).catch(() => undefined),
+          ...(fix ? { lat: fix.lat, lon: fix.lon, accuracy: Math.round(fix.accuracy), placeBy: 'gps' as const } : {}),
+        };
+        // The hunt items it plainly meets count, as the capture screen would have ticked them.
+        const run = activeRun(this.runs);
+        const probe = toBadgeFind({ ...full, pictures: [{ id: '', kind: 'photo' }] } as unknown as Find);
+        const items = run ? openItems(run, this.liveIds()).filter(i => meetsRule(i, probe)).map(i => i.id) : [];
+        await this.saveNew(full, items);
+      } catch {
+        sounds.oops();
+        toast('Oh no, that picture did not save. Try again?');
+      }
+    });
+    document.body.append(input);
+    input.click();
+  }
+
   private refresh(): void {
     window.dispatchEvent(new Event(FINDS_CHANGED));
+    this.paintQuick();
     this.map.clearFinds();
     this.map.setFinds(this.finds);
     if (this.recBtn) this.drawWalks();

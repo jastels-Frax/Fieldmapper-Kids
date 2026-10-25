@@ -14,6 +14,8 @@ import type { PictureInfo } from './types.ts';
 export interface StoredMedia {
   id: string;
   pictures: { id: string; kind: 'photo' | 'drawing'; blob: unknown }[];
+  /** Voice notes. A media record written before there could be several holds `voice` instead. */
+  voices?: unknown[];
   voice?: unknown;
 }
 
@@ -27,9 +29,9 @@ export function splitStoredFind(raw: Record<string, unknown>, newId: () => strin
     if (raw.drawing != null) pictures.push({ id: newId(), kind: 'drawing', blob: raw.drawing });
   }
   const media: StoredMedia = { id, pictures: pictures.map(p => ({ id: p.id, kind: p.kind, blob: p.blob })) };
-  if (raw.voice != null) media.voice = raw.voice;
+  if (raw.voice != null) media.voices = [raw.voice];
   const light: Record<string, unknown> = { ...raw, pictures: pictures.map(p => ({ id: p.id, kind: p.kind } satisfies PictureInfo)) };
-  if (raw.voice != null || raw.hasVoice) light.hasVoice = true; else delete light.hasVoice;
+  if (raw.voice != null || raw.hasVoice) { light.hasVoice = true; light.voiceCount = 1; } else delete light.hasVoice;
   delete light.voice;
   delete light.photo;
   delete light.drawing;

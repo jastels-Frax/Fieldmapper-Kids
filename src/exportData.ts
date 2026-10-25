@@ -22,7 +22,7 @@ export async function buildExport(finds: Find[], profiles: Profile[], walks: Wal
   const files: Record<string, Uint8Array> = {};
   const features = [];
   const who = new Map(profiles.map(p => [p.id, p.name || 'Explorer'] as const));
-  const rows = [['id', 'explorer', 'when', 'changed', 'kind', 'sign', 'species', 'scientific_name', 'name', 'colours', 'size', 'count',
+  const rows = [['id', 'explorer', 'when', 'changed', 'kind', 'sign', 'species', 'species_own_name', 'scientific_name', 'name', 'colours', 'size', 'count',
     'latitude', 'longitude', 'accuracy_m', 'note', 'pictures', 'voice']];
   for (const [i, f] of finds.slice().reverse().entries()) {
     const n = String(i + 1).padStart(3, '0');
@@ -34,11 +34,16 @@ export async function buildExport(finds: Find[], profiles: Profile[], walks: Wal
       files[path] = new Uint8Array(await p.blob.arrayBuffer());
       pictures.push(path);
     }
-    const voice = m.voice ? `voices/${n}_${kind}.${ext(m.voice, 'webm')}` : '';
-    if (m.voice) files[voice] = new Uint8Array(await m.voice.arrayBuffer());
+    const voicePaths: string[] = [];
+    for (const [k, v] of m.voices.entries()) {
+      const path = `voices/${n}_${kind}${m.voices.length > 1 ? `_${k + 1}` : ''}.${ext(v, 'webm')}`;
+      files[path] = new Uint8Array(await v.arrayBuffer());
+      voicePaths.push(path);
+    }
+    const voice = voicePaths.join(';');
     const props = {
       id: f.id, explorer: (f.profileId && who.get(f.profileId)) || '', when: f.createdAt, changed: f.editedAt ?? '',
-      kind: categoryOf(f.category).label, sign: f.sign ?? '', species: f.species?.name ?? '', scientific_name: f.species?.scientific ?? '',
+      kind: categoryOf(f.category).label, sign: f.sign ?? '', species: f.species?.name ?? '', species_own_name: !!f.species?.own, scientific_name: f.species?.scientific ?? '',
       name: f.nickname ?? '', colours: f.colours.join(';'), size: f.size ?? '', count: f.count ?? '',
       accuracy_m: f.accuracy ?? null, note: f.note ?? '', favourite: !!f.favourite, pictures: pictures.join(';'), voice,
     };
@@ -47,7 +52,7 @@ export async function buildExport(finds: Find[], profiles: Profile[], walks: Wal
       geometry: typeof f.lat === 'number' && typeof f.lon === 'number' ? { type: 'Point', coordinates: [f.lon, f.lat] } : null,
       properties: props,
     });
-    rows.push([f.id, props.explorer, f.createdAt, props.changed, props.kind, props.sign, props.species, props.scientific_name, props.name,
+    rows.push([f.id, props.explorer, f.createdAt, props.changed, props.kind, props.sign, props.species, props.species_own_name ? 'yes' : '', props.scientific_name, props.name,
       props.colours, props.size, props.count, f.lat?.toFixed(6) ?? '', f.lon?.toFixed(6) ?? '', String(f.accuracy ?? ''),
       props.note, props.pictures, voice]);
   }

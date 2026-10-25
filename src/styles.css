@@ -42,7 +42,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 4px
 #app { position: fixed; inset: 0; }
 #map { position: absolute; inset: 0; z-index: 0; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; } /* its own stacking context: a marker's z-index ranks it among the map's pins, never over the chrome */
 .maplibregl-ctrl-attrib { font-size: 11px; }
-.maplibregl-ctrl-bottom-right { bottom: calc(var(--bar-h) + var(--bar-pad-b) + 12px); }
+.maplibregl-ctrl-bottom-right { bottom: calc(var(--bar-h) + var(--quick-h, 0px) + var(--bar-pad-b) + 12px); }
 
 /* ── Top bar ─────────────────────────────────────────── */
 .top-bar {
@@ -72,7 +72,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 4px
 .lock { width: 48px; height: 48px; font-size: 20px; opacity: 0.85; }
 
 .side-btns { position: absolute; right: 12px; top: calc(76px + var(--safe-t)); display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.side-body { display: flex; flex-direction: column; gap: 8px; max-height: calc(100dvh - 76px - var(--safe-t) - 56px - var(--bar-h) - var(--bar-pad-b) - 24px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 2px 4px 6px; transform-origin: top center; transition: opacity 0.18s, transform 0.18s; }
+.side-body { display: flex; flex-direction: column; gap: 8px; max-height: calc(100dvh - 76px - var(--safe-t) - 56px - var(--bar-h) - var(--quick-h, 0px) - var(--bar-pad-b) - 24px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 2px 4px 6px; transform-origin: top center; transition: opacity 0.18s, transform 0.18s; }
 /* Folded: only the caret stays, pointing the way the buttons will come back from. */
 .side-btns.folded .side-body { display: none; }
 .rail-btn { display: flex; align-items: center; justify-content: center; border-radius: 20px; width: 62px; height: 62px; flex-direction: column; gap: 0; padding: 4px 2px; flex: 0 0 auto; }
@@ -108,9 +108,24 @@ html .map-card .choice.style-choice { padding: 10px 4px; font-size: 15px; min-he
   background: var(--card); border: var(--bw) solid var(--line); border-radius: var(--radius-sm); padding: 8px 14px;
   font-weight: 700; max-width: calc(100% - 150px); text-align: center; box-shadow: var(--shadow);
 }
-.walk-note { top: auto; bottom: calc(var(--bar-h) + var(--bar-pad-b) + 16px); left: auto; right: 12px; transform: none; font-size: 15px; }
+.walk-note { top: auto; bottom: calc(var(--bar-h) + var(--quick-h, 0px) + var(--bar-pad-b) + 16px); left: auto; right: 12px; transform: none; font-size: 15px; }
 
 /* ── Bottom bar ──────────────────────────────────────── */
+/* Quick finds: one slim row above the bar. Everything that sits above the bar adds --quick-h while it shows. */
+html.has-quick { --quick-h: 50px; }
+.quick-row {
+  position: absolute; left: 0; right: 0; bottom: calc(var(--bar-h) + var(--bar-pad-b) + 8px); padding: 0 10px;
+  display: flex; align-items: center; justify-content: center; gap: 8px; pointer-events: none;
+}
+.quick-row > * { pointer-events: auto; }
+.quick-label { font-size: 22px; filter: drop-shadow(0 1px 0 rgba(0,0,0,0.25)); pointer-events: none; }
+.quick-chip {
+  display: flex; align-items: center; gap: 4px; height: 40px; padding: 0 12px 0 8px; max-width: 30vw;
+  background: var(--card); border: var(--bw) solid var(--line); border-left: 6px solid var(--cat); border-radius: 999px; box-shadow: var(--shadow);
+  font-weight: 800; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.quick-emoji { font-size: 22px; line-height: 1; }
+body.picking .quick-row { visibility: hidden; }
 .bottom-bar {
   position: absolute; left: 0; right: 0; bottom: 0; padding: 6px 10px var(--bar-pad-b);
   display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; pointer-events: none;
@@ -162,7 +177,7 @@ html .map-card .choice.style-choice { padding: 10px 4px; font-size: 15px; min-he
 .buddy-fig { display: inline-block; width: 72px; height: 72px; flex: 0 0 auto; }
 .buddy-fig svg { width: 100%; height: 100%; display: block; }
 .buddy-dock {
-  position: absolute; left: 8px; bottom: calc(var(--bar-h) + var(--bar-pad-b) + 10px); background: none; border: 0; padding: 0;
+  position: absolute; left: 8px; bottom: calc(var(--bar-h) + var(--quick-h, 0px) + var(--bar-pad-b) + 10px); background: none; border: 0; padding: 0;
   display: flex; flex-direction: column; align-items: flex-start; max-width: min(320px, calc(100% - 90px));
 }
 .dock-fig { width: 92px; height: 92px; filter: drop-shadow(0 3px 0 rgba(0,0,0,0.25)); }
@@ -268,6 +283,11 @@ html .map-card .choice.style-choice { padding: 10px 4px; font-size: 15px; min-he
 .voice-rec { width: 104px; height: 104px; border-radius: 50%; background: #ff6b6b; border: calc(var(--bw) + 1px) solid var(--line); box-shadow: var(--shadow); font-size: 48px; }
 .voice-rec.recording { animation: breathe 1s ease-in-out infinite; background: #fa5252; }
 .voice-status { font-weight: 800; font-size: 18px; }
+.voice-list { display: flex; flex-direction: column; gap: 8px; max-width: 360px; margin: 0 auto 12px; }
+.voice-note { display: flex; align-items: center; gap: 10px; background: var(--card); border: var(--bw) solid var(--line); border-radius: var(--radius-sm); padding: 6px 8px; }
+.voice-note-name { flex: 1; text-align: left; font-weight: 800; }
+.voice-rec.more { width: 84px; height: 84px; }
+.voice-more { font-size: 30px; letter-spacing: -6px; }
 
 .talk-card, .fact-card, .win-card {
   background: var(--card); border: var(--bw) solid var(--line); border-radius: var(--radius); padding: 12px 16px; margin: 14px auto; box-shadow: var(--shadow);
@@ -499,6 +519,24 @@ html[data-mode="explorer"] .choice-emoji { font-size: 60px; }
 .species-box { display: flex; flex-direction: column; gap: 10px; }
 .species-results { display: flex; flex-direction: column; gap: 6px; max-height: 46vh; overflow-y: auto; }
 .species-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; text-align: left; padding: 10px 12px; background: var(--card); border: var(--bw) solid var(--line); border-radius: var(--radius-sm); font-size: 17px; }
+.species-type { font-size: 22px; font-weight: 800; padding: 14px 16px; margin: 4px 0 12px; border-width: calc(var(--bw) + 1px); }
+.species-row.own-name { background: var(--good-soft); }
+.save-now { margin-top: 10px; }
+.describe-head { margin: 14px 0 8px; font-size: 18px; }
+.describe-head:first-of-type { margin-top: 4px; }
+.colour-grid.compact { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 8px 6px; }
+.colour-grid.compact .colour { width: 50px; height: 50px; padding-bottom: 4px; }
+.colour-grid.compact .colour span { padding: 0 3px; font-size: 10px; }
+.colour-grid.compact .colour.on::after { width: 26px; height: 26px; font-size: 15px; top: -5px; right: -5px; }
+.mini-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.mini-choice { display: flex; align-items: center; gap: 6px; padding: 8px 12px; min-height: 48px; background: var(--card); border: var(--bw) solid var(--line); border-radius: 999px; font-weight: 800; font-size: 16px; }
+.mini-choice.on { background: var(--good-soft); outline: 3px solid var(--green); }
+.mini-emoji { font-size: 24px; }
+.auto-back { height: 8px; border-radius: 999px; background: var(--good-soft); overflow: hidden; margin: 18px auto 6px; max-width: 320px; border: 2px solid var(--line); }
+.auto-back span { display: block; height: 100%; width: 100%; background: var(--green); transform-origin: left; animation: auto-back linear forwards; }
+@keyframes auto-back { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+html[data-motion="calm"] .auto-back span { animation-name: none; }
+.place-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 10px; margin: 6px 0 14px; font-weight: 800; text-align: center; }
 .species-taxon { margin-left: auto; font-size: 12px; font-weight: 800; color: var(--soft-ink); background: var(--muted-soft); border-radius: 8px; padding: 2px 6px; }
 .latin { font-style: italic; color: var(--soft-ink); font-size: 14px; margin: 0; }
 .safety-note { background: var(--warm-soft); border: var(--bw) solid var(--line); border-radius: var(--radius-sm); padding: 10px 14px; font-weight: 800; }
@@ -572,7 +610,6 @@ body.picking .sheet, body.picking .top-bar, body.picking .bottom-bar, body.picki
 .walk-stats div { background: var(--card); border: var(--bw) solid var(--line); border-radius: var(--radius); padding: 12px; text-align: center; display: flex; flex-direction: column; }
 .walk-stats strong { font-size: 26px; }
 .walk-stats span { color: var(--soft-ink); font-weight: 700; }
-.sound-btn { font-size: 22px; }
 .round-btn.small.on { background: var(--good-soft); }
 
 /* ════ LOOKS: the explorer's own colours, buttons, text, font and motion (look.ts) ════
@@ -648,7 +685,7 @@ html[data-theme="journal"] body, html[data-theme="journal"] .sheet {
   background-size: 260px 260px, 100% 100%, 100% 100%;
 }
 /* Every control is a scrap of journal paper with a hand-inked edge. */
-html[data-theme="journal"] :is(.big-btn, .choice, .nav-btn, .round-btn, .found-btn, .look-card, .buddy-pick, .art-chip, .mode-card, .edit-row, .profile-card, .hello, .pill, .chip, .hunt-chip, .badge, .dock-bubble, .bubble, .sticker, .species-row, .hunt-item, .hunt-pick, .challenge-card, .crew-card, .tick-spot, .safety-note, .tick-guide, .text-in, .toast) {
+html[data-theme="journal"] :is(.big-btn, .choice, .nav-btn, .round-btn, .found-btn, .look-card, .buddy-pick, .art-chip, .mode-card, .edit-row, .profile-card, .hello, .pill, .chip, .hunt-chip, .mini-choice, .voice-note, .quick-chip, .badge, .dock-bubble, .bubble, .sticker, .species-row, .hunt-item, .hunt-pick, .challenge-card, .crew-card, .tick-spot, .safety-note, .tick-guide, .text-in, .toast) {
   border: 3px solid var(--line); border-image: var(--ink-frame) 14 / 7px / 1px round;
   background-color: var(--card); background-image: var(--paper); background-size: 260px 260px; background-clip: padding-box;
   border-radius: 0; box-shadow: var(--shadow);
@@ -666,7 +703,7 @@ html[data-theme="journal"] .bottom-bar .found-btn { background-color: var(--oran
 html[data-theme="journal"] :is(.choice.on, .look-card.on, .mode-card.on, .buddy-pick.on) { background-color: var(--pick-soft); outline: 3px dashed var(--orange); outline-offset: 3px; }
 /* What a control's own "picked" state paints has to out-rank the paper above. */
 html[data-theme="journal"] .chip.on { background-color: var(--cat, var(--green)); color: var(--on-accent); }
-html[data-theme="journal"] :is(.hunt-chip.on, .hunt-item.done, .tick-spot.on, .profile-card.on, .round-btn.small.on) { background-color: var(--good-soft); }
+html[data-theme="journal"] :is(.hunt-chip.on, .mini-choice.on, .hunt-item.done, .tick-spot.on, .profile-card.on, .round-btn.small.on) { background-color: var(--good-soft); }
 html[data-theme="journal"] .badge.earned { background-color: #fbf4df; }
 html[data-theme="journal"] :is(button, input):focus-visible { outline: 3px dashed var(--orange); outline-offset: 3px; }
 html[data-theme="journal"] :is(.choice-emoji, .nav-emoji, .look-emoji, .found-emoji, .hello-face) { filter: sepia(0.3) saturate(0.85); }
@@ -722,7 +759,8 @@ html[data-theme="journal"] .sheet.book .sheet-body::before, html[data-theme="jou
   background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='110' height='34'><rect x='6' y='6' width='98' height='22' fill='%23f3e6b8' fill-opacity='.78' transform='rotate(-3 55 17)'/></svg>") top center / 110px 34px no-repeat, var(--plate) center 35% / cover no-repeat;
   box-shadow: 2px 5px 12px rgba(58, 43, 27, 0.3); transform: rotate(-0.7deg);
 }
-html[data-theme="journal"] .sheet.capture .sheet-body::before { aspect-ratio: 3.4 / 1; }
+/* The find steps are worked quickly on a trail: a thin strip of the plate, so the buttons stay on screen. */
+html[data-theme="journal"] .sheet.capture .sheet-body::before { aspect-ratio: 6 / 1; margin-bottom: 10px; }
 html[data-theme="journal"] .sheet.celebrate .sheet-body::before, html[data-theme="journal"] .sheet.look .sheet-body::before { aspect-ratio: 1.75 / 1; }
 .look-art { display: block; width: 100%; height: 120px; border: 2px solid var(--line); background: #e9dcbc url("./assets/journal/cover.webp") center 45% / cover no-repeat; }
 .look-card.feature { grid-column: 1 / -1; }
@@ -743,7 +781,7 @@ html[data-theme="journal"] .toast { color: var(--ink); font-weight: 700; }
   background: var(--green); color: var(--on-accent); border: var(--bw) solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
 }
 /* Sticker: a fat white ring like a peeled sticker, and a little tilt. */
-html[data-buttons="sticker"] :is(.big-btn, .choice, .nav-btn, .round-btn, .found-btn, .look-card, .buddy-pick, .art-chip, .mode-card, .edit-row, .profile-card, .hello, .pill, .chip, .hunt-chip, .badge, .dock-bubble, .bubble), .bs-btn[data-bs="sticker"] {
+html[data-buttons="sticker"] :is(.big-btn, .choice, .nav-btn, .round-btn, .found-btn, .look-card, .buddy-pick, .art-chip, .mode-card, .edit-row, .profile-card, .hello, .pill, .chip, .hunt-chip, .mini-choice, .voice-note, .quick-chip, .badge, .dock-bubble, .bubble), .bs-btn[data-bs="sticker"] {
   border-width: 4px; border-radius: 26px; box-shadow: 0 0 0 5px var(--card), 0 9px 0 5px var(--line);
 }
 html[data-buttons="sticker"] :is(.choice, .look-card, .badge, .profile-card, .art-chip):nth-child(odd):not(:active) { transform: rotate(-2deg); }
@@ -751,13 +789,13 @@ html[data-buttons="sticker"] :is(.choice, .look-card, .badge, .profile-card, .ar
 .bs-btn[data-bs="sticker"] { transform: rotate(-3deg); margin-bottom: 14px; }
 html[data-buttons="sticker"] :is(.choice-grid, .look-grid, .badge-grid) { gap: 18px; padding: 6px; }
 /* Flat: no lines and no shadows, just soft blocks of colour. */
-html[data-buttons="flat"] :is(.big-btn, .choice, .nav-btn, .round-btn, .found-btn, .look-card, .buddy-pick, .art-chip, .mode-card, .edit-row, .profile-card, .hello, .pill, .chip, .hunt-chip, .badge, .dock-bubble, .bubble), .bs-btn[data-bs="flat"] { border: 0; box-shadow: none; border-radius: 14px; }
-html[data-buttons="flat"] :is(.choice, .look-card, .buddy-pick, .art-chip, .mode-card, .edit-row, .profile-card, .chip, .hunt-chip, .badge):not(.on) { background-color: var(--muted-soft); }
+html[data-buttons="flat"] :is(.big-btn, .choice, .nav-btn, .round-btn, .found-btn, .look-card, .buddy-pick, .art-chip, .mode-card, .edit-row, .profile-card, .hello, .pill, .chip, .hunt-chip, .mini-choice, .voice-note, .quick-chip, .badge, .dock-bubble, .bubble), .bs-btn[data-bs="flat"] { border: 0; box-shadow: none; border-radius: 14px; }
+html[data-buttons="flat"] :is(.choice, .look-card, .buddy-pick, .art-chip, .mode-card, .edit-row, .profile-card, .chip, .hunt-chip, .mini-choice, .voice-note, .quick-chip, .badge):not(.on) { background-color: var(--muted-soft); }
 html[data-buttons="flat"] :is(.choice, .look-card, .mode-card) { border-bottom: 6px solid var(--cat, var(--green)); }
 html[data-buttons="flat"] :is(.round-btn, .nav-btn, .hello, .pill) { box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
 html[data-buttons="flat"] .dock-bubble::after, html[data-buttons="flat"] .buddy-says .bubble::before { border-top-color: var(--card); border-right-color: var(--card); }
 /* Jelly: shiny, squishy, a darker edge of the accent, and a glossy top. */
-html[data-buttons="jelly"] :is(.big-btn, .choice, .nav-btn, .round-btn, .found-btn, .look-card, .buddy-pick, .art-chip, .mode-card, .edit-row, .profile-card, .hello, .pill, .chip, .hunt-chip, .badge, .dock-bubble, .bubble), .bs-btn[data-bs="jelly"] {
+html[data-buttons="jelly"] :is(.big-btn, .choice, .nav-btn, .round-btn, .found-btn, .look-card, .buddy-pick, .art-chip, .mode-card, .edit-row, .profile-card, .hello, .pill, .chip, .hunt-chip, .mini-choice, .voice-note, .quick-chip, .badge, .dock-bubble, .bubble), .bs-btn[data-bs="jelly"] {
   border: 2px solid var(--green-dark); border-radius: 999px;
   background-image: linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.05) 48%, rgba(0,0,0,0) 52%, rgba(0,0,0,0.08));
   box-shadow: inset 0 -5px 0 rgba(0,0,0,0.16), 0 6px 14px rgba(0,0,0,0.22);
@@ -765,14 +803,14 @@ html[data-buttons="jelly"] :is(.big-btn, .choice, .nav-btn, .round-btn, .found-b
 html[data-buttons="jelly"] :is(.choice, .look-card, .buddy-pick, .art-chip, .mode-card, .edit-row, .profile-card, .badge, .dock-bubble, .bubble) { border-radius: 30px; }
 html[data-buttons="jelly"] :is(.round-btn, .nav-btn, .choice, .big-btn, .found-btn, .look-card):active { transform: scale(0.93, 0.88); }
 /* Outline: no fill, a coloured edge, coloured words. */
-html[data-buttons="outline"] :is(.big-btn, .choice, .nav-btn, .round-btn, .found-btn, .look-card, .buddy-pick, .art-chip, .mode-card, .edit-row, .profile-card, .hello, .pill, .chip, .hunt-chip, .badge, .dock-bubble, .bubble), .bs-btn[data-bs="outline"] { border: 3px solid var(--green); box-shadow: none; color: var(--green-dark); }
+html[data-buttons="outline"] :is(.big-btn, .choice, .nav-btn, .round-btn, .found-btn, .look-card, .buddy-pick, .art-chip, .mode-card, .edit-row, .profile-card, .hello, .pill, .chip, .hunt-chip, .mini-choice, .voice-note, .quick-chip, .badge, .dock-bubble, .bubble), .bs-btn[data-bs="outline"] { border: 3px solid var(--green); box-shadow: none; color: var(--green-dark); }
 html[data-buttons="outline"] :is(.big-btn:not(.soft), .found-btn), .bs-btn[data-bs="outline"] { background-color: var(--card); color: var(--green-dark); text-shadow: none; border-width: 4px; }
 html[data-buttons="outline"] .found-btn { border-color: var(--orange); color: var(--orange); }
 html[data-buttons="outline"] :is(.choice, .look-card, .mode-card, .edit-row, .badge, .profile-card):not(.on) { background-color: transparent; }
 html[data-buttons="outline"] :is(.choice, .look-card) { border-style: dashed; }
 html[data-buttons="outline"] .on { border-style: solid; }
 /* Pixel: square corners, a hard step shadow and capital letters, like an old video game. */
-html[data-buttons="pixel"] :is(.big-btn, .choice, .nav-btn, .round-btn, .found-btn, .look-card, .buddy-pick, .art-chip, .mode-card, .edit-row, .profile-card, .hello, .pill, .chip, .hunt-chip, .badge, .dock-bubble, .bubble), .bs-btn[data-bs="pixel"] {
+html[data-buttons="pixel"] :is(.big-btn, .choice, .nav-btn, .round-btn, .found-btn, .look-card, .buddy-pick, .art-chip, .mode-card, .edit-row, .profile-card, .hello, .pill, .chip, .hunt-chip, .mini-choice, .voice-note, .quick-chip, .badge, .dock-bubble, .bubble), .bs-btn[data-bs="pixel"] {
   border-width: 4px; border-radius: 0; box-shadow: 5px 5px 0 var(--line); text-transform: uppercase; letter-spacing: 0.04em;
 }
 html[data-buttons="pixel"] :is(.round-btn, .nav-btn, .big-btn, .found-btn, .choice, .look-card):active { transform: translate(5px, 5px); box-shadow: none; }
@@ -780,14 +818,14 @@ html[data-buttons="pixel"] .look-hint { text-transform: none; letter-spacing: 0;
 html[data-buttons="pixel"] :is(.dock-bubble, .bubble) { text-transform: none; letter-spacing: 0; }
 html[data-buttons="pixel"] { --radius: 0px; --radius-sm: 0px; }
 /* Pop: comic-book shadows in the highlight colour, and halftone dots on the bright buttons. */
-html[data-buttons="pop"] :is(.big-btn, .choice, .nav-btn, .round-btn, .found-btn, .look-card, .buddy-pick, .art-chip, .mode-card, .edit-row, .profile-card, .hello, .pill, .chip, .hunt-chip, .badge, .dock-bubble, .bubble), .bs-btn[data-bs="pop"] { border-width: 3px; border-radius: 14px; box-shadow: 6px 6px 0 var(--orange); }
+html[data-buttons="pop"] :is(.big-btn, .choice, .nav-btn, .round-btn, .found-btn, .look-card, .buddy-pick, .art-chip, .mode-card, .edit-row, .profile-card, .hello, .pill, .chip, .hunt-chip, .mini-choice, .voice-note, .quick-chip, .badge, .dock-bubble, .bubble), .bs-btn[data-bs="pop"] { border-width: 3px; border-radius: 14px; box-shadow: 6px 6px 0 var(--orange); }
 html[data-buttons="pop"] :is(.big-btn:not(.soft), .found-btn), .bs-btn[data-bs="pop"] {
   background-image: radial-gradient(rgba(255,255,255,0.28) 2px, transparent 2.6px); background-size: 9px 9px;
   box-shadow: 6px 6px 0 var(--line); text-shadow: 2px 2px 0 var(--line); font-style: italic;
 }
 html[data-buttons="pop"] :is(.choice, .look-card):nth-child(3n+2) { box-shadow: 6px 6px 0 var(--green); }
 html[data-buttons="pop"] :is(.choice, .look-card):nth-child(3n) { box-shadow: 6px 6px 0 var(--yellow); }
-html[data-theme="snow"][data-buttons="flat"] :is(.big-btn, .choice, .nav-btn, .round-btn, .found-btn, .look-card, .buddy-pick, .art-chip, .mode-card, .edit-row, .profile-card, .hello, .pill, .chip, .hunt-chip, .badge, .dock-bubble, .bubble) { border: 2px solid var(--line); }
+html[data-theme="snow"][data-buttons="flat"] :is(.big-btn, .choice, .nav-btn, .round-btn, .found-btn, .look-card, .buddy-pick, .art-chip, .mode-card, .edit-row, .profile-card, .hello, .pill, .chip, .hunt-chip, .mini-choice, .voice-note, .quick-chip, .badge, .dock-bubble, .bubble) { border: 2px solid var(--line); }
 
 /* Background patterns behind every screen. The ink is a faint wash of the text colour, so every theme keeps it. */
 :root { --pat-ink: color-mix(in srgb, var(--ink) 10%, transparent); }
@@ -890,3 +928,7 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
 .art-pic svg { width: 80%; height: 80%; display: block; margin: auto; }
 .detail-emoji.art-pic { height: 260px; display: grid; place-items: center; }
 .detail-emoji.art-pic svg { width: 220px; height: 220px; }
+
+/* "Describe it": the size and count chips stay chips in every look (after the looks, so their padding wins). */
+html .mini-choices .mini-choice { padding: 5px 10px; min-height: 44px; font-size: 15px; }
+html .mini-choices .mini-emoji { font-size: 20px; }

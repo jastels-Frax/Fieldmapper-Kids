@@ -96,6 +96,11 @@ export function say(text: string, speaker?: GuideId): void {
   speakAs(text, speaker ?? activeGuide(narrator));
 }
 
+/** Reads a line because the explorer tapped it (a bubble), whatever the read-aloud switch says: they asked. */
+export function sayNow(text: string, speaker?: GuideId): void {
+  speakAs(text, speaker ?? activeGuide(narrator));
+}
+
 /** Plays a voice once, whatever the read-aloud switch says: for choosing one. */
 export function preview(text: string, v: SpeechSynthesisVoice): void {
   utter(text, v);

@@ -88,7 +88,7 @@ export function celebrate(host: ScreenHost, f: Find, newBadges: BadgeProgress[],
       body.append(h('div', { class: 'win-card trophy' }, h('span', { class: 'win-emoji' }, '🏆'),
         h('div', {}, h('strong', {}, `You finished the ${hunt.run.hunt.title}!`), h('p', {}, 'A trophy for your shelf!'))));
       if (host.settings.tickReminder) {
-        body.append(h('button', { class: 'big-btn tick-btn', onclick: () => { close(); host.tickCheck(); } }, '🕷️ Heading home? Do a tick check'));
+        body.append(h('button', { class: 'big-btn tick-btn', onclick: () => { back(); host.tickCheck(); } }, '🕷️ Heading home? Do a tick check'));
       }
     }
   }
@@ -98,10 +98,17 @@ export function celebrate(host: ScreenHost, f: Find, newBadges: BadgeProgress[],
   for (const b of newBadges) {
     body.append(h('div', { class: 'win-card' }, h('span', { class: 'win-emoji' }, b.emoji), h('div', {}, h('strong', {}, `New badge: ${b.title}!`), h('p', {}, b.how))));
   }
-  body.append(h('div', { class: 'ask-row' },
-    h('button', { class: 'big-btn', onclick: () => { close(); host.startCapture(); } }, '✨ Find another'),
-    h('button', { class: 'big-btn soft', onclick: close }, '🗺️ Back to the map'),
-  ));
+  // Back to the map by itself, where "I found something!" is one tap away: a few seconds to enjoy it, longer for
+  // each win to read, and a tap anywhere but a button goes back at once.
+  const wins = newBadges.length + newChallenges.length + (hunt ? hunt.ticked.length + (hunt.completed ? 2 : 0) : 0);
+  const ms = Math.min(10000, 4000 + wins * 1500);
+  const bar = h('div', { class: 'auto-back', 'aria-hidden': 'true' }, h('span', { style: `animation-duration:${ms}ms` }));
+  body.append(bar, h('p', { class: 'hint center' }, '🗺️ Back to the map in a moment. Tap to go now.'));
+  let done = false;
+  const back = () => { if (done) return; done = true; clearTimeout(timer); close(); };
+  const timer = window.setTimeout(back, ms);
+  body.addEventListener('click', e => { if (!(e.target as HTMLElement).closest('button')) back(); });
+  body.closest('.sheet')?.querySelector('.close-btn')?.addEventListener('click', () => { done = true; clearTimeout(timer); });
   sounds.save();
   confetti([cat.emoji, ...newBadges.map(b => b.emoji), ...(hunt?.completed ? ['🏆'] : [])]);
   const huntWords = hunt ? [...hunt.ticked.map(i => `${i.text}, found it!`), hunt.completed ? `You finished the ${hunt.run.hunt.title}! A trophy for you!` : ''] : [];
@@ -195,7 +202,7 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void): v
     body.append(h('div', { class: 'detail-emoji', style: `--cat:${cat.colour}` }, cat.emoji));
   }
   const facts: HTMLElement[] = [h('li', {}, `🕒 ${whenWords(f.createdAt)}`)];
-  if (f.species) facts.push(h('li', {}, `📚 ${f.species.name}`, f.species.scientific ? h('span', { class: 'latin' }, ` ${f.species.scientific}`) : null));
+  if (f.species) facts.push(h('li', {}, `${f.species.own ? '✏️' : '📚'} ${f.species.name}`, f.species.scientific ? h('span', { class: 'latin' }, ` ${f.species.scientific}`) : null));
   const art = f.species ? artFor(f.species.name) : undefined;
   const sign = SIGNS.find(x => x.id === f.sign);
   if (sign) facts.push(h('li', {}, `${sign.emoji} ${sign.label}`));
@@ -217,16 +224,23 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void): v
   }
 
   if (f.hasVoice) {
-    const play = h('button', { class: 'big-btn' }, '▶️ Listen to my story');
-    play.addEventListener('click', async () => {
-      const voice = (await host.media(f.id)).voice;
-      if (!voice) return;
-      const url = URL.createObjectURL(voice);
-      const a = new Audio(url);
-      a.onended = () => URL.revokeObjectURL(url);
-      void a.play();
-    });
-    body.append(play);
+    // One button per voice note; the notes themselves are read only when one is played.
+    const count = f.voiceCount ?? 1;
+    let playing: HTMLAudioElement | null = null;
+    for (let i = 0; i < count; i++) {
+      const play = h('button', { class: 'big-btn' }, count > 1 ? `▶️ Listen to story ${i + 1}` : '▶️ Listen to my story');
+      play.addEventListener('click', async () => {
+        const voice = (await host.media(f.id)).voices[i];
+        if (!voice) return;
+        playing?.pause();
+        const url = URL.createObjectURL(voice);
+        const a = new Audio(url);
+        playing = a;
+        a.onended = () => URL.revokeObjectURL(url);
+        void a.play();
+      });
+      body.append(play);
+    }
   }
   if (together) {
     if (f.note) body.append(h('div', { class: 'talk-card' }, h('h3', {}, '✏️ Our note'), h('p', {}, f.note)));

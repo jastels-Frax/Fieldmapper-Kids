@@ -42,10 +42,10 @@ export function openGrownUps(host: GrownUpHost): void {
   };
   paintPeople();
 
-  const toggle = (key: 'readAloud' | 'sounds' | 'trail' | 'tickReminder' | 'pathRecording' | 'walksOnMap' | 'keepAwake' | 'wakeLock', label: string) => {
+  const toggle = (key: 'readAloud' | 'sounds' | 'trail' | 'tickReminder' | 'pathRecording' | 'walksOnMap' | 'keepAwake' | 'wakeLock' | 'quickFinds', label: string) => {
     const box = h('input', { type: 'checkbox' }) as HTMLInputElement;
     box.checked = s[key];
-    box.addEventListener('change', async () => { s[key] = box.checked; if (key === 'trail') s.trailChosen = true; await save(); });
+    box.addEventListener('change', async () => { s[key] = box.checked; if (key === 'trail') s.trailChosen = true; if (key === 'readAloud') s.readAloudChosen = true; await save(); });
     return h('label', { class: 'toggle' }, box, h('span', {}, label));
   };
 
@@ -126,7 +126,7 @@ export function openGrownUps(host: GrownUpHost): void {
   // Finds
   const finds = host.allFinds();
   const photos = finds.reduce((n, f) => n + photoCount(f), 0);
-  const voices = finds.filter(f => f.hasVoice).length;
+  const voices = finds.reduce((n, f) => n + (f.voiceCount ?? (f.hasVoice ? 1 : 0)), 0);
   const storage = h('p', { class: 'hint' }, `${finds.length} finds · ${photos} photos · ${voices} voice notes`);
   void navigator.storage?.estimate?.().then(e => {
     if (e.usage) storage.textContent += ` · ${(e.usage / 1048576).toFixed(1)} MB used on this device`;
@@ -160,9 +160,10 @@ export function openGrownUps(host: GrownUpHost): void {
     people,
     h('button', { class: 'big-btn soft', onclick: () => openProfileEditor(host.profiles, newProfile(), paintPeople, true) }, '➕ Add an explorer'),
     h('h2', { class: 'section-title' }, 'Sound and map'),
-    toggle('readAloud', '🔊 Read words aloud (also the 🔊 button on the map)'),
+    toggle('readAloud', '🔊 Read words aloud as they appear (a tapped speech bubble is always read)'),
     toggle('sounds', '🎵 Happy sounds'),
     toggle('trail', '👣 Record today\'s walk automatically, even when Path is off'),
+    toggle('quickFinds', '📸 Show quick-find buttons on the map (one tap: photo, saved)'),
     toggle('tickReminder', '🕷️ Offer a tick check when a hunt ends'),
     h('p', { class: 'hint' }, 'The 🏠 Done button on the map starts a tick check any time. The 🗺️ Map button switches between streets, satellite and hybrid, and holds the facing arrow and Keep the screen on.'),
     tickHowTo(),

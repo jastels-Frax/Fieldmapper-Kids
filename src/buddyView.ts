@@ -2,7 +2,7 @@ import type { Expression } from './buddies.ts';
 import type { Line } from './buddyLines.ts';
 import type { GuideId } from './types.ts';
 import { h } from './ui.ts';
-import { say } from './speech.ts';
+import { say, sayNow } from './speech.ts';
 import { critterSvg, type Critter } from './critters.ts';
 import { CAST } from './cast.ts';
 import { GUIDE_INFO, activeGuide, guideSvg } from './guides.ts';
@@ -38,7 +38,7 @@ function says(g: GuideId, label: string, line: Line, opts: { quiet?: boolean; bi
   if (!opts.quiet) say(line.text, g);
   return h('div', { class: `buddy-says ${crew ? 'crew' : ''} ${opts.big ? 'big' : ''}` },
     guideFigure(g, line.pose),
-    h('button', { class: 'bubble', onclick: () => say(line.text, g), 'aria-label': `${nameOf(g)} says: ${line.text}. Tap to hear it again.` },
+    h('button', { class: 'bubble', onclick: () => sayNow(line.text, g), 'aria-label': `${nameOf(g)} says: ${line.text}. Tap to hear it again.` },
       h('span', { class: 'bubble-name' }, label),
       h('span', { class: 'bubble-text' }, line.text),
       h('span', { class: 'bubble-say', 'aria-hidden': 'true' }, '🔊'),

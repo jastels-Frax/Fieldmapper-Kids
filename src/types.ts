@@ -23,14 +23,15 @@ export interface Picture {
 /** Which pictures a find has, without their bytes: what the app holds for every find (findSplit.ts). */
 export type PictureInfo = Pick<Picture, 'id' | 'kind'>;
 
-/** A find's pictures and voice note, read only when the find is opened, changed or exported. */
+/** A find's pictures and voice notes, read only when the find is opened, changed or exported. */
 export interface FindMedia {
   pictures: Picture[];
-  voice?: Blob;
+  /** Voice notes, oldest first. A find stored before there could be several holds one (read from `voice`). */
+  voices: Blob[];
 }
 
 /** A find with its media: what the capture flow edits and what saveFind stores. */
-export type FullFind = Omit<Find, 'pictures' | 'hasVoice'> & FindMedia;
+export type FullFind = Omit<Find, 'pictures' | 'hasVoice' | 'voiceCount'> & FindMedia;
 
 /** A species the explorer (or a grown-up) named for a find. */
 export interface SpeciesPick {
@@ -41,6 +42,8 @@ export interface SpeciesPick {
   code?: string;
   /** Which species list it came from. */
   list?: string;
+  /** The explorer's own words ("little plant"), typed rather than picked from a list: never counted as a species. */
+  own?: boolean;
 }
 
 /** One thing a child found. Everything is optional except what makes it a find. */
@@ -75,6 +78,8 @@ export interface Find {
   thumb?: Blob;
   /** There is a voice note in the find's media. */
   hasVoice?: boolean;
+  /** How many voice notes; absent on a find from before there could be several, which has one if `hasVoice`. */
+  voiceCount?: number;
   favourite?: boolean;
 }
 
@@ -106,7 +111,10 @@ export type Basemap = 'streets' | 'satellite' | 'hybrid';
 /** Device settings, shared by every explorer on it. */
 export interface Settings {
   activeProfileId?: string;
+  /** Read the words aloud as they appear. Off unless a grown-up turns it on (grown-up corner); a tapped bubble is always read. */
   readAloud: boolean;
+  /** A grown-up has set `readAloud` on purpose; until then it reads as off (see loadSettings). */
+  readAloudChosen?: boolean;
   sounds: boolean;
   /**
    * Record today's walk automatically, whether or not 👣 Path is on, and draw it. Off unless a grown-up turns it on:
@@ -126,6 +134,8 @@ export interface Settings {
   keepAwake: boolean;
   /** Keep the screen on whenever Scout is open (the Map card's switch): Field Mapper's `wakelock_enabled`. */
   wakeLock: boolean;
+  /** Show the 📸 quick-find buttons above "I found something!". */
+  quickFinds: boolean;
   /** Show an arrow on the map pointing the way the explorer is facing (the device compass). */
   compass: boolean;
   /** Keep the map centred on the explorer as they move: Field Mapper's Follow (`follow_user`). */
@@ -144,7 +154,8 @@ export const DEFAULT_SETTINGS: Settings = {
   walksOnMap: true,
   keepAwake: true,
   wakeLock: false,
-  readAloud: true,
+  quickFinds: true,
+  readAloud: false,
   sounds: true,
   trail: false,
   tickReminder: true,

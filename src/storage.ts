@@ -88,7 +88,7 @@ export async function getFind(id: string): Promise<Find | undefined> {
 /** A find's pictures and voice note, as in-memory Blobs (storedBytes.ts). */
 export async function getFindMedia(id: string): Promise<FindMedia> {
   const raw = (await (await db()).get('findMedia', id)) as StoredMedia | undefined;
-  if (!raw) return { pictures: [] };
+  if (!raw) return { pictures: [], voices: [] };
   let legacy = false, lost = false;
   const one = async (v: unknown) => { const r = await revive(v); legacy ||= r.legacy; lost ||= r.lost; return r.blob; };
   const pictures: Picture[] = [];
@@ -96,8 +96,12 @@ export async function getFindMedia(id: string): Promise<FindMedia> {
     const blob = await one(p.blob);
     if (blob) pictures.push({ id: p.id, kind: p.kind, blob });
   }
-  const voice = await one(raw.voice);
-  const media: FindMedia = voice ? { pictures, voice } : { pictures };
+  const voices: Blob[] = [];
+  for (const v of raw.voices ?? (raw.voice != null ? [raw.voice] : [])) {
+    const blob = await one(v);
+    if (blob) voices.push(blob);
+  }
+  const media: FindMedia = { pictures, voices };
   // Moved here from a find stored before pictures were bytes: rewrite as bytes, once, while it can still be read.
   if (legacy && !lost) await (await db()).put('findMedia', await packMedia(id, media));
   return media;
@@ -107,7 +111,7 @@ export async function getFindMedia(id: string): Promise<FindMedia> {
 export async function getFullFind(id: string): Promise<FullFind | undefined> {
   const find = await getFind(id);
   if (!find) return undefined;
-  const { pictures: _info, hasVoice: _v, ...rest } = find;
+  const { pictures: _info, hasVoice: _v, voiceCount: _n, ...rest } = find;
   return { ...rest, ...(await getFindMedia(id)) };
 }
 
@@ -126,15 +130,15 @@ async function packLight(f: Find): Promise<Record<string, unknown>> {
 
 async function packMedia(id: string, m: FindMedia): Promise<StoredMedia> {
   const out: StoredMedia = { id, pictures: await Promise.all(m.pictures.map(async p => ({ id: p.id, kind: p.kind, blob: await toBytes(p.blob) }))) };
-  if (m.voice) out.voice = await toBytes(m.voice);
+  if (m.voices.length) out.voices = await Promise.all(m.voices.map(v => toBytes(v)));
   return out;
 }
 
 /** The light find a full one stands for. */
 function lightOf(f: FullFind): Find {
-  const { pictures, voice, ...rest } = f;
+  const { pictures, voices, ...rest } = f;
   const find: Find = { ...rest, pictures: pictures.map(p => ({ id: p.id, kind: p.kind })) };
-  if (voice) find.hasVoice = true;
+  if (voices.length) { find.hasVoice = true; find.voiceCount = voices.length; }
   return find;
 }
 
@@ -216,7 +220,9 @@ export async function loadSettings(): Promise<Settings> {
   const s = (await (await db()).get('settings', 'settings')) as (Partial<Settings> & LegacySettings) | undefined;
   return {
     activeProfileId: s?.activeProfileId,
-    readAloud: s?.readAloud ?? DEFAULT_SETTINGS.readAloud,
+    // Reading aloud used to be on by default, and saved settings say so; now it is on only where a grown-up chose it.
+    readAloud: s?.readAloudChosen ? (s.readAloud ?? DEFAULT_SETTINGS.readAloud) : DEFAULT_SETTINGS.readAloud,
+    ...(s?.readAloudChosen ? { readAloudChosen: true } : {}),
     sounds: s?.sounds ?? DEFAULT_SETTINGS.sounds,
     // The automatic trail used to be on by default and every saved settings record carries `trail: true`; it now
     // counts only when a grown-up chose it, so tracking happens only when the explorer asks for it (Path).
@@ -228,6 +234,7 @@ export async function loadSettings(): Promise<Settings> {
     walksOnMap: s?.walksOnMap ?? DEFAULT_SETTINGS.walksOnMap,
     keepAwake: s?.keepAwake ?? DEFAULT_SETTINGS.keepAwake,
     wakeLock: s?.wakeLock ?? DEFAULT_SETTINGS.wakeLock,
+    quickFinds: s?.quickFinds ?? DEFAULT_SETTINGS.quickFinds,
     compass: s?.compass ?? DEFAULT_SETTINGS.compass,
     follow: s?.follow ?? DEFAULT_SETTINGS.follow,
     // Absence: a device whose grown-up already picked a voice meant one voice; everyone else gets the characters.

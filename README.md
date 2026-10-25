@@ -10,11 +10,13 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
 
 ## What it does
 
-- **Map**: a big-button map with "Where am I?", every find as a pin, and a dotted trail of today's walk.
+- **Map**: a big-button map with "Where am I?" (which also follows you), every find as a pin, and 📸 quick-find
+  buttons for the kinds you find most: one tap, one photo, saved.
 - **"I found something!"**: add as many photos and drawings as you like, pick what it is (bird, bug, plant,
-  tree, flower, animal, mushroom, tracks & scat, rock, water, sky, mystery), name the species if you know it, tap its
-  colours, say how big it is and how many there were, choose where it goes (where you stood by GPS, a spot
-  tapped on the map, or nowhere), and record a voice note. Your guide asks each question out loud.
+  tree, flower, animal, mushroom, tracks & scat, rock, water, sky, mystery), and ✨ Save now — or go on: name it
+  (type your own words, like "little plant", or pick a species), tap its colours, size and how many on one screen,
+  and record as many voice notes as you like. It goes where you stood by GPS; you are only asked where when the
+  GPS is unsure. Sprouts get three screens: picture, kind, save. The celebration goes back to the map by itself.
   Every find can be changed later.
 - **Species names** come from the Nova Scotia ACCDC lists in Fraxinus Field Mapper (about 6,400 species,
   with big buttons for familiar ones). Grown-ups can import more lists from Field Mapper or a CSV.
@@ -34,7 +36,8 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
   leaves or bubbles), text size, letters and how lively it is, from "Who's exploring?" — or taps "Surprise me!".
 - **Reading aloud**: every character speaks in a voice of their own, from the voices built into the device,
   each with their own pitch and pace. A grown-up can switch to one voice for everyone (the best one, or
-  any installed voice they pick and preview), and the 🔊 / 🔇 button on the map turns it on and off.
+  any installed voice they pick and preview), Reading aloud is off until a grown-up turns it on in the
+  Grown-up corner; tapping a speech bubble always reads it.
 - **Sticker book**: every find as a sticker, filtered by kind, with favourites.
 - **Scavenger hunts**: eight ready-made hunts (Backyard, Rainbow, Forest, Pond & Stream, Tiny Things,
   Five Senses, Beach, Flower). A find ticks the items it matches; the explorer can tick others

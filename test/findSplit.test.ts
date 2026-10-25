@@ -10,8 +10,9 @@ test('a version-1 find splits into a picture list, photo first', () => {
   const { light, media } = splitStoredFind(raw, ids());
   assert.deepEqual(light.pictures, [{ id: 'p1', kind: 'photo' }, { id: 'p2', kind: 'drawing' }]);
   assert.equal(light.hasVoice, true);
+  assert.equal(light.voiceCount, 1);
   for (const k of ['photo', 'drawing', 'voice']) assert.equal(k in light, false);
-  assert.deepEqual(media, { id: 'f', pictures: [{ id: 'p1', kind: 'photo', blob: 'A' }, { id: 'p2', kind: 'drawing', blob: 'B' }], voice: 'V' });
+  assert.deepEqual(media, { id: 'f', pictures: [{ id: 'p1', kind: 'photo', blob: 'A' }, { id: 'p2', kind: 'drawing', blob: 'B' }], voices: ['V'] });
   assert.equal(holdsMedia(light), false);
 });
 

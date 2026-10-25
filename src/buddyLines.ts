@@ -48,16 +48,17 @@ const STEP: Record<string, string> = {
   picture: 'How do you want to remember it? Add as many photos and drawings as you like!',
   category: 'Ooh! What did you find?',
   sign: 'What clue did the animal leave?',
-  species: 'Do you know what it is called?',
+  species: 'What is it called? Type it your way, or pick one below.',
   colours: 'What colours is it? Tap all the colours you see.',
   size: 'How big is it?',
   count: 'How many did you see?',
+  describe: 'What does it look like? Tap what fits, or skip ahead.',
   where: 'Where did you find it?',
-  tell: 'Tell me all about it! What did you notice?',
+  tell: 'Tell me about it if you like, then save it!',
 };
 
 const STEP_POSES: Record<string, Expression> = {
-  picture: 'hello', category: 'think', sign: 'think', species: 'think', colours: 'point', size: 'excited', count: 'think', where: 'point', tell: 'listen',
+  picture: 'hello', category: 'think', sign: 'think', species: 'think', describe: 'point', colours: 'point', size: 'excited', count: 'think', where: 'point', tell: 'listen',
 };
 
 export const STEP_LINES = STEP;

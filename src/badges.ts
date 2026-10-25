@@ -7,6 +7,7 @@ export type BadgeFind = Pick<Find, 'createdAt' | 'category' | 'colours' | 'size'
   hasPhoto?: boolean;
   hasDrawing?: boolean;
   hasVoice?: boolean;
+  voiceCount?: number;
 };
 
 export interface Badge {
@@ -75,7 +76,7 @@ const RULES: BadgeRule[] = [
     measure: f => COLLECTABLE.filter(c => f.some(x => x.category === c)).length,
   },
   { id: 'artist', emoji: '🎨', title: 'Nature Artist', how: 'Draw 3 pictures of your finds.', target: 3, measure: f => f.filter(x => x.hasDrawing).length },
-  { id: 'story', emoji: '🎤', title: 'Storyteller', how: 'Record 3 voice notes.', target: 3, measure: f => f.filter(x => x.hasVoice).length },
+  { id: 'story', emoji: '🎤', title: 'Storyteller', how: 'Record 3 voice notes.', target: 3, measure: f => f.reduce((n, x) => n + (x.voiceCount ?? (x.hasVoice ? 1 : 0)), 0) },
   { id: 'photo', emoji: '📷', title: 'Photographer', how: 'Take 10 photos.', target: 10, measure: f => f.filter(x => x.hasPhoto).length },
   { id: 'tiny', emoji: '🔍', title: 'Tiny Detective', how: 'Find 3 tiny things.', target: 3, measure: f => f.filter(x => x.size === 'tiny').length },
   { id: 'lots', emoji: '💯', title: 'Counting Champ', how: 'Find lots and lots of something, 3 times.', target: 3, measure: f => f.filter(x => x.count === 'lots').length },
@@ -138,7 +139,7 @@ export function toBadgeFind(f: Find): BadgeFind {
   const pics = f.pictures ?? [];
   return {
     createdAt: f.createdAt, category: f.category, colours: f.colours, size: f.size, count: f.count,
-    lat: f.lat, lon: f.lon, species: f.species?.name,
-    hasPhoto: pics.some(p => p.kind === 'photo'), hasDrawing: pics.some(p => p.kind === 'drawing'), hasVoice: !!f.hasVoice,
+    lat: f.lat, lon: f.lon, species: f.species && !f.species.own ? f.species.name : undefined,
+    hasPhoto: pics.some(p => p.kind === 'photo'), hasDrawing: pics.some(p => p.kind === 'drawing'), hasVoice: !!f.hasVoice, voiceCount: f.voiceCount,
   };
 }
