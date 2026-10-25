@@ -72,12 +72,11 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
   };
 
   const { body, close, sheet } = openSheet({ title: editing ? 'Change my find' : 'I found something!', emoji: editing ? '✏️' : '✨', className: 'capture' });
-  const back = sheet.querySelector('.back-btn') as HTMLButtonElement;
+  const back = sheet.querySelector('.close-btn') as HTMLButtonElement;
   back.replaceWith(back.cloneNode(true));
-  (sheet.querySelector('.back-btn') as HTMLButtonElement).addEventListener('click', async () => {
+  (sheet.querySelector('.close-btn') as HTMLButtonElement).addEventListener('click', async () => {
     if (editing) {
-      // Inside one question, back means "back to my find"; from the summary it means leave.
-      if (!onOverview) return overview();
+      // ✖ always leaves; going back to the summary from one question is that step's own "⬅️ Back to my find".
       if (!changed() || (await askYesNo('Stop without saving the changes?', '↩️ Yes, stop', '✏️ Keep changing'))) close();
       return;
     }
@@ -89,7 +88,6 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
 
   // Editing opens on a summary of the find; each row opens ONE question and comes
   // back. Changing the kind of thing also asks the questions that depend on it.
-  let onOverview = false;
   let followUps: Step[] = [];
   const snapshot = () => JSON.stringify({ ...draft, pictures: draft.pictures.map(p => p.id), voice: !!draft.voice, thumb: undefined, place }) + String(draft.voice?.size ?? '');
   let original = '';
@@ -97,7 +95,6 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
 
   const current = (): Step => steps()[stepIdx];
   const go = (i: number) => {
-    onOverview = false;
     const list = steps();
     stepIdx = Math.max(0, Math.min(list.length - 1, i));
     dots.replaceChildren(...list.map((_, j) => h('span', { class: j <= stepIdx ? 'on' : '' })));
@@ -485,7 +482,6 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
 
   /** The summary a saved find opens on: every answer, each one tap from being changed. */
   function overview() {
-    onOverview = true;
     body.replaceChildren();
     body.scrollTop = 0;
     const cat = draft.category ? categoryOf(draft.category) : null;

@@ -29,7 +29,8 @@ export function openSheet(opts: { title: string; emoji?: string; onClose?: () =>
   const body = h('div', { class: 'sheet-body' });
   const sheet = h('section', { class: `sheet ${opts.className ?? ''}`, role: 'dialog', 'aria-label': opts.title },
     h('header', { class: 'sheet-head' },
-      h('button', { class: 'round-btn back-btn', 'aria-label': 'Back', onclick: close }, '⬅️'),
+      // ✖, not ⬅️: it closes the whole screen, and must not be mistaken for the "⬅️ Go back" a step offers.
+      h('button', { class: 'round-btn close-btn', 'aria-label': 'Close', onclick: close }, '✖️'),
       h('h1', {}, opts.emoji ? `${opts.emoji} ${opts.title}` : opts.title),
     ),
     body,
