@@ -121,7 +121,15 @@ export interface Profile {
   art?: string;
   /** Their marker on the map; absent = the same picture as their card. */
   mapAvatar?: MapAvatar;
+  /** Their 📸 quick-find buttons (quickFinds.ts); absent = off. */
+  quick?: QuickPref;
   createdAt: string;
+}
+
+/** An explorer's quick finds: on or off, and the kinds they picked (none = the kinds they find most). */
+export interface QuickPref {
+  on: boolean;
+  kinds?: CategoryId[];
 }
 
 /** What stands for the explorer on the map, when it is not their card picture. */
@@ -155,8 +163,11 @@ export interface Settings {
   keepAwake: boolean;
   /** Keep the screen on whenever Scout is open (the Map card's switch): Field Mapper's `wakelock_enabled`. */
   wakeLock: boolean;
-  /** Show the 📸 quick-find buttons above "I found something!". */
-  quickFinds: boolean;
+  /**
+   * RETIRED: quick finds are per explorer now (`Profile.quick`, off unless turned on). Still read so a stored
+   * value stays typed; nothing acts on it, because every device stored `true` from the old default.
+   */
+  quickFinds?: boolean;
   /** Show an arrow on the map pointing the way the explorer is facing (the device compass). */
   compass: boolean;
   /** Keep the map centred on the explorer as they move: Field Mapper's Follow (`follow_user`). */
@@ -175,7 +186,6 @@ export const DEFAULT_SETTINGS: Settings = {
   walksOnMap: true,
   keepAwake: true,
   wakeLock: false,
-  quickFinds: true,
   readAloud: false,
   sounds: true,
   trail: false,

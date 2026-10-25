@@ -5,6 +5,19 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.1.0 — 2026-10-25
+
+- **Quick finds are per explorer and off by default** (`Profile.quick`, absent = off). Turned on in 🔧 My buttons,
+  with the kinds to show: up to three picked (`pickedKinds` / `toggleQuickKind`), or none picked = the kinds the
+  explorer finds most, as before. The device-wide `Settings.quickFinds` switch is retired and no longer read
+  (every device had stored `true` from the old default); the grown-up corner says where the switch went.
+- **Text stays inside its box**: the quick-find chips gave "Tracks & scat" a fixed share of the screen and let the
+  word run past the chip's edge. Chips now share the row, the word shortens with … if it must, and a category can
+  carry a short word for small buttons (`Category.short`: "Tracks"). Buttons and cards break a long word onto a new
+  line rather than spill it (big text sizes and wide letters). On a phone the chips put the emoji above the word
+  and the word steps down a size if it must; the name chip at the top tightens so a short name is never cut.
+- "I'll pick" starts from the kinds already showing, so nothing changes until a kind is tapped.
+
 ## 2.0.0 — 2026-10-25
 
 - **Opening screen** (`launch.ts`), once per launch (never on coming back from the background): a logo, the guide

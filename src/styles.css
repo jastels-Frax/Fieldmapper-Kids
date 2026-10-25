@@ -58,6 +58,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 4px
 .hello { flex: 1 1 auto; min-width: 0; padding-right: 12px; }
 .hello-face { font-size: 32px; line-height: 1; }
 .hello-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A narrow phone: the name chip and the star pill tighten, so a short name is never cut (… is for long ones). */
+@media (max-width: 380px) {
+  .top-bar { gap: 6px; }
+  .hello, .pill { gap: 4px; padding: 4px 10px 4px 6px; font-size: 16px; }
+  .top-bar .hello-face, .top-bar .hello-face.face-emoji { font-size: 26px; }
+  .top-bar .hello-face.face-photo { width: 32px; height: 32px; }
+  .hello-mode { font-size: 15px; }
+}
 .pill { padding: 6px 12px; flex: 0 0 auto; font-size: 17px; }
 .pill.star.all-done { background: var(--yellow); }
 .hunt-pill { background: var(--cool-soft); }
@@ -127,12 +135,22 @@ html.has-quick { --quick-h: 50px; }
 .quick-row > * { pointer-events: auto; }
 .quick-label { font-size: 22px; filter: drop-shadow(0 1px 0 rgba(0,0,0,0.25)); pointer-events: none; }
 .quick-chip {
-  display: flex; align-items: center; gap: 4px; height: 40px; padding: 0 12px 0 8px; max-width: 30vw;
+  display: flex; align-items: center; gap: 4px; height: 40px; padding: 0 12px 0 8px; flex: 0 1 auto; min-width: 0;
   background: var(--card); border: var(--bw) solid var(--line); border-left: 6px solid var(--cat); border-radius: 999px; box-shadow: var(--shadow);
-  font-weight: 800; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-weight: 800; font-size: 14px; white-space: nowrap;
 }
-.quick-emoji { font-size: 22px; line-height: 1; }
+.quick-emoji { font-size: 22px; line-height: 1; flex: 0 0 auto; }
+/* The word gives way (with …) before the chip runs past its own edge; the categories carry a short word for this. */
+.quick-word { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 body.picking .quick-row { visibility: hidden; }
+/* A phone: the emoji goes above its word, so all the width is the word's, and the 📸 steps aside (each chip says it). */
+@media (max-width: 430px) {
+  .quick-row { gap: 6px; padding: 0 8px; }
+  .quick-label { display: none; }
+  .quick-chip { flex-direction: column; justify-content: center; gap: 0; height: 46px; padding: 2px 10px 2px 8px; }
+  .quick-emoji { font-size: 20px; }
+  .quick-word { font-size: 13px; line-height: 1.1; max-width: 100%; }
+}
 .bottom-bar {
   position: absolute; left: 0; right: 0; bottom: 0; padding: 6px 10px var(--bar-pad-b);
   display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; pointer-events: none;
@@ -1028,3 +1046,11 @@ html .map-avatar-pick .mode-card strong { font-size: 15px; }
   .side-body[data-count="7"] .rail-btn .rail-emoji { font-size: 20px; }
   .side-body[data-count="7"] .rail-btn .rail-word { font-size: 10px; margin-top: 1px; }
 }
+
+/* No text past its own box: a long word in a narrow button (a big text size, wide letters) breaks onto a new line. */
+button, .choice, .chip, .pill, .mini-choice, .launch-tile, .tool-text, .edit-row { overflow-wrap: break-word; }
+
+/* My buttons ▸ Quick finds */
+.quick-pick .tool-row { margin-bottom: 8px; }
+.quick-modes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.quick-pick .mini-choice[disabled] { opacity: 0.4; }

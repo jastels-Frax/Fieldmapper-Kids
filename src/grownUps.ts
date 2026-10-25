@@ -45,7 +45,7 @@ export function openGrownUps(host: GrownUpHost): void {
   };
   paintPeople();
 
-  const toggle = (key: 'readAloud' | 'sounds' | 'trail' | 'tickReminder' | 'pathRecording' | 'walksOnMap' | 'keepAwake' | 'wakeLock' | 'quickFinds', label: string) => {
+  const toggle = (key: 'readAloud' | 'sounds' | 'trail' | 'tickReminder' | 'pathRecording' | 'walksOnMap' | 'keepAwake' | 'wakeLock', label: string) => {
     const box = h('input', { type: 'checkbox' }) as HTMLInputElement;
     box.checked = s[key];
     box.addEventListener('change', async () => { s[key] = box.checked; if (key === 'trail') s.trailChosen = true; if (key === 'readAloud') s.readAloudChosen = true; await save(); });
@@ -166,9 +166,8 @@ export function openGrownUps(host: GrownUpHost): void {
     toggle('readAloud', '🔊 Read words aloud as they appear (a tapped speech bubble is always read)'),
     toggle('sounds', '🎵 Happy sounds'),
     toggle('trail', '👣 Record today\'s walk automatically, even when Path is off'),
-    toggle('quickFinds', '📸 Show quick-find buttons on the map (one tap: photo, saved)'),
     toggle('tickReminder', '🕷️ Offer a tick check when a hunt ends'),
-    h('p', { class: 'hint' }, 'The 🏠 Done button on the map starts a tick check any time. The 🗺️ Map button switches between streets, satellite and hybrid, and holds the facing arrow and Keep the screen on.'),
+    h('p', { class: 'hint' }, 'The 🏠 Done button on the map starts a tick check any time. The 🗺️ Map button switches between streets, satellite and hybrid, and holds the facing arrow and Keep the screen on. 📸 Quick finds (one tap: a photo, saved) are off until an explorer turns them on in 🔧 My buttons.'),
     tickHowTo(),
     h('h2', { class: 'section-title' }, 'Recording paths'),
     toggle('pathRecording', '👣 Show the Record my path button'),

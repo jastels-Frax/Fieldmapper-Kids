@@ -4,6 +4,8 @@ export interface Category {
   id: CategoryId;
   emoji: string;
   label: string;
+  /** A shorter word where a button is small (the quick-find chips); absent = the label. */
+  short?: string;
   colour: string;
   /** Said when the category is picked. */
   cheer: string;
@@ -50,7 +52,7 @@ export const CATEGORIES: Category[] = [
     facts: ['Never eat a wild mushroom. Some look friendly and are poison.', 'A mushroom is just the fruit. The rest of the fungus hides underground or inside wood.', 'Fungi help rot old logs and leaves back into soil.'],
   },
   {
-    id: 'sign', emoji: '🐾', label: 'Tracks & scat', colour: '#a0522d', cheer: 'Animal clues! You are a detective!',
+    id: 'sign', emoji: '🐾', label: 'Tracks & scat', short: 'Tracks', colour: '#a0522d', cheer: 'Animal clues! You are a detective!',
     talk: ['How many toes can you see in the track?', 'Which way was the animal going?', 'What animal do you think left it?'],
     facts: ['Scat is what scientists call animal poop. Look, but never touch it!', 'Deer and moose tracks show two toes; foxes and coyotes show four.', 'A chewed pine cone with the scales pulled off is often a red squirrel\'s lunch.'],
   },

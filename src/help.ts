@@ -13,7 +13,8 @@ const PARTS: { emoji: string; title: string; lines: string[] }[] = [
     'Hold your finger on the map to save a find right at that spot.',
   ] },
   { emoji: '📸', title: 'Quick finds', lines: [
-    'The small buttons above "I found something!" are the things you find most.',
+    'Turn them on in 🔧 My buttons. Pick up to three kinds of things, or let Scout show the things you find most.',
+    'They sit in a row above "I found something!".',
     'Tap one, take a photo, and it is saved where you are standing. Add more about it later in My Finds.',
   ] },
   { emoji: '🗺️', title: 'The map buttons', lines: [

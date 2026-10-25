@@ -42,7 +42,7 @@ import { openMapSheet } from './basemapPicker.ts';
 import { Compass } from './compass.ts';
 import { setKeepAwake, wakeLockSupported } from './wakeLock.ts';
 import { compassWord, smoothHeading } from './heading.ts';
-import { quickKinds } from './quickFinds.ts';
+import { MAX_QUICK, quickFor, quickKinds } from './quickFinds.ts';
 import { closeDrawTool, openDrawTool, type DrawMode } from './drawTool.ts';
 import { TOOLS, railFor, type ToolId } from './railTools.ts';
 import { categoryOf } from './categories.ts';
@@ -131,7 +131,7 @@ export class App {
         openFinds: () => openBook(this.screenHost()),
         openBadges: () => openBadges(this.screenHost()),
         openLook: () => openLook(this.profile, p => this.profileHost().save(p)),
-        openButtons: () => openMyButtons(this.profile, p => this.profileHost().save(p)),
+        openButtons: () => openMyButtons(this.profile, p => this.profileHost().save(p), () => quickKinds(this.finds, MAX_QUICK)),
         openHelp: () => openHelp(this.profile.guide),
         openGrownUps: () => void this.openGrownUpCorner(),
       });
@@ -445,6 +445,7 @@ export class App {
     this.recorder.onChange = () => { this.paintRecording(); this.applyWakeLock(); };
     this.meBtn = this.toolBtns.get('me')!;
     this.quickRow = h('div', { class: 'quick-row', role: 'group', 'aria-label': 'Quick finds: take a photo and save' });
+    window.addEventListener('resize', () => fitQuickWords(this.quickRow));
     app.append(
       h('div', { id: 'map' }),
       h('header', { class: 'top-bar' }, this.hello, this.starBtn, this.huntChip, lock),
@@ -791,24 +792,27 @@ export class App {
 
   /**
    * Quick finds, ported from Field Mapper's Quick Entry bar (`ui/QuickEntryBar.ts`: labelled pills that capture in one
-   * tap): a small row above "I found something!" offering the kinds this explorer finds most (`quickKinds`). A tap
+   * tap): a small row above "I found something!", for an explorer who turned it on in My buttons (`quickFor`: the
+   * kinds they picked, or the kinds they find most). A tap
    * opens the camera; the photo is saved as a find of that kind at the steadied GPS fix taken at the tap, with
    * nothing else asked — the rest can be added from the sticker book. One row, so it costs the map one row.
    */
   private paintQuick(): void {
     if (!this.quickRow) return;
-    const on = this.settings.quickFinds !== false;
+    const kinds = quickFor(this.profile.quick, this.finds);
+    const on = kinds.length > 0;
     this.quickRow.hidden = !on;
     document.documentElement.classList.toggle('has-quick', on);
     if (!on) return;
     this.quickRow.replaceChildren(
       h('span', { class: 'quick-label', 'aria-hidden': 'true' }, '📸'),
-      ...quickKinds(this.finds).map(id => {
+      ...kinds.map(id => {
         const c = categoryOf(id);
         return h('button', { class: 'quick-chip', style: `--cat:${c.colour}`, 'aria-label': `Quick find: take a photo of a ${c.label.toLowerCase()}`, onclick: () => this.quickFind(id) },
-          h('span', { class: 'quick-emoji', 'aria-hidden': 'true' }, c.emoji), c.label);
+          h('span', { class: 'quick-emoji', 'aria-hidden': 'true' }, c.emoji), h('span', { class: 'quick-word' }, c.short ?? c.label));
       }),
     );
+    requestAnimationFrame(() => fitQuickWords(this.quickRow));
   }
 
   private quickFind(category: Find['category']): void {
@@ -912,7 +916,7 @@ export class App {
       openCrew: () => openCrew(this.screenHost()),
       toggleMode: () => this.toggleMode(),
       openLook: () => openLook(this.profile, p => this.profileHost().save(p)),
-      openButtons: () => openMyButtons(this.profile, p => this.profileHost().save(p)),
+      openButtons: () => openMyButtons(this.profile, p => this.profileHost().save(p), () => quickKinds(this.finds, MAX_QUICK)),
       openHelp: () => openHelp(this.profile.guide),
     };
   }
@@ -965,3 +969,17 @@ function railWord(btn: HTMLElement, word: string): void {
   btn.querySelector('.rail-word')!.textContent = word;
 }
 
+/**
+ * Quick-find words a size smaller, a step at a time down to 11 px, until each fits its chip: wide letters (Chunky,
+ * Pixel's capitals) and a narrow phone would otherwise cut "Mushroom" short. The … is the last resort, not the first.
+ */
+function fitQuickWords(row: HTMLElement): void {
+  const words = [...row.querySelectorAll<HTMLElement>('.quick-word')];
+  words.forEach(w => { w.style.fontSize = ''; });
+  if (row.hidden || !words.length) return;
+  for (let size = 13; size >= 11; size--) {
+    const over = words.filter(w => w.scrollWidth > w.clientWidth + 0.5);
+    if (!over.length) return;
+    over.forEach(w => { w.style.fontSize = `${size}px`; });
+  }
+}

@@ -1,17 +1,21 @@
-import type { Profile } from './types.ts';
+import type { CategoryId, Profile, QuickPref } from './types.ts';
 import { h, openSheet } from './ui.ts';
 import { say } from './speech.ts';
 import { sounds } from './sound.ts';
 import { buddySays } from './buddyView.ts';
 import { tierOf } from './tiers.ts';
+import { CATEGORIES, categoryOf } from './categories.ts';
+import { MAX_QUICK, pickedKinds, toggleQuickKind } from './quickFinds.ts';
 import { TIER_TOOLS, TOOLS, moveTool, railFor, toggleTool, toolOf, type ToolId } from './railTools.ts';
 
 /**
  * "My buttons": which buttons sit down the side of this explorer's map, and in what order. Every tap shows on the
  * map at once and is saved on their profile. Absent a choice, the rail is their age tier's (railTools.TIER_TOOLS);
- * "My age's buttons" goes back to that. No grown-up needed: nothing here changes data or safety.
+ * "My age's buttons" goes back to that. Below, their 📸 quick finds (`Profile.quick`): off until turned on, then the
+ * kinds they pick (up to MAX_QUICK) or, picking none, the kinds they find most. No grown-up needed: nothing here
+ * changes data or safety.
  */
-export function openMyButtons(profile: Profile, save: (p: Profile) => Promise<Profile>): void {
+export function openMyButtons(profile: Profile, save: (p: Profile) => Promise<Profile>, mostFound: () => CategoryId[] = () => ['bird']): void {
   const { body } = openSheet({ title: 'My buttons', emoji: '🔧', className: 'look' });
   const tier = tierOf(profile.tier);
 
@@ -20,6 +24,60 @@ export function openMyButtons(profile: Profile, save: (p: Profile) => Promise<Pr
     say(words);
     profile = await save({ ...profile, tools });
     paint();
+  };
+
+  const commitQuick = async (quick: QuickPref, words: string) => {
+    sounds.pick();
+    say(words);
+    profile = await save({ ...profile, quick });
+    paint();
+  };
+
+  /** The quick-finds part: a switch, then (on) the kinds to show. */
+  const quickPart = (): HTMLElement => {
+    const q = profile.quick;
+    const on = !!q?.on;
+    const picked = pickedKinds(q?.kinds);
+    const part = h('div', { class: 'quick-pick' },
+      h('h2', { class: 'section-title' }, '📸 Quick finds'),
+      h('div', { class: `tool-row ${on ? 'on' : ''}` },
+        h('span', { class: 'tool-emoji', 'aria-hidden': 'true' }, '📸'),
+        h('span', { class: 'tool-text' }, h('strong', {}, 'Quick finds'), h('span', {}, 'Small buttons above I found something: tap, take a photo, saved.')),
+        h('button', {
+          class: `switch-pill ${on ? 'on' : ''}`, 'aria-pressed': String(on), 'aria-label': `Quick finds: ${on ? 'on' : 'off'}`,
+          onclick: () => void commitQuick({ ...q, on: !on }, on ? 'Quick finds off' : 'Quick finds on'),
+        }, on ? 'On' : 'Off')));
+    if (!on) return part;
+    part.append(
+      h('div', { class: 'quick-modes' },
+        h('button', {
+          class: `mini-choice ${picked.length ? '' : 'on'}`, 'aria-pressed': String(!picked.length),
+          onclick: () => void commitQuick({ on: true }, 'The things I find most'),
+        }, '✨ The things I find most'),
+        h('button', {
+          class: `mini-choice ${picked.length ? 'on' : ''}`, 'aria-pressed': String(!!picked.length),
+          // Picking starts from the kinds already showing, so nothing changes until a kind is tapped.
+          onclick: () => { if (!picked.length) void commitQuick({ on: true, kinds: pickedKinds(mostFound()) }, `Pick up to ${MAX_QUICK}`); },
+        }, '👆 I\'ll pick')),
+    );
+    if (picked.length) {
+      const full = picked.length >= MAX_QUICK;
+      part.append(
+        h('p', { class: 'hint' }, `Pick up to ${MAX_QUICK}: ${picked.map(k => categoryOf(k).label).join(', ')}.`),
+        h('div', { class: 'mini-choices' }, ...CATEGORIES.map(c => {
+          const isOn = picked.includes(c.id);
+          return h('button', {
+            class: `mini-choice ${isOn ? 'on' : ''}`, 'aria-pressed': String(isOn), disabled: !isOn && full,
+            onclick: () => {
+              const kinds = toggleQuickKind(picked, c.id);
+              // Taking the last one off goes back to "the things I find most", which is what an empty pick means.
+              void commitQuick(kinds.length ? { on: true, kinds } : { on: true }, isOn ? `${c.label} off` : `${c.label} on`);
+            },
+          }, h('span', { 'aria-hidden': 'true' }, c.emoji), c.label);
+        })),
+      );
+    }
+    return part;
   };
 
   const paint = () => {
@@ -44,6 +102,7 @@ export function openMyButtons(profile: Profile, save: (p: Profile) => Promise<Pr
       profile.tools
         ? h('button', { class: 'big-btn soft', onclick: () => void commit(undefined, `Back to the ${tier.label} buttons`) }, `${tier.emoji} Back to the ${tier.label} buttons`)
         : h('p', { class: 'hint center' }, `${tier.emoji} These are the ${tier.label} buttons: ${TIER_TOOLS[tier.id].map(id => toolOf(id).word).join(', ')}.`),
+      quickPart(),
     );
   };
   paint();

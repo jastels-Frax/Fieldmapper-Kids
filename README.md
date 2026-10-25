@@ -20,7 +20,8 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
 - **Storybook pictures** (new in 2.0): characters from the Scout the Survey Squirrel book for your card, and a
   different picture on the map if you like.
 - **Map**: a big-button map with "Where am I?" (which also follows you), every find as a pin, and 📸 quick-find
-  buttons for the kinds you find most: one tap, one photo, saved.
+  buttons (off until turned on in My buttons; the kinds you pick, or the kinds you find most): one tap, one photo,
+  saved.
 - **"I found something!"**: add as many photos and drawings as you like, pick what it is (bird, bug, plant,
   tree, flower, animal, mushroom, tracks & scat, rock, water, sky, mystery), and ✨ Save now — or go on: name it
   (type your own words, like "little plant", or pick a species), tap its colours, size and how many on one screen,
@@ -80,7 +81,7 @@ everything else keeps working; places already viewed are cached.
 
 ## Versions
 
-Scout is at **2.0.0**. See [CHANGELOG.md](CHANGELOG.md); the app shows What's new on its opening screen.
+Scout is at **2.1.0**. See [CHANGELOG.md](CHANGELOG.md); the app shows What's new on its opening screen.
 
 ## Development
 

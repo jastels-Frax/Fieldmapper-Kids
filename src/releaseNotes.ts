@@ -12,6 +12,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.1.0', date: '2026-10-25', title: 'Your own quick finds',
+    notes: [
+      'Quick finds are off until you turn them on in My buttons.',
+      'Pick up to three kinds of things for your quick-find buttons.',
+      'Words now stay inside their buttons.',
+    ],
+  },
+  {
     version: '2.0.0', date: '2026-10-25', title: 'Scout 2.0',
     notes: [
       'A new opening screen: pick who is exploring, then Start adventure.',
