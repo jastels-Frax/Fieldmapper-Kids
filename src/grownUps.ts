@@ -1,3 +1,5 @@
+import { openHelp } from './help.ts';
+import { openWhatsNew } from './launch.ts';
 import type { Find, GuideId, Profile, Settings } from './types.ts';
 import { askYesNo, h, openSheet, toast, uid } from './ui.ts';
 import { buildExport, saveFile } from './exportData.ts';
@@ -190,6 +192,9 @@ export function openGrownUps(host: GrownUpHost): void {
       'The map pictures come from OpenFreeMap (OpenStreetMap data) and, for satellite views, Esri World Imagery; those services see which part of the map is being looked at, as any web map does. ' +
       'Uninstalling the app or clearing the browser\'s site data deletes the finds, so save a file now and then.'),
     h('p', { class: 'hint' }, `Scout ${__APP_VERSION__} · made by Fraxinus`),
+    h('div', { class: 'ask-row' },
+      h('button', { class: 'big-btn soft', onclick: () => openHelp(host.profiles.active()?.guide ?? 'frog') }, '❓ How to use'),
+      h('button', { class: 'big-btn soft', onclick: () => { const me = host.profiles.active(); if (me) openWhatsNew(me); } }, "✨ What's new")),
   );
 }
 

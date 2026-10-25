@@ -1,0 +1,54 @@
+/**
+ * Scout's versions, newest first: what each one brought, in words for the family (CHANGELOG.md has the detail).
+ * The newest entry is the version package.json carries — a test holds the two together, so a release cannot ship
+ * with the app saying an old number. Pure.
+ */
+export interface Release {
+  version: string;
+  date: string;
+  title: string;
+  notes: string[];
+}
+
+export const RELEASES: Release[] = [
+  {
+    version: '2.0.0', date: '2026-10-25', title: 'Scout 2.0',
+    notes: [
+      'A new opening screen: pick who is exploring, then Start adventure.',
+      'Draw lines and shapes on your map, and measure how far and how big.',
+      'Choose your own map buttons in My buttons.',
+      'Storybook pictures for your card, and a different picture on the map if you like.',
+      'A How to use guide.',
+    ],
+  },
+  {
+    version: '1.2.0', date: '2026-10-25', title: 'Quicker finds',
+    notes: [
+      'Save a find straight after picking what it is.',
+      'Quick-find buttons: one tap, one photo, saved.',
+      'Type your own name for what you found.',
+      'Record as many voice notes as you like.',
+      'Path only tracks when you turn it on.',
+    ],
+  },
+  {
+    version: '1.1.0', date: '2026-10-24', title: 'The Field Journal',
+    notes: [
+      'The storybook look, with Scout the Survey Squirrel as your guide.',
+      'Mushrooms, and an arrow that shows which way you face.',
+      'Hold your finger on the map to put a find right there.',
+      'Every character has a voice of their own.',
+    ],
+  },
+  {
+    version: '1.0.0', date: '2026-10-23', title: 'Scout',
+    notes: [
+      'Save finds on a map with photos, drawings and voice notes.',
+      'Badges, challenges and scavenger hunts.',
+      'Explorers with their own guide, look and finds.',
+      'Record the path you walk, and do a tick check at the end.',
+    ],
+  },
+];
+
+export const CURRENT = RELEASES[0];

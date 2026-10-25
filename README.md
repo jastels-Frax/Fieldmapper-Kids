@@ -1,4 +1,4 @@
-# Scout 🧭
+# Scout 2.0 🧭
 
 A child-friendly (ages 5–10) companion to Fraxinus Field Mapper, for exploring and observing the
 world around you. Children find things outside, save them as stickers on a map, and go on
@@ -10,6 +10,15 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
 
 ## What it does
 
+- **Opening screen** (new in 2.0): pick who's exploring, then 🚀 Start adventure — with My finds, Badges, My look,
+  My buttons, How to use and the grown-up corner one tap away. Shown when Scout is opened, not every time you come
+  back to it.
+- **Draw and measure** (new in 2.0): tap the map to draw lines and shapes, or to measure how far (in metres and kid
+  steps) and how big (in bedrooms, tennis courts or soccer fields).
+- **My buttons** (new in 2.0): each explorer chooses and orders their map buttons; younger explorers start with
+  fewer.
+- **Storybook pictures** (new in 2.0): characters from the Scout the Survey Squirrel book for your card, and a
+  different picture on the map if you like.
 - **Map**: a big-button map with "Where am I?" (which also follows you), every find as a pin, and 📸 quick-find
   buttons for the kinds you find most: one tap, one photo, saved.
 - **"I found something!"**: add as many photos and drawings as you like, pick what it is (bird, bug, plant,
@@ -68,6 +77,10 @@ walks. There is no account, no sync and no analytics. The only network use is th
 pictures come from [OpenFreeMap](https://openfreemap.org) (OpenStreetMap data) and, for satellite and
 hybrid, Esri World Imagery; those services see which part of the map is being looked at, as any web map does. With no network the map turns plain green and
 everything else keeps working; places already viewed are cached.
+
+## Versions
+
+Scout is at **2.0.0**. See [CHANGELOG.md](CHANGELOG.md); the app shows What's new on its opening screen.
 
 ## Development
 

@@ -230,6 +230,8 @@ export interface ProfileHost {
   openLook: () => void;
   /** "My buttons": the explorer's own map buttons. */
   openButtons: () => void;
+  /** "How to use". */
+  openHelp: () => void;
 }
 
 /** "Who's exploring?": switch explorer, add one, change your own card, meet the crew. */
@@ -263,6 +265,7 @@ export function openProfiles(host: ProfileHost): void {
           `${MODE_WORDS[other].emoji} Switch to ${MODE_WORDS[other].title.toLowerCase()}`),
         h('button', { class: 'big-btn soft', onclick: () => host.openLook() }, '🎨 My look'),
         h('button', { class: 'big-btn soft', onclick: () => host.openButtons() }, '🔧 My buttons'),
+        h('button', { class: 'big-btn soft', onclick: () => host.openHelp() }, '❓ How to use'),
         h('button', { class: 'big-btn soft', onclick: () => openProfileEditor(host, me, paint) }, '✏️ Change my card'),
       );
     }

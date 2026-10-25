@@ -36,6 +36,8 @@ import { applyLook } from './lookApply.ts';
 import { tierOf } from './tiers.ts';
 import { openLook } from './lookScreen.ts';
 import { openMyButtons } from './buttonsScreen.ts';
+import { openLaunch } from './launch.ts';
+import { openHelp } from './help.ts';
 import { openMapSheet } from './basemapPicker.ts';
 import { Compass } from './compass.ts';
 import { setKeepAwake, wakeLockSupported } from './wakeLock.ts';
@@ -119,6 +121,20 @@ export class App {
       const p = await saveProfile(await welcome());
       this.profiles = [p];
       await this.switchTo(p.id);
+    } else {
+      // The opening screen, once per launch (a page load); never on coming back from another app.
+      await openLaunch({
+        profiles: () => this.profiles,
+        active: () => this.profile,
+        switchTo: id => this.switchTo(id),
+        addExplorer: () => openProfiles(this.profileHost()),
+        openFinds: () => openBook(this.screenHost()),
+        openBadges: () => openBadges(this.screenHost()),
+        openLook: () => openLook(this.profile, p => this.profileHost().save(p)),
+        openButtons: () => openMyButtons(this.profile, p => this.profileHost().save(p)),
+        openHelp: () => openHelp(this.profile.guide),
+        openGrownUps: () => void this.openGrownUpCorner(),
+      });
     }
     if (this.map.offline) toast('🌧️ No internet, so the map is plain today. Your finds still work!', 4500);
     this.startLocation();
@@ -152,6 +168,7 @@ export class App {
     this.scopeToProfile();
     this.applySettingsToChrome();
     this.refresh();
+    window.dispatchEvent(new Event('scout-profiles-changed'));
   }
 
   /**
@@ -510,6 +527,7 @@ export class App {
     const ids = railFor(this.profile.tools, tierOf(this.profile.tier).id)
       .filter(id => id !== 'path' || this.settings.pathRecording || this.recorder.recording);
     this.railBody.replaceChildren(...ids.map(id => this.toolBtns.get(id)!));
+    this.railBody.dataset.count = String(ids.length);
     if (this.drawing && !ids.includes(this.drawing === 'sketch' ? 'draw' : 'measure')) closeDrawTool();
   }
 
@@ -878,6 +896,7 @@ export class App {
           this.scopeToProfile();
           this.applySettingsToChrome();
         }
+        window.dispatchEvent(new Event('scout-profiles-changed'));
         return p;
       },
       remove: async p => {
@@ -894,6 +913,7 @@ export class App {
       toggleMode: () => this.toggleMode(),
       openLook: () => openLook(this.profile, p => this.profileHost().save(p)),
       openButtons: () => openMyButtons(this.profile, p => this.profileHost().save(p)),
+      openHelp: () => openHelp(this.profile.guide),
     };
   }
 
