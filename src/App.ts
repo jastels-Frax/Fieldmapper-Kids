@@ -5,7 +5,7 @@ import {
   allWalks, saveWalk, deleteWalk, getFullFind, getFindMedia, saveFindInfo,
 } from './storage.ts';
 import { PathRecorder } from './recorder.ts';
-import { closeOrphan, distanceWords, durationWords, walkDurationMs, walkLengthM, type Walk } from './walk.ts';
+import { closeOrphan, distanceWords, durationWords, segmentsAtGaps, walkDurationMs, walkLengthM, type Walk, type WalkPoint } from './walk.ts';
 import { finishWalk, openWalks, type WalkHost } from './walkScreens.ts';
 import type { BadgeExtras } from './badges.ts';
 import { MapView } from './mapView.ts';
@@ -342,8 +342,10 @@ export class App {
   }
 
   private drawWalks(): void {
-    const saved = this.settings.walksOnMap ? this.walks.filter(w => w.endedAt).map(w => w.points.map(p => [p.lon, p.lat] as [number, number])) : [];
-    const live = this.recorder.recording && this.recorder.walk ? this.recorder.walk.points.map(p => [p.lon, p.lat] as [number, number]) : null;
+    const line = (pts: WalkPoint[]) => pts.map(p => [p.lon, p.lat] as [number, number]);
+    // Broken where the GPS went quiet, never bridged with a straight line (segmentsAtGaps).
+    const saved = this.settings.walksOnMap ? this.walks.filter(w => w.endedAt).flatMap(w => segmentsAtGaps(w.points).map(line)) : [];
+    const live = this.recorder.recording && this.recorder.walk ? segmentsAtGaps(this.recorder.walk.points).map(line) : null;
     this.map.setWalks(saved, live);
   }
 

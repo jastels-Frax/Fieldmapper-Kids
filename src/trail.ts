@@ -1,6 +1,7 @@
 import { getTrail, saveTrail, type TrailDay } from './storage.ts';
 import { distanceM, localDay } from './geo.ts';
 import type { Fix } from './gps.ts';
+import { judgePoint } from './walk.ts';
 
 /** Today's walk, as points far enough apart to be movement rather than GPS wobble. */
 let today: TrailDay | null = null;
@@ -14,11 +15,11 @@ export async function loadToday(): Promise<TrailDay> {
 
 /** Adds a fix to today's trail. Returns true when the trail grew. */
 export async function addToTrail(fix: Fix): Promise<boolean> {
-  if (fix.accuracy > 40) return false;
   const t = await loadToday();
+  // The same test a recorded path uses (walk.ts judgePoint): sharp enough, far enough, and no impossible leap.
   const prev = t.points[t.points.length - 1];
-  const minStep = Math.max(8, fix.accuracy);
-  if (prev && distanceM(prev[1], prev[0], fix.lat, fix.lon) < minStep) return false;
+  const asWalk = prev ? [{ lon: prev[0], lat: prev[1], t: prev[2], acc: 0 }] : [];
+  if (judgePoint(asWalk, { lon: fix.lon, lat: fix.lat, t: fix.time, acc: fix.accuracy }) !== 'kept') return false;
   t.points.push([fix.lon, fix.lat, fix.time]);
   clearTimeout(saveTimer);
   saveTimer = window.setTimeout(() => void saveTrail(t), 3000);

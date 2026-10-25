@@ -45,7 +45,7 @@ export function openGrownUps(host: GrownUpHost): void {
   const toggle = (key: 'readAloud' | 'sounds' | 'trail' | 'tickReminder' | 'pathRecording' | 'walksOnMap' | 'keepAwake' | 'wakeLock', label: string) => {
     const box = h('input', { type: 'checkbox' }) as HTMLInputElement;
     box.checked = s[key];
-    box.addEventListener('change', async () => { s[key] = box.checked; await save(); });
+    box.addEventListener('change', async () => { s[key] = box.checked; if (key === 'trail') s.trailChosen = true; await save(); });
     return h('label', { class: 'toggle' }, box, h('span', {}, label));
   };
 
@@ -162,7 +162,7 @@ export function openGrownUps(host: GrownUpHost): void {
     h('h2', { class: 'section-title' }, 'Sound and map'),
     toggle('readAloud', '🔊 Read words aloud (also the 🔊 button on the map)'),
     toggle('sounds', '🎵 Happy sounds'),
-    toggle('trail', '👣 Show today\'s walk on the map'),
+    toggle('trail', '👣 Record today\'s walk automatically, even when Path is off'),
     toggle('tickReminder', '🕷️ Offer a tick check when a hunt ends'),
     h('p', { class: 'hint' }, 'The 🏠 Done button on the map starts a tick check any time. The 🗺️ Map button switches between streets, satellite and hybrid, and holds the facing arrow and Keep the screen on.'),
     tickHowTo(),

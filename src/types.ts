@@ -108,8 +108,13 @@ export interface Settings {
   activeProfileId?: string;
   readAloud: boolean;
   sounds: boolean;
-  /** Draw today's walking trail on the map. */
+  /**
+   * Record today's walk automatically, whether or not 👣 Path is on, and draw it. Off unless a grown-up turns it on:
+   * tracking happens only when the explorer asks for it (Path).
+   */
   trail: boolean;
+  /** A grown-up has set `trail` on purpose. Every device that never did reads `trail` as off (see loadSettings). */
+  trailChosen?: boolean;
   /** Offer a tick check when a hunt ends. */
   tickReminder: boolean;
   basemap: Basemap;
@@ -141,7 +146,7 @@ export const DEFAULT_SETTINGS: Settings = {
   wakeLock: false,
   readAloud: true,
   sounds: true,
-  trail: true,
+  trail: false,
   tickReminder: true,
   basemap: 'streets',
   compass: false,

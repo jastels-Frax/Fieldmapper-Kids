@@ -51,6 +51,26 @@ export function addPoint(points: WalkPoint[], p: WalkPoint): { points: WalkPoint
   return { points: verdict === 'kept' ? [...points, p] : points, verdict };
 }
 
+/** No fix for this long means the GPS stopped (screen off, app closed): the line is broken there, not bridged. */
+export const GAP_MS = 2 * 60_000;
+
+/**
+ * The path as the pieces actually walked: split wherever the GPS went quiet for `GAP_MS` or more, so a phone
+ * pocketed with the screen off does not draw a straight line across ground nobody recorded. Pieces of one point
+ * are dropped (a line needs two).
+ */
+export function segmentsAtGaps(points: WalkPoint[], gapMs = GAP_MS): WalkPoint[][] {
+  const out: WalkPoint[][] = [];
+  let cur: WalkPoint[] = [];
+  for (const p of points) {
+    const last = cur[cur.length - 1];
+    if (last && p.t - last.t >= gapMs) { out.push(cur); cur = []; }
+    cur.push(p);
+  }
+  out.push(cur);
+  return out.filter(s => s.length > 1);
+}
+
 export function walkLengthM(points: WalkPoint[]): number {
   let m = 0;
   for (let i = 1; i < points.length; i++) m += distanceM(points[i - 1].lat, points[i - 1].lon, points[i].lat, points[i].lon);

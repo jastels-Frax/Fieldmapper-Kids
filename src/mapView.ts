@@ -1,3 +1,4 @@
+import { segmentsAtGaps } from './walk.ts';
 import maplibregl, { type Map as MlMap, type Marker, type StyleSpecification } from 'maplibre-gl';
 import type { Basemap, Find } from './types.ts';
 import { categoryOf } from './categories.ts';
@@ -304,13 +305,13 @@ export class MapView {
   }
 
   /** Saved paths (purple) and the one recording now (orange). */
-  setWalks(lines: [number, number][][], live: [number, number][] | null): void {
+  setWalks(lines: [number, number][][], live: [number, number][][] | null): void {
     const fc = (ls: [number, number][][]) => ({
       type: 'FeatureCollection' as const,
       features: ls.filter(l => l.length > 1).map(coordinates => ({ type: 'Feature' as const, properties: {}, geometry: { type: 'LineString' as const, coordinates } })),
     });
     (this.map?.getSource('walks') as maplibregl.GeoJSONSource | undefined)?.setData(fc(lines));
-    (this.map?.getSource('live-walk') as maplibregl.GeoJSONSource | undefined)?.setData(fc(live ? [live] : []));
+    (this.map?.getSource('live-walk') as maplibregl.GeoJSONSource | undefined)?.setData(fc(live ?? []));
   }
 
   fitLine(coords: [number, number][]): void {
@@ -331,8 +332,11 @@ export class MapView {
     if (!src) return;
     src.setData({
       type: 'FeatureCollection',
-      features: visible && points.length > 1
-        ? [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: points.map(p => [p[0], p[1]]) } }]
+      // Broken where the GPS went quiet, as a recorded path is (walk.ts segmentsAtGaps).
+      features: visible
+        ? segmentsAtGaps(points.map(p => ({ lon: p[0], lat: p[1], t: p[2], acc: 0 }))).map(seg => ({
+          type: 'Feature' as const, properties: {}, geometry: { type: 'LineString' as const, coordinates: seg.map(p => [p.lon, p.lat]) },
+        }))
         : [],
     });
   }

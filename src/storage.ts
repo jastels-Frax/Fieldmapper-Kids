@@ -218,7 +218,10 @@ export async function loadSettings(): Promise<Settings> {
     activeProfileId: s?.activeProfileId,
     readAloud: s?.readAloud ?? DEFAULT_SETTINGS.readAloud,
     sounds: s?.sounds ?? DEFAULT_SETTINGS.sounds,
-    trail: s?.trail ?? DEFAULT_SETTINGS.trail,
+    // The automatic trail used to be on by default and every saved settings record carries `trail: true`; it now
+    // counts only when a grown-up chose it, so tracking happens only when the explorer asks for it (Path).
+    trail: s?.trailChosen ? (s.trail ?? DEFAULT_SETTINGS.trail) : DEFAULT_SETTINGS.trail,
+    ...(s?.trailChosen ? { trailChosen: true } : {}),
     tickReminder: s?.tickReminder ?? DEFAULT_SETTINGS.tickReminder,
     basemap: s?.basemap ?? DEFAULT_SETTINGS.basemap,
     pathRecording: s?.pathRecording ?? DEFAULT_SETTINGS.pathRecording,

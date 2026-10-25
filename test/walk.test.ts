@@ -35,3 +35,12 @@ test('words and GeoJSON', () => {
   assert.equal(g.properties.length_m, 100);
   assert.equal(g.properties.minutes, 2);
 });
+
+test('a path is broken where the GPS went quiet, never bridged', async () => {
+  const { segmentsAtGaps } = await import('../src/walk.ts');
+  const at = (t: number) => ({ lon: -63.57, lat: 44.65 + t / 1e7, t, acc: 5 });
+  const segs = segmentsAtGaps([at(0), at(10_000), at(20_000), at(200_000), at(210_000), at(900_000)]);
+  assert.equal(segs.length, 2); // the lone last point makes no line
+  assert.deepEqual(segs.map(s => s.length), [3, 2]);
+  assert.deepEqual(segmentsAtGaps([at(0)]), []);
+});
