@@ -33,7 +33,7 @@ import { pickOnMap } from './mapPicker.ts';
 import { applyLook } from './lookApply.ts';
 import { tierOf } from './tiers.ts';
 import { openLook } from './lookScreen.ts';
-import { openBasemapPicker } from './basemapPicker.ts';
+import { openMapSheet } from './basemapPicker.ts';
 import { Compass } from './compass.ts';
 import { setKeepAwake, wakeLockSupported } from './wakeLock.ts';
 import { compassWord, smoothHeading } from './heading.ts';
@@ -55,16 +55,13 @@ export class App {
   private walkNote!: HTMLElement;
   private huntChip!: HTMLElement;
   private dock!: BuddyDock;
-  private modeBtn!: HTMLElement;
   private soundBtn!: HTMLElement;
   private recBtn!: HTMLElement;
   private recChip!: HTMLElement;
   private recTimer: number | undefined;
   private recorder = new PathRecorder();
   private compass = new Compass();
-  private compassBtn!: HTMLElement;
-  private followBtn!: HTMLElement;
-  private wakeBtn!: HTMLElement;
+  private meBtn!: HTMLElement;
   private facingDeg: number | null = null;
   private everyWalk: Walk[] = [];
   private walks: Walk[] = [];
@@ -98,6 +95,8 @@ export class App {
       say('Ooh, right here! What did you find?');
       void this.capture(undefined, at);
     };
+    // Dragging the map to look around stops following (see meTap).
+    this.map.onUserPan = () => { if (this.settings.follow) void this.setFollow(false); };
     this.map.setFinds(this.finds);
     if (!first) {
       const p = await saveProfile(await welcome());
@@ -182,7 +181,6 @@ export class App {
       await saveSettings(this.settings);
       say('Arrow off.');
       toast('🧭 Arrow off');
-      this.paintCompass();
       return;
     }
     if (!(await this.startCompass())) {
@@ -194,7 +192,6 @@ export class App {
     await saveSettings(this.settings);
     say('Now the arrow shows which way you are facing! Turn around and watch it.');
     toast('🧭 The arrow shows which way you face');
-    this.paintCompass();
     // A laptop has no compass but still says yes: tell the explorer rather than show nothing.
     setTimeout(() => {
       if (this.settings.compass && this.compass.running && !this.compass.hasReading) toast('🧭 Hmm, this device does not seem to have a compass.');
@@ -202,11 +199,9 @@ export class App {
   }
 
   private async startCompass(): Promise<boolean> {
-    let word = '';
     this.compass.onHeading = deg => {
       this.facingDeg = smoothHeading(this.facingDeg, deg);
       this.map.setFacing(this.facingDeg);
-      if (compassWord(this.facingDeg) !== word) { word = compassWord(this.facingDeg); this.paintCompass(); }
     };
     return this.compass.start();
   }
@@ -229,21 +224,52 @@ export class App {
     document.addEventListener('pointerup', once, { once: true });
   }
 
-  /** Field Mapper's Follow button: a switch, remembered on the device, that keeps the map on the explorer. */
-  private async toggleFollow(): Promise<void> {
-    sounds.tap();
-    this.settings = { ...this.settings, follow: !this.settings.follow };
-    await saveSettings(this.settings);
-    this.paintFollow();
+  /**
+   * The 📍 Me button is Field Mapper's Locate and Follow in one (`#btn-locate` + `#btn-follow`), because a child's
+   * screen has room for few buttons: a tap goes to the explorer AND keeps the map on them as they walk; a tap while
+   * following, or dragging the map away (the departure from Field Mapper, whose map fights a pan back to the GPS
+   * position — a child panning to look around reads that as the map being broken), stops it.
+   */
+  private async meTap(): Promise<void> {
     if (this.settings.follow) {
-      const fix = knownFix();
-      if (fix) this.map.follow(fix);
-      say('I will keep the map on you.');
-      toast('🎯 Following you');
-    } else {
+      sounds.tap();
+      await this.setFollow(false);
       say('OK, the map stays put.');
-      toast('🎯 Not following');
+      toast('📍 Not following you');
+      return;
     }
+    await this.setFollow(true);
+    say('I will keep the map on you.');
+    toast('📍 Following you');
+    await this.findMe();
+  }
+
+  /** The 🗺️ Map card: map style, plus the switches set once and left (facing arrow, keep the screen on). */
+  private openMapCard(): void {
+    sounds.tap();
+    openMapSheet(this.settings.basemap, async b => {
+      this.settings = { ...this.settings, basemap: b };
+      this.map.setBasemap(b);
+      await saveSettings(this.settings);
+    }, [
+      {
+        emoji: '🧭', label: 'Facing arrow',
+        text: () => this.settings.compass && this.facingDeg != null ? `You are facing ${compassWord(this.facingDeg)}` : 'Shows which way you are facing',
+        on: () => this.settings.compass, toggle: () => this.toggleCompass(),
+      },
+      {
+        emoji: '💡', label: 'Keep the screen on',
+        text: () => wakeLockSupported() ? 'Uses more battery' : 'This device cannot',
+        on: () => this.settings.wakeLock, toggle: () => this.toggleWakeLock(),
+      },
+    ]);
+  }
+
+  private async setFollow(on: boolean): Promise<void> {
+    if (this.settings.follow === on) return;
+    this.settings = { ...this.settings, follow: on };
+    this.paintFollow();
+    await saveSettings(this.settings);
   }
 
   /**
@@ -252,11 +278,6 @@ export class App {
    */
   private applyWakeLock(): void {
     setKeepAwake(this.settings.wakeLock || (this.recorder.recording && this.settings.keepAwake));
-    if (!this.wakeBtn) return;
-    const on = this.settings.wakeLock;
-    this.wakeBtn.classList.toggle('on', on);
-    this.wakeBtn.setAttribute('aria-pressed', String(on));
-    this.wakeBtn.setAttribute('aria-label', on ? 'Screen stays on. Tap to let it sleep' : 'Keep the screen on');
   }
 
   /** Field Mapper's Wake Lock button (`#btn-wakelock`), the same switch as the grown-up corner's. */
@@ -281,19 +302,12 @@ export class App {
 
   private paintFollow(): void {
     const on = this.settings.follow;
-    this.followBtn.classList.toggle('on', on);
-    this.followBtn.setAttribute('aria-pressed', String(on));
-    this.followBtn.setAttribute('aria-label', on ? 'Following me. Tap to stop' : 'Follow me');
+    this.meBtn.classList.toggle('on', on);
+    this.meBtn.setAttribute('aria-pressed', String(on));
+    this.meBtn.setAttribute('aria-label', on ? 'Following me. Tap to stop' : 'Where am I? Tap to find me and follow me');
+    railWord(this.meBtn, on ? 'Following' : 'Me');
   }
 
-  private paintCompass(): void {
-    const on = this.settings.compass;
-    this.compassBtn.classList.toggle('on', on);
-    this.compassBtn.setAttribute('aria-pressed', String(on));
-    this.compassBtn.setAttribute('aria-label', on
-      ? `Arrow on${this.facingDeg != null ? `, you are facing ${compassWord(this.facingDeg)}` : ''}. Tap to turn it off`
-      : 'Show which way I am facing');
-  }
 
   // ── Recording a path ──────────────────────────────────────────
 
@@ -311,7 +325,7 @@ export class App {
     if (!lastFix()) say('I am still looking for where you are. I will start the path as soon as I find you.');
     await this.recorder.start(this.profile.id);
     sounds.pick();
-    say("Recording your path! Tap the footprints again when you're done.");
+    say("Recording your path! Tap Stop when you're done.");
     this.recTimer = window.setInterval(() => this.paintRecording(), 15000);
     this.paintRecording();
   }
@@ -320,7 +334,7 @@ export class App {
     const w = this.recorder.walk;
     const on = this.recorder.recording;
     this.recBtn.classList.toggle('recording', on);
-    this.recBtn.textContent = on ? '⏹️' : '👣';
+    railLabel(this.recBtn, on ? '⏹️' : '👣', on ? 'Stop' : 'Path');
     this.recBtn.setAttribute('aria-label', on ? 'Stop recording my path' : 'Record my path');
     this.recChip.hidden = !on;
     if (on && w) this.recChip.textContent = `⏺ ${distanceWords(walkLengthM(w.points))} · ${durationWords(walkDurationMs(w))}`;
@@ -392,26 +406,19 @@ export class App {
     });
     const lock = h('button', { class: 'round-btn lock', 'aria-label': 'Grown-up corner', onclick: () => void this.openGrownUpCorner() }, '🔒');
     this.soundBtn = h('button', { class: 'round-btn lock sound-btn', onclick: () => void this.toggleReadAloud() });
-    this.recBtn = h('button', { class: 'round-btn rec-btn', onclick: () => void this.toggleRecording() }, '👣');
+    this.recBtn = railButton('👣', 'Path', 'Record my path', () => void this.toggleRecording(), 'rec-btn');
     this.recChip = h('button', { class: 'rec-chip', hidden: true, 'aria-label': 'Recording my path. Tap to stop', onclick: () => void this.toggleRecording() });
     this.recorder.onChange = () => { this.paintRecording(); this.applyWakeLock(); };
-    const me = h('button', { class: 'round-btn me-btn', 'aria-label': 'Where am I?', onclick: () => void this.findMe() }, '📍');
-    this.modeBtn = h('button', { class: 'round-btn mode-btn', onclick: () => void this.toggleMode() });
-    this.compassBtn = h('button', { class: 'round-btn compass-btn', onclick: () => void this.toggleCompass() }, '🧭');
-    this.followBtn = h('button', { class: 'round-btn follow-btn', onclick: () => void this.toggleFollow() }, '🎯');
-    this.wakeBtn = h('button', { class: 'round-btn wake-btn', onclick: () => void this.toggleWakeLock() }, '💡');
-    const layers = h('button', { class: 'round-btn', 'aria-label': 'Map style: streets, satellite or hybrid', onclick: () => openBasemapPicker(this.settings.basemap, async b => {
-      this.settings = { ...this.settings, basemap: b };
-      this.map.setBasemap(b);
-      await saveSettings(this.settings);
-    }) }, '🛰️');
+    this.meBtn = railButton('📍', 'Me', 'Where am I?', () => void this.meTap(), 'me-btn');
+    const mapBtn = railButton('🗺️', 'Map', 'Map: how it looks, and map helpers', () => this.openMapCard());
     app.append(
       h('div', { id: 'map' }),
       h('header', { class: 'top-bar' }, this.hello, this.starBtn, this.huntChip, this.soundBtn, lock),
       this.recChip,
-      this.sideRail(me, this.followBtn, this.compassBtn, this.wakeBtn, layers, this.modeBtn, this.recBtn,
-        h('button', { class: 'round-btn', 'aria-label': 'Scavenger hunts', onclick: () => this.openHuntsScreen() }, '🔎'),
-        h('button', { class: 'round-btn', 'aria-label': 'Done exploring: tick check', onclick: () => void this.endAdventure() }, '🏠')),
+      // Five buttons, each with its word, as Field Mapper's rail labels every button (`tool-btn-label`).
+      this.sideRail(this.meBtn, mapBtn, this.recBtn,
+        railButton('🔎', 'Hunts', 'Scavenger hunts', () => this.openHuntsScreen()),
+        railButton('🏠', 'Done', 'Done exploring: tick check', () => void this.endAdventure())),
       this.dock.el,
       this.gpsNote,
       this.walkNote,
@@ -423,7 +430,6 @@ export class App {
     );
     this.applySettingsToChrome();
     this.applyAudio();
-    this.paintCompass();
     this.paintFollow();
     this.applyWakeLock();
     this.resumeCompass();
@@ -492,9 +498,11 @@ export class App {
     document.documentElement.dataset.tier = tierOf(this.profile.tier).id;
     applyLook(this.profile.look);
     const together = this.profile.mode === 'together';
-    this.modeBtn.textContent = together ? '👨‍👧' : '🧒';
-    this.modeBtn.setAttribute('aria-label', together ? 'Exploring together. Tap to explore on my own' : 'Exploring on my own. Tap to explore together');
-    this.hello.replaceChildren(profileFace(this.profile, 'face hello-face'), h('span', { class: 'hello-name' }, this.profile.name || 'Explorer'));
+    // The mode shows on the explorer's own chip (it switches in "Who's exploring?", one tap away), so the map
+    // keeps its room for the buttons used on the move.
+    this.hello.replaceChildren(profileFace(this.profile, 'face hello-face'), h('span', { class: 'hello-name' }, this.profile.name || 'Explorer'),
+      h('span', { class: 'hello-mode', title: together ? 'Exploring together' : 'Exploring on my own' }, together ? '👨‍👧' : '🧒'));
+    this.hello.setAttribute('aria-label', `Who's exploring? ${this.profile.name || 'Explorer'}, ${together ? 'exploring together' : 'exploring on my own'}`);
     this.map.setAvatar?.({ emoji: this.profile.avatar, photo: this.profile.photo });
     this.dock?.setGuide(this.profile.guide);
     setNarrator(this.profile.guide);
@@ -785,3 +793,19 @@ export class App {
     });
   }
 }
+
+/** A side-rail button: its picture and, under it, its word (Field Mapper's `tool-btn-label`). */
+function railButton(emoji: string, word: string, label: string, onclick: () => void, cls = ''): HTMLElement {
+  return h('button', { class: `round-btn rail-btn ${cls}`, 'aria-label': label, onclick },
+    h('span', { class: 'rail-emoji', 'aria-hidden': 'true' }, emoji), h('span', { class: 'rail-word', 'aria-hidden': 'true' }, word));
+}
+
+function railLabel(btn: HTMLElement, emoji: string, word: string): void {
+  btn.querySelector('.rail-emoji')!.textContent = emoji;
+  railWord(btn, word);
+}
+
+function railWord(btn: HTMLElement, word: string): void {
+  btn.querySelector('.rail-word')!.textContent = word;
+}
+

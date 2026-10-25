@@ -3,7 +3,7 @@
 // A phone that dims and locks stops giving the browser GPS fixes, so a recorded path gets a straight gap and the
 // map stops following. The Screen Wake Lock API releases the lock whenever the page is hidden, so it is taken
 // again every time the app comes back to the foreground, for as long as it is wanted. Where the API is missing
-// (older iOS) this does nothing, and the 💡 button says so.
+// (older iOS) this does nothing, and the Map card says so.
 //
 // One holder for the whole app, as in Field Mapper, where the rail button and the setting used to hold two
 // locks that could not see each other: App decides whether it is wanted (`Settings.wakeLock`, or a path

@@ -49,6 +49,8 @@ export class MapView {
   onFindTap: (id: string) => void = () => {};
   /** A press and hold on the map (or a right-click): where it was. */
   onLongPress: (at: { lat: number; lon: number }) => void = () => {};
+  /** The explorer dragged the map (never fired by the app's own camera moves). */
+  onUserPan: () => void = () => {};
   offline = false;
 
   private baseVisibility = new Map<string, 'visible' | 'none'>();
@@ -68,6 +70,7 @@ export class MapView {
     });
     this.map.touchZoomRotate.disableRotation();
     this.bindLongPress();
+    this.map.on('dragstart', e => { if ((e as { originalEvent?: Event }).originalEvent) this.onUserPan(); });
     this.setAvatar(avatar);
     await new Promise<void>(r => (this.map.loaded() ? r() : this.map.once('load', () => r())));
     this.map.addSource('trail', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });

@@ -119,7 +119,7 @@ export interface Settings {
   walksOnMap: boolean;
   /** Keep the screen on while a path records (a phone stops GPS when it sleeps). */
   keepAwake: boolean;
-  /** Keep the screen on whenever Scout is open (the 💡 button): Field Mapper's `wakelock_enabled`. */
+  /** Keep the screen on whenever Scout is open (the Map card's switch): Field Mapper's `wakelock_enabled`. */
   wakeLock: boolean;
   /** Show an arrow on the map pointing the way the explorer is facing (the device compass). */
   compass: boolean;

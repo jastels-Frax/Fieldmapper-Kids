@@ -60,7 +60,7 @@ export function openWalks(host: WalkHost): void {
     const total = list.reduce((n, w) => n + walkLengthM(w.points), 0);
     body.append(buddySays(host.profile.guide, list.length
       ? { text: `You have ${list.length} ${list.length === 1 ? 'path' : 'paths'}: ${distanceWords(total)} in all!`, pose: 'excited' }
-      : { text: 'No paths yet. Tap the footprints on the map to record one!', pose: 'point' }));
+      : { text: 'No paths yet. Tap 👣 Path on the map to record one!', pose: 'point' }));
     for (const w of list) {
       const m = walkLengthM(w.points);
       const when = new Date(w.startedAt).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
