@@ -243,11 +243,16 @@ body.picking .quick-row { visibility: hidden; }
 @keyframes rise { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes sink { to { transform: translateY(40px); opacity: 0; } }
 .sheet-head {
-  display: flex; align-items: center; gap: 12px; padding: calc(10px + var(--safe-t)) 12px 10px;
+  display: flex; align-items: center; gap: 12px; padding: calc(8px + var(--safe-t)) 12px 8px;
   background: var(--head-bg, var(--green)); color: var(--head-ink, var(--on-accent)); border-bottom: calc(var(--bw) + 1px) solid var(--line); flex-wrap: wrap;
 }
-.sheet-head h1 { margin: 0; font-size: 24px; font-weight: 900; flex: 1; text-shadow: var(--head-shadow, 0 2px 0 rgba(0,0,0,0.25)); }
-.sheet-head .round-btn { color: var(--ink); }
+.sheet-head h1 { margin: 0; font-size: 22px; font-weight: 900; flex: 1; text-shadow: var(--head-shadow, 0 2px 0 rgba(0,0,0,0.25)); }
+.sheet-head .round-btn { color: var(--ink); width: 46px; height: 46px; font-size: 21px; }
+/* The find steps: the header is ✖ and the progress in one slim row. The step's own words (the guide's bubble) say
+   what to do, so "I found something!" is not repeated on every step; it stays the sheet's accessible name. */
+.sheet.slim-head .sheet-head { flex-wrap: nowrap; padding-top: calc(6px + var(--safe-t)); padding-bottom: 6px; }
+.sheet.slim-head .sheet-head h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.sheet.slim-head .step-dots { width: auto; flex: 1; }
 .sheet-body { flex: 1; overflow-y: auto; background-image: var(--pattern, none); background-size: var(--pattern-size, auto); background-attachment: local; padding: 18px 16px calc(28px + var(--safe-b)); -webkit-overflow-scrolling: touch; }
 .sheet-body > * { max-width: 720px; margin-left: auto; margin-right: auto; }
 .step-dots { display: flex; gap: 6px; width: 100%; justify-content: center; }
@@ -750,7 +755,9 @@ html[data-theme="journal"] .section-title { border-bottom: 1.5px solid var(--lin
 /* Buddy bubbles are field notes. */
 html[data-theme="journal"] :is(.bubble, .dock-bubble) { font-weight: 600; background-color: #fbf4df; }
 html[data-theme="journal"] .bubble-name { font-style: italic; text-transform: none; letter-spacing: 0; font-size: 15px; color: var(--orange); }
-html[data-theme="journal"] .bubble-name::before { content: "Field Note · "; color: var(--ink); }
+/* The guide's bubble comes from their portrait, which says who is speaking: no name line. A crew member keeps
+   theirs, because it carries their job ("Fern · Hunts"). */
+html[data-theme="journal"] .buddy-says:not(.crew) .bubble-name { display: none; }
 
 /* Writing goes on a ruled line, not in a box. */
 html[data-theme="journal"] .text-in {
@@ -766,11 +773,10 @@ html[data-theme="journal"] .find-pin { border-color: var(--line); box-shadow: 1p
    page titles, Field Note boxes): those are the book's words, not this screen's. */
 html[data-theme="journal"] .sheet.book { --plate: url("./assets/journal/book.webp"); }
 html[data-theme="journal"] .sheet.badges { --plate: url("./assets/journal/badges.webp"); }
-html[data-theme="journal"] .sheet.challenges { --plate: url("./assets/journal/challenges.webp"); }
+html[data-theme="journal"] .sheet.challenges { --plate: url("./assets/journal/challenges.webp"); --plate-ratio: 900 / 500; --plate-pos: center; }
 html[data-theme="journal"] .sheet.crew { --plate: url("./assets/journal/crew.webp"); }
-html[data-theme="journal"] .sheet.capture { --plate: url("./assets/journal/capture.webp"); }
-html[data-theme="journal"] .sheet.hunts { --plate: url("./assets/journal/hunts.webp"); }
-html[data-theme="journal"] .sheet.hunt-preview { --plate: url("./assets/journal/hunts.webp"); }
+html[data-theme="journal"] .sheet.capture { --plate: url("./assets/journal/capture.webp"); --plate-ratio: 900 / 437; --plate-pos: center; }
+html[data-theme="journal"] :is(.sheet.hunts, .sheet.hunt-preview) { --plate: url("./assets/journal/hunts.webp"); --plate-ratio: 900 / 441; --plate-pos: center; }
 html[data-theme="journal"] .sheet.ticks { --plate: url("./assets/journal/ticks.webp"); }
 html[data-theme="journal"] .sheet.grownups { --plate: url("./assets/journal/grownups.webp"); }
 html[data-theme="journal"] .sheet.walks { --plate: url("./assets/journal/walks.webp"); }
@@ -780,13 +786,20 @@ html[data-theme="journal"] .sheet.look { --plate: url("./assets/journal/book.web
 html[data-theme="journal"] .sheet.celebrate { --plate: url("./assets/journal/celebrate.webp"); }
 html[data-theme="journal"] .sheet.help { --plate: url("./assets/journal/crew.webp"); }
 html[data-theme="journal"] .sheet.book .sheet-body::before, html[data-theme="journal"] .sheet.badges .sheet-body::before, html[data-theme="journal"] .sheet.challenges .sheet-body::before, html[data-theme="journal"] .sheet.crew .sheet-body::before, html[data-theme="journal"] .sheet.capture .sheet-body::before, html[data-theme="journal"] .sheet.hunts .sheet-body::before, html[data-theme="journal"] .sheet.hunt-preview .sheet-body::before, html[data-theme="journal"] .sheet.ticks .sheet-body::before, html[data-theme="journal"] .sheet.grownups .sheet-body::before, html[data-theme="journal"] .sheet.walks .sheet-body::before, html[data-theme="journal"] .sheet.walk-done .sheet-body::before, html[data-theme="journal"] .sheet.profiles .sheet-body::before, html[data-theme="journal"] .sheet.look .sheet-body::before, html[data-theme="journal"] .sheet.celebrate .sheet-body::before, html[data-theme="journal"] .sheet.help .sheet-body::before {
-  content: ""; display: block; max-width: 720px; margin: 2px auto 18px; aspect-ratio: 2.1 / 1;
+  content: ""; display: block; max-width: 720px; margin: 2px auto 18px; aspect-ratio: var(--plate-ratio, 2.1 / 1);
   border: 8px solid #fbf4df; outline: 1.5px solid rgba(74, 56, 38, 0.55);
-  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='110' height='34'><rect x='6' y='6' width='98' height='22' fill='%23f3e6b8' fill-opacity='.78' transform='rotate(-3 55 17)'/></svg>") top center / 110px 34px no-repeat, var(--plate) center 35% / cover no-repeat;
+  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='110' height='34'><rect x='6' y='6' width='98' height='22' fill='%23f3e6b8' fill-opacity='.78' transform='rotate(-3 55 17)'/></svg>") top center / 110px 34px no-repeat, var(--plate) var(--plate-pos, center 35%) / cover no-repeat;
   box-shadow: 2px 5px 12px rgba(58, 43, 27, 0.3); transform: rotate(-0.7deg);
 }
-/* The find steps are worked quickly on a trail: a thin strip of the plate, so the buttons stay on screen. */
-html[data-theme="journal"] .sheet.capture .sheet-body::before { aspect-ratio: 6 / 1; margin-bottom: 10px; }
+/* The find steps are worked quickly on a trail, so their plate is at the FOOT of the page, whole, under the
+   buttons: a thin strip at the top cut Scout's head off and pushed the buttons down. */
+html[data-theme="journal"] .sheet.capture .sheet-body::before { content: none; }
+html[data-theme="journal"] .sheet.capture .sheet-body::after {
+  content: ""; display: block; max-width: 720px; margin: 24px auto 4px; aspect-ratio: var(--plate-ratio);
+  border: 8px solid #fbf4df; outline: 1.5px solid rgba(74, 56, 38, 0.55);
+  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='110' height='34'><rect x='6' y='6' width='98' height='22' fill='%23f3e6b8' fill-opacity='.78' transform='rotate(-3 55 17)'/></svg>") top center / 110px 34px no-repeat, var(--plate) center / cover no-repeat;
+  box-shadow: 2px 5px 12px rgba(58, 43, 27, 0.3); transform: rotate(0.6deg);
+}
 html[data-theme="journal"] .sheet.celebrate .sheet-body::before, html[data-theme="journal"] .sheet.look .sheet-body::before { aspect-ratio: 1.75 / 1; }
 .look-art { display: block; width: 100%; height: 120px; border: 2px solid var(--line); background: #e9dcbc url("./assets/journal/cover.webp") center 45% / cover no-repeat; }
 .look-card.feature { grid-column: 1 / -1; }

@@ -12,6 +12,13 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.1.1', date: '2026-10-25', title: 'More room for finding',
+    notes: [
+      'The find steps have a slimmer top, so the buttons come first.',
+      'The storybook pictures show Scout\'s whole face.',
+    ],
+  },
+  {
     version: '2.1.0', date: '2026-10-25', title: 'Your own quick finds',
     notes: [
       'Quick finds are off until you turn them on in My buttons.',

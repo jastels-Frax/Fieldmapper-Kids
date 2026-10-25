@@ -95,6 +95,8 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
     if (stepIdx === 0 && !draft.pictures.length) return close();
     if (await askYesNo('Stop and throw this find away?', '🗑️ Yes', '✨ Keep going')) close();
   });
+  // A new find's header is just ✖ and the progress (the guide's bubble says what each step wants).
+  if (!editing) sheet.classList.add('slim-head');
   const dots = h('div', { class: 'step-dots', 'aria-hidden': 'true', hidden: editing });
   sheet.querySelector('.sheet-head')!.append(dots);
 

@@ -5,6 +5,18 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.1.1 — 2026-10-25
+
+- **The find steps' header is one slim row**: ✖ and the progress (`.sheet.slim-head`). "I found something!" is no
+  longer shown on every step (it stays the sheet's accessible name); the guide's bubble says what each step wants.
+  Editing a find keeps its "Change my find" title. Every sheet's header is a little thinner (46 px close button).
+- **Storybook plates re-cropped from the book pages so Scout's face is in them**: the find steps now use the
+  clipboard-by-the-stream page, whole, at the FOOT of the page under the buttons (the thin strip at the top cut his
+  head off); the hunts plate is the winter tracking page; the challenges plate has the blue jay and Scout both.
+  A plate may set `--plate-ratio` / `--plate-pos` to match its crop.
+- **The guide's bubble has no name line in the Field Journal look** ("Field Note · Scout the Survey Squirrel"): it
+  comes from his portrait, which says who is speaking. Crew bubbles keep theirs, which carry their job.
+
 ## 2.1.0 — 2026-10-25
 
 - **Quick finds are per explorer and off by default** (`Profile.quick`, absent = off). Turned on in 🔧 My buttons,
