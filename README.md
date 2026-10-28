@@ -76,12 +76,23 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
 Everything stays on the device, in the browser's IndexedDB: finds, photos, voice notes, locations and
 walks. There is no account, no sync and no analytics. The only network use is the map itself: map
 pictures come from [OpenFreeMap](https://openfreemap.org) (OpenStreetMap data) and, for satellite and
-hybrid, Esri World Imagery; those services see which part of the map is being looked at, as any web map does. With no network the map turns plain green and
-everything else keeps working; places already viewed are cached.
+hybrid, Esri World Imagery; those services see the device's internet address and which part of the map is being
+looked at (around the explorer when the map follows them), as any web map does. With no network the map turns plain
+green and everything else keeps working; places already viewed are cached.
+
+- **Reading aloud** uses only the voices built into the device. A voice that reads over the internet is never
+  chosen automatically; a grown-up can pick one only after a warning.
+- **The page** carries a Content-Security-Policy (Scout and the two map services, nothing else; scripts from Scout
+  alone) and sends no referrer.
+- **The grown-up gate** (hold, then a sum) guards settings, export and every delete in "On my own" mode, removing a
+  saved photo or voice note included. A wrong answer gets a new sum; three in a row pause it for a minute.
+- **Export** says what the file holds and defaults to rough places (about 100 m, no recorded paths) for sharing.
+- **Hosting**: anything else published on the same web address (`<user>.github.io`) can read Scout's stored data.
+  Serve Scout from its own domain or subdomain if anything else is published there.
 
 ## Versions
 
-Scout is at **2.1.0**. See [CHANGELOG.md](CHANGELOG.md); the app shows What's new on its opening screen.
+Scout is at **2.3.0**. See [CHANGELOG.md](CHANGELOG.md); the app shows What's new on its opening screen.
 
 ## Development
 

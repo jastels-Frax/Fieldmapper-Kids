@@ -106,7 +106,7 @@ export const HUNTS: Hunt[] = [
   { id: 'pond', emoji: '🐸', title: 'Pond & Stream Hunt', where: 'Beside a pond, a stream or a wetland. Stay with a grown-up near water!', items: lib('water', 'bird', 'bug', 'plant', 'tiny-rock', 'animal', 'sound') },
   { id: 'tiny', emoji: '🔍', title: 'Tiny Things Hunt', where: 'Get down low and look closely.', items: lib('tiny-bug', 'tiny-rock', 'seed', 'tiny', 'web', 'lots') },
   { id: 'senses', emoji: '👃', title: 'Five Senses Hunt', where: 'Anywhere outside.', items: lib('smell', 'soft', 'rough', 'sound', 'sky', 'heart') },
-  { id: 'beach', emoji: '🏖️', title: 'Beach Hunt', where: 'A beach or a rocky shore.', items: lib('shell', 'rock', 'bird', 'water', 'feather', 'white', 'round') },
+  { id: 'beach', emoji: '🏖️', title: 'Beach Hunt', where: 'A beach or a rocky shore. Stay with a grown-up near water!', items: lib('shell', 'rock', 'bird', 'water', 'feather', 'white', 'round') },
   { id: 'flowers', emoji: '🌼', title: 'Flower Hunt', where: 'A meadow, a park or a garden.', items: lib('yellow-flower', 'purple-flower', 'flower', 'bug', 'lots', 'smell') },
 ];
 

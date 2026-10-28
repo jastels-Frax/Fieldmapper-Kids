@@ -15,10 +15,28 @@ function ext(b: Blob, fallback: string): string {
 }
 
 /**
+ * A place rounded to 3 decimals: about 110 m north–south and 80 m east–west in Nova Scotia. Enough to say which
+ * park or trail; not which house or which tree a child stood under.
+ */
+export function roughPlace(n: number): number {
+  return Math.round(n * 1000) / 1000;
+}
+
+export interface ExportOptions {
+  /**
+   * Rough places: every find and drawing rounded (roughPlace) and recorded paths left out, since a path rounded is
+   * still a line from somebody's door. For a file that will be shared; the grown-up corner offers it first.
+   */
+  rough?: boolean;
+}
+
+/**
  * Every find as a zip: a GeoJSON a grown-up can open in a GIS, a CSV, and the
  * pictures and voices, named by find number. Each find carries its explorer's name.
  */
-export async function buildExport(finds: Find[], profiles: Profile[], walks: Walk[], media: (id: string) => Promise<FindMedia>, sketches: Sketch[] = []): Promise<Blob> {
+export async function buildExport(finds: Find[], profiles: Profile[], walks: Walk[], media: (id: string) => Promise<FindMedia>, sketches: Sketch[] = [], opts: ExportOptions = {}): Promise<Blob> {
+  const place = (n: number) => (opts.rough ? roughPlace(n) : n);
+  const placeText = (n: number | undefined) => (typeof n === 'number' ? (opts.rough ? roughPlace(n).toFixed(3) : n.toFixed(6)) : '');
   const files: Record<string, Uint8Array> = {};
   const features = [];
   const who = new Map(profiles.map(p => [p.id, p.name || 'Explorer'] as const));
@@ -49,15 +67,15 @@ export async function buildExport(finds: Find[], profiles: Profile[], walks: Wal
     };
     features.push({
       type: 'Feature',
-      geometry: typeof f.lat === 'number' && typeof f.lon === 'number' ? { type: 'Point', coordinates: [f.lon, f.lat] } : null,
+      geometry: typeof f.lat === 'number' && typeof f.lon === 'number' ? { type: 'Point', coordinates: [place(f.lon), place(f.lat)] } : null,
       properties: props,
     });
     rows.push([f.id, props.explorer, f.createdAt, props.changed, props.kind, props.sign, props.species, props.species_own_name ? 'yes' : '', props.scientific_name, props.name,
-      props.colours, props.size, props.count, f.lat?.toFixed(6) ?? '', f.lon?.toFixed(6) ?? '', String(f.accuracy ?? ''),
+      props.colours, props.size, props.count, placeText(f.lat), placeText(f.lon), String(f.accuracy ?? ''),
       props.note, props.pictures, voice]);
   }
   files['finds.geojson'] = strToU8(JSON.stringify({ type: 'FeatureCollection', features }, null, 1));
-  if (walks.length) {
+  if (walks.length && !opts.rough) {
     files['paths.geojson'] = strToU8(JSON.stringify({
       type: 'FeatureCollection',
       features: walks.filter(w => w.points.length >= 2).map(w => walkGeoJSON(w, (w.profileId && who.get(w.profileId)) || '')),
@@ -69,8 +87,8 @@ export async function buildExport(finds: Find[], profiles: Profile[], walks: Wal
       features: sketches.filter(s => s.points.length >= 2).map(s => ({
         type: 'Feature',
         geometry: s.kind === 'area' && s.points.length > 2
-          ? { type: 'Polygon', coordinates: [[...s.points, s.points[0]]] }
-          : { type: 'LineString', coordinates: s.points },
+          ? { type: 'Polygon', coordinates: [[...s.points, s.points[0]].map(([x, y]) => [place(x), place(y)])] }
+          : { type: 'LineString', coordinates: s.points.map(([x, y]) => [place(x), place(y)]) },
         properties: { id: s.id, explorer: (s.profileId && who.get(s.profileId)) || '', when: s.createdAt, kind: s.kind, colour: s.colour, name: s.name ?? '' },
       })),
     }));
@@ -78,7 +96,8 @@ export async function buildExport(finds: Find[], profiles: Profile[], walks: Wal
   files['finds.csv'] = strToU8(rows.map(r => r.map(csvCell).join(',')).join('\r\n'));
   files['README.txt'] = strToU8(
     `Scout - finds by ${profiles.map(p => p.name || 'Explorer').join(', ') || 'Explorer'}\n` +
-    `Exported ${new Date().toISOString()}\n\n` +
+    `Exported ${new Date().toISOString()}\n` +
+    (opts.rough ? `Places are ROUGH: rounded to about 100 m, and recorded paths are left out.\n\n` : `Places are EXACT, and recorded paths are included. Share this file with care.\n\n`) +
     `finds.geojson  every find as a point (WGS 84 longitude/latitude); finds with no location have no geometry\n` +
     `finds.csv      the same, as a table\n` +
     `paths.geojson  recorded paths as lines, with a time for every point\n` +

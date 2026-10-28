@@ -26,7 +26,8 @@ export default defineConfig({
         theme_color: '#4a3826',
         background_color: '#ecdfbf',
         display: 'standalone',
-        orientation: 'portrait',
+        // Any way up: a tablet on a desk is often on its side, and a locked app cannot be turned for a better view.
+        orientation: 'any',
         start_url: './',
         scope: './',
         icons: [

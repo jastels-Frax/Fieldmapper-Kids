@@ -13,7 +13,8 @@ export function canRecord(): boolean {
  * Voice notes: each one a row to play or remove, and the big microphone to record one — with a ➕ once there is a
  * note, for "and another thing!". `onChange` hears the whole list after every change.
  */
-export function voiceNotes(initial: Blob[], onChange: (notes: Blob[]) => void): HTMLElement {
+/** `mayRemove`: asked before a note is removed (capture.ts asks, and a saved note needs a grown-up). */
+export function voiceNotes(initial: Blob[], onChange: (notes: Blob[]) => void, mayRemove: (note: Blob) => Promise<boolean> = async () => true): HTMLElement {
   const notes: Blob[] = [...initial];
   let rec: MediaRecorder | null = null;
   let stream: MediaStream | null = null;
@@ -45,8 +46,11 @@ export function voiceNotes(initial: Blob[], onChange: (notes: Blob[]) => void): 
     list.replaceChildren(...notes.map((b, i) => h('div', { class: 'voice-note' },
       h('button', { class: 'round-btn small', type: 'button', 'aria-label': `Play voice note ${i + 1}`, onclick: () => play(b) }, '▶️'),
       h('span', { class: 'voice-note-name' }, `🎵 Voice note ${i + 1}`),
-      h('button', { class: 'round-btn small', type: 'button', 'aria-label': `Remove voice note ${i + 1}`, onclick: () => {
-        notes.splice(i, 1);
+      h('button', { class: 'round-btn small voice-del', type: 'button', 'aria-label': `Remove voice note ${i + 1}`, onclick: async () => {
+        if (!(await mayRemove(b))) return;
+        const at = notes.indexOf(b);
+        if (at < 0) return;
+        notes.splice(at, 1);
         onChange([...notes]);
         paint();
         say('Okay, gone!');

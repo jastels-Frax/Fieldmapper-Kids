@@ -7,10 +7,15 @@ import { MODE_INFO, newProfile, tierPicker, welcomeForm } from './profiles.ts';
 import { TIERS, tierOf } from './tiers.ts';
 import { GUIDE_INFO, activeGuide, guideName } from './guides.ts';
 
-/** First launch: who is exploring, how, and with which guide. Resolves with the first explorer. */
-export function welcome(): Promise<Profile> {
+/**
+ * First launch: who is exploring, how, and with which guide. Resolves with the first explorer and whether the
+ * grown-up setting up wants the words read aloud (a Sprout cannot read yet, so for one it starts on).
+ */
+export function welcome(): Promise<{ profile: Profile; readAloud: boolean }> {
   return new Promise(resolve => {
     const p = newProfile();
+    let readAloud: boolean | null = null;
+    const readsAloud = () => readAloud ?? tierOf(p.tier).id === 'sprout';
     const card = h('div', { class: 'welcome-card' });
     const root = h('div', { class: 'welcome' }, card);
     document.body.append(root);
@@ -35,8 +40,15 @@ export function welcome(): Promise<Profile> {
       root.scrollTop = 0;
     };
 
-    // 2. On their own, or with a grown-up beside them.
+    // 2. On their own, or with a grown-up beside them. And whether the words are read aloud.
     const stepMode = () => {
+      const aloud = h('button', { type: 'button', class: `edit-row switch-row read-aloud-row ${readsAloud() ? 'on' : ''}`, 'aria-pressed': String(readsAloud()), onclick: () => {
+        readAloud = !readsAloud();
+        stepMode();
+      } },
+        h('span', { class: 'switch-emoji' }, '🔊'),
+        h('span', { class: 'switch-text' }, h('strong', {}, 'Read the words aloud'), h('small', {}, 'For an explorer who is still learning to read. Uses the voices built into this device. A grown-up can change it later.')),
+        h('span', { class: 'switch-word' }, readsAloud() ? 'On' : 'Off'));
       card.replaceChildren(
         h('h1', {}, 'How will they explore?'),
         ...(Object.keys(MODE_INFO) as Mode[]).map(m => {
@@ -45,6 +57,7 @@ export function welcome(): Promise<Profile> {
             h('span', { class: 'mode-emoji' }, info.emoji), h('strong', {}, info.title), h('span', {}, info.text));
         }),
         h('p', { class: 'hint' }, 'This can be switched any time with the 🧒 / 👨‍👧 button on the map. You can add more explorers later, each with their own finds.'),
+        aloud,
         h('button', { class: 'text-btn', onclick: stepTier }, labelled('Back', 'back', 'before')),
       );
       root.scrollTop = 0;
@@ -68,8 +81,8 @@ export function welcome(): Promise<Profile> {
       card.replaceChildren(
         buddySays(p.guide, { text: `Ready, ${p.name}? I am ${g}. Let's explore!`, pose: 'excited' }, { quiet: true, big: true }),
         h('p', { class: 'welcome-sub' }, 'The map needs to know where you are. Your phone will ask: tap "Allow".'),
-        h('p', { class: 'hint' }, 'Your location, photos and voice notes stay on this device. Nothing is uploaded.'),
-        h('button', { class: 'big-btn', onclick: () => { root.remove(); resolve(p); } }, "🚀 Let's explore!"),
+        h('p', { class: 'hint' }, 'Your location, photos and voice notes stay on this device: Scout uploads nothing. The map pictures come from the internet.'),
+        h('button', { class: 'big-btn', onclick: () => { root.remove(); resolve({ profile: p, readAloud: readsAloud() }); } }, "🚀 Let's explore!"),
         h('button', { class: 'text-btn', onclick: stepMe }, labelled('Back', 'back', 'before')),
       );
       root.scrollTop = 0;

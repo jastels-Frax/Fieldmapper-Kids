@@ -125,8 +125,12 @@ export class App {
     this.map.setFinds(this.finds);
     this.paintSketches();
     if (!first) {
-      const p = await saveProfile(await welcome());
+      const w = await welcome();
+      const p = await saveProfile(w.profile);
       this.profiles = [p];
+      // The grown-up's choice in the welcome, kept as a deliberate one (readAloudChosen), like the corner's switch.
+      this.settings = { ...this.settings, readAloud: w.readAloud, readAloudChosen: true };
+      this.applyAudio();
       await this.switchTo(p.id);
     } else {
       // The opening screen, once per launch (a page load); never on coming back from another app.
@@ -826,7 +830,7 @@ export class App {
         this.replaceRun(next);
         this.paintHunt();
         // Stopping a hunt usually means heading home; switching to another does not.
-        if (!switching && this.settings.tickReminder && (await askYesNo('Done exploring? Let\'s do a tick check!', '🕷️ Tick check', 'Not now'))) {
+        if (!switching && this.settings.tickReminder && (await askYesNo('Done exploring? Let\'s do a tick check!', '🕷️ Tick check', 'Not now', 'go'))) {
           this.openTickCheckScreen();
         }
       },

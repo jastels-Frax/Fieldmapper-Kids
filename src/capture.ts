@@ -7,6 +7,7 @@ import { sounds } from './sound.ts';
 import { downscale } from './image.ts';
 import { drawPad } from './drawPad.ts';
 import { voiceNotes } from './voice.ts';
+import { askGrownUp } from './gateView.ts';
 import { tierOf } from './tiers.ts';
 import { accuracyWords, bestFix, steadiedFix, steadyNow, type Fix } from './gps.ts';
 import { buddySays } from './buddyView.ts';
@@ -178,6 +179,20 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
   };
   /** In editing, the step's own "Next" reads as "Done". */
   const nextLabel = (): Node | string => (editing || detour ? '✅ Done' : labelled('Next', 'forward'));
+  /** A picture or voice note already saved with the find being changed (not one added just now). */
+  const savedPicture = (id: string) => !!existing?.pictures.some(p => p.id === id);
+  const savedVoice = (note: Blob) => !!existing?.voices.includes(note);
+  /**
+   * Removing something from a find. Once it is saved, removing it is deleting it: in "On my own" mode that asks a
+   * grown-up, as every other delete does (a child could otherwise empty a find of its photos through Change it).
+   * A voice note just recorded is still asked about, as it is easily tapped away by accident; a picture just
+   * taken goes at once.
+   */
+  const mayRemove = async (what: string, saved: boolean, alwaysAsk = false): Promise<boolean> => {
+    if (saved && host.profile.mode === 'explorer') return askGrownUp(`Removing a saved ${what} cannot be undone.`);
+    if (saved || alwaysAsk) return askYesNo(`Remove this ${what}?`, '🗑️ Remove', 'Keep it');
+    return true;
+  };
   /** ✨ Save now: on every new find's step after the kind, so the rest is optional on a trail. */
   const saveNow = () => (editing || detour || !draft.category ? null
     : h('button', { class: 'big-btn soft save-now', onclick: () => void finish() }, '✨ Save now'));
@@ -236,7 +251,12 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
           const img = h('img', { alt: p.kind === 'photo' ? `Photo ${i + 1}` : `Drawing ${i + 1}` });
           const cell = h('div', { class: 'pic-cell' }, img,
             h('span', { class: 'pic-kind' }, p.kind === 'photo' ? '📷' : '🎨'),
-            h('button', { class: 'pic-del', 'aria-label': 'Remove this picture', onclick: () => { draft.pictures.splice(i, 1); paint(); } }, icon('close')));
+            h('button', { class: 'pic-del', 'aria-label': 'Remove this picture', onclick: async () => {
+              if (!(await mayRemove(p.kind === 'photo' ? 'photo' : 'drawing', savedPicture(p.id)))) return;
+              const at = draft.pictures.indexOf(p);
+              if (at >= 0) draft.pictures.splice(at, 1);
+              paint();
+            } }, icon('close')));
           gallery.append(cell);
           img.src = blobUrl(p.blob, cell);
           return cell;
@@ -476,7 +496,7 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
     tell() {
       const cat = categoryOf(draft.category!);
       const parts: (Node | null)[] = [title()];
-      parts.push(voiceNotes(draft.voices, list => { draft.voices = list; }));
+      parts.push(voiceNotes(draft.voices, list => { draft.voices = list; }, note => mayRemove('voice note', savedVoice(note), true)));
       if (!editing) {
         // Where it goes, stated rather than asked (the Where question comes only when the GPS cannot answer).
         const acc = fix ? accuracyWords(fix.accuracy) : null;

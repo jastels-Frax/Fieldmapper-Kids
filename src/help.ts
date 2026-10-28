@@ -32,12 +32,16 @@ const PARTS: { emoji: string; title: string; lines: string[] }[] = [
     '🔎 Hunts are scavenger hunts: find everything on the list to win a trophy.',
   ] },
   { emoji: '🐻', title: 'Staying safe', lines: [
-    'Stay where your grown-up can see you.',
+    'Stay where your grown-up can see you, and stay with a grown-up near water.',
     'Look at mushrooms, but never eat one. Look at scat, but never touch it.',
+    'Look at plants with your eyes: some, like poison ivy, make skin itchy.',
+    'Watch wild animals from far away. Never touch or feed them.',
     'When you are done exploring, tap 🏠 Done for a tick check.',
   ] },
   { emoji: '🔒', title: 'For grown-ups', lines: [
-    'Everything stays on this device: no accounts, no uploads, no tracking. Only the map pictures come from the internet.',
+    'Finds, photos, voice notes, paths and places stay on this device: no accounts, no uploads, no analytics.',
+    'The map pictures come from the internet: the map services see roughly where the map is looking (around the explorer when the map follows them), as any web map does.',
+    'Reading aloud uses the voices built into this device. Scout never uses an internet voice unless a grown-up picks one.',
     'The 🔒 grown-up corner has the settings, the explorers, reading aloud, species lists, saving all finds to a file, and deleting.',
     'Scout works offline once it has been opened online. The map shows the places already looked at with a signal.',
     'On an iPhone or iPad, add Scout to the Home Screen so its data is kept.',

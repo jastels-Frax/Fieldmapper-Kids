@@ -10,6 +10,8 @@
   --green: #2f9e44;
   --green-dark: #1e6b2e;
   --orange: #f76707;
+  /* The answer that loses something (a delete, a throw-away), drawn quieter than the safe one. */
+  --danger: #c92a2a;
   --yellow: #fcc419;
   --card: #ffffff;
   --line: #121512;
@@ -75,7 +77,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 4px
   background: var(--card); border: var(--bw) solid var(--line); border-radius: 50%; box-shadow: var(--shadow);
   font-size: 26px; padding: 0;
 }
-.round-btn.small { width: 40px; height: 40px; font-size: 16px; box-shadow: none; }
+/* 48 px: the smallest a child's finger hits reliably (and above the 44 px every platform asks for). */
+.round-btn.small { width: 48px; height: 48px; font-size: 18px; box-shadow: none; }
 .round-btn:active, .big-btn:active, .choice:active, .found-btn:active, .nav-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--line); }
 .lock { width: 48px; height: 48px; font-size: 20px; opacity: 0.85; }
 
@@ -274,7 +277,7 @@ body.picking .quick-row { visibility: hidden; }
 .big-btn.soft { background: var(--card); color: var(--ink); }
 .big-btn[disabled] { opacity: 0.6; }
 .text-btn { display: block; margin: 10px auto; background: none; border: 0; font-size: 17px; font-weight: 800; color: var(--soft-ink); padding: 12px; }
-.text-btn.danger { color: #c92a2a; }
+.text-btn.danger { color: var(--danger); }
 .ask-row { display: flex; gap: 12px; }
 .ask-row > * { flex: 1; }
 
@@ -458,7 +461,10 @@ textarea.text-in { resize: vertical; }
 .mode-emoji { font-size: 38px; }
 
 /* Gate / dialogs */
-.gate-overlay { position: fixed; inset: 0; z-index: 90; background: rgba(18, 21, 18, 0.55); display: grid; place-items: center; padding: 16px; }
+.gate-overlay { position: fixed; inset: 0; z-index: 90; background: rgba(18, 21, 18, 0.55); display: grid; place-items: center; padding: 16px; overflow-y: auto; overscroll-behavior: contain; }
+/* A short screen (a phone on its side, a keyboard open): the card starts at the top and scrolls, so Cancel and OK
+   are never out of reach. */
+@media (max-height: 600px) { .gate-overlay { align-items: start; } }
 .gate-card { width: min(420px, 100%); background: var(--bg); border: calc(var(--bw) + 1px) solid var(--line); border-radius: 26px; padding: 18px; text-align: center; box-shadow: var(--shadow-big); }
 .gate-card h2 { margin: 4px 0; }
 .gate-lock { font-size: 46px; }
@@ -528,7 +534,7 @@ html[data-mode="explorer"] .choice-emoji { font-size: 60px; }
 .tick-spot-emoji { font-size: 30px; }
 .tick-spot-text { flex: 1; }
 .tick-spot-box { font-size: 22px; }
-.danger-btn { background: var(--warm-soft); color: #c92a2a; }
+.danger-btn { background: var(--warm-soft); color: var(--danger); }
 .tick-btn { background: #8d5524; }
 .tick-guide { background: var(--card); border: var(--bw) solid var(--line); border-radius: var(--radius); padding: 10px 14px; margin: 16px auto; }
 .tick-guide summary { font-weight: 900; font-size: 17px; cursor: pointer; padding: 6px 0; }
@@ -541,7 +547,7 @@ html[data-mode="explorer"] .choice-emoji { font-size: 60px; }
 .pic-cell { position: relative; aspect-ratio: 1; border: var(--bw) solid var(--line); border-radius: var(--radius-sm); overflow: hidden; background: var(--card); }
 .pic-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .pic-kind { position: absolute; left: 4px; bottom: 4px; background: var(--card); border-radius: 10px; padding: 0 4px; font-size: 16px; }
-.pic-del { position: absolute; right: 4px; top: 4px; width: 32px; height: 32px; border-radius: 50%; border: max(1px, calc(var(--bw) - 1px)) solid var(--line); background: var(--card); font-size: 14px; padding: 0; }
+.pic-del { position: absolute; right: 2px; top: 2px; width: 44px; height: 44px; border-radius: 50%; border: max(1px, calc(var(--bw) - 1px)) solid var(--line); background: var(--card); font-size: 16px; padding: 0; display: grid; place-items: center; }
 .choice-grid.two { grid-template-columns: repeat(2, 1fr); }
 .center { text-align: center; }
 .detail-pics { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; }
@@ -660,6 +666,7 @@ html[data-theme="berry"] {
   --good-soft: #e5dbff; --pick-soft: #ffdeeb; --cool-soft: #edf2ff; --warm-soft: #fff0f6;
 }
 html[data-theme="night"] {
+  --danger: #ff8787;
   --bg: #16191d; --card: #262b31; --ink: #f1f3f5; --soft-ink: #adb5bd; --line: #000000;
   --green: #37b24d; --green-dark: #8ce99a; --orange: #fd7e14; --yellow: #fab005;
   --good-soft: #1f3a27; --pick-soft: #3b3420; --cool-soft: #1c2e40; --muted-soft: #343a40; --warm-soft: #3d2a1c;
@@ -784,7 +791,7 @@ html[data-theme="journal"] .sheet.challenges { --plate: url("./assets/journal/ch
 html[data-theme="journal"] .sheet.crew { --plate: url("./assets/journal/crew.webp"); }
 html[data-theme="journal"] .sheet.capture { --plate: url("./assets/journal/capture.webp"); --plate-ratio: 900 / 437; --plate-pos: center; }
 html[data-theme="journal"] :is(.sheet.hunts, .sheet.hunt-preview) { --plate: url("./assets/journal/hunts.webp"); --plate-ratio: 900 / 441; --plate-pos: center; }
-html[data-theme="journal"] .sheet.ticks { --plate: url("./assets/journal/ticks.webp"); }
+html[data-theme="journal"] .sheet.ticks { --plate: url("./assets/journal/ticks.webp"); --plate-ratio: 900 / 563; --plate-pos: center; }
 html[data-theme="journal"] .sheet.grownups { --plate: url("./assets/journal/grownups.webp"); }
 html[data-theme="journal"] .sheet.walks { --plate: url("./assets/journal/walks.webp"); }
 html[data-theme="journal"] .sheet.walk-done { --plate: url("./assets/journal/walks.webp"); }
@@ -1103,3 +1110,32 @@ button, .choice, .chip, .pill, .mini-choice, .launch-tile, .tool-text, .edit-row
 .shape-card .draw-foot .big-btn { min-height: 52px; }
 .shape-card .shape-delete { flex: 0 0 auto; width: auto; padding: 6px 16px; }
 .shape-note { flex: 1; margin: 0; font-size: 14px; }
+
+/* askYesNo: the answer that loses something is second and quieter, in the danger colour (the safe one is primary). */
+.big-btn.ask-lose { color: var(--danger); border-color: var(--danger); box-shadow: none; }
+.read-aloud-row { margin: 14px 0 6px; }
+
+/* A long press on a picture must not offer iOS's Share / Save to Photos / Copy: an ungated way to send a child's
+   photo anywhere. Saving pictures out goes through the grown-up corner's export. */
+img { -webkit-touch-callout: none; -webkit-user-drag: none; user-select: none; }
+
+/* A notice (toast) over a screen goes to the foot, so it never covers the guide's instructions at the top. */
+body:has(.sheet) .toast { top: auto; bottom: calc(20px + var(--safe-b)); }
+
+/* A phone on its side (short and wide): the side buttons run along the top instead of down the side, where only
+   two of them fitted, and the opening screen goes into two columns so Start adventure is on screen. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .side-btns { flex-direction: row-reverse; align-items: flex-start; top: calc(70px + var(--safe-t)); }
+  .side-body { flex-direction: row; max-height: none; max-width: calc(100vw - 110px); overflow-x: auto; overflow-y: hidden; padding: 2px 4px 4px; }
+  .side-body .rail-btn, .side-body[data-count="7"] .rail-btn { width: 56px; height: 50px; }
+  .side-body .rail-btn .rail-emoji { font-size: 21px; }
+  .side-body .rail-btn .rail-word { font-size: 10px; margin-top: 1px; }
+  .rail-toggle svg { transform: rotate(90deg); }
+  .side-btns.folded .rail-toggle svg { transform: rotate(-90deg); }
+  .launch-inner { max-width: 920px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; row-gap: 10px; align-items: start; }
+  .launch-inner > * { grid-column: 2; }
+  .launch-inner > .launch-logo { grid-column: 1; grid-row: 1 / 3; width: min(260px, 90%); }
+  .launch-inner > .launch-welcome { grid-column: 1; grid-row: 3 / 7; }
+  .launch-go { min-height: 56px; font-size: 21px; }
+  .launch-tile { min-height: 64px; }
+}

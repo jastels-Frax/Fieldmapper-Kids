@@ -28,8 +28,8 @@ export const CATEGORIES: Category[] = [
   },
   {
     id: 'plant', emoji: '🌿', label: 'Plant', colour: '#40c057', cheer: 'A plant! So green!',
-    talk: ['How does the leaf feel?', 'Is it in the sun or the shade?', 'Do you think it needs a lot of water?'],
-    facts: ['Plants make their own food from sunlight.', 'Moss has no flowers or seeds.', 'Some plants can grow back from a tiny piece.'],
+    talk: ['What shape are the leaves?', 'Is it in the sun or the shade?', 'Do you think it needs a lot of water?'],
+    facts: ['Plants make their own food from sunlight.', 'Moss has no flowers or seeds.', 'Some plants, like poison ivy, make skin itchy. Look with your eyes, not your hands.'],
   },
   {
     id: 'tree', emoji: '🌳', label: 'Tree', colour: '#2b8a3e', cheer: 'A tree! So tall!',
@@ -42,9 +42,9 @@ export const CATEGORIES: Category[] = [
     facts: ['Bees carry pollen from flower to flower.', 'Some flowers close up at night.', 'Dandelion seeds fly on tiny parachutes.'],
   },
   {
-    id: 'animal', emoji: '🐿️', label: 'Animal', colour: '#e8590c', cheer: 'An animal! Wow!',
+    id: 'animal', emoji: '🐿️', label: 'Animal', colour: '#e8590c', cheer: 'An animal! Wow! Watch it from far away.',
     talk: ['Was it fast or slow?', 'Did it have fur, scales or skin?', 'Did it see you?'],
-    facts: ['Squirrels bury nuts and forget some, which grow into trees.', 'Frogs can breathe through their skin.', 'Many animals come out at dusk.'],
+    facts: ['Squirrels bury nuts and forget some, which grow into trees.', 'Frogs can breathe through their skin.', 'Watch wild animals from far away. Never touch or feed them.'],
   },
   {
     id: 'mushroom', emoji: '🍄', label: 'Mushroom', colour: '#c92a2a', cheer: 'A mushroom! Look, but never eat it!',
@@ -62,7 +62,7 @@ export const CATEGORIES: Category[] = [
     facts: ['Some rocks were made by volcanoes.', 'Rivers make rocks round and smooth.', 'Rocks can be millions of years old.'],
   },
   {
-    id: 'water', emoji: '💧', label: 'Water', colour: '#1c7ed6', cheer: 'Water! Splash!',
+    id: 'water', emoji: '💧', label: 'Water', colour: '#1c7ed6', cheer: 'Water! Stay with a grown-up near water.',
     talk: ['Is the water moving or still?', 'Can you see anything living in it?', 'Where do you think it goes next?'],
     facts: ['Rain fills streams, and streams fill rivers.', 'Wetlands are like sponges for water.', 'Lots of tiny animals live in ponds.'],
   },

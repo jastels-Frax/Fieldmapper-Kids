@@ -84,17 +84,20 @@ export function blobUrl(blob: Blob, owner: Element): string {
 
 export { uid } from './ids.ts';
 
-/** A big yes / no question, drawn for small hands. */
-export function askYesNo(text: string, yes: string, no: string): Promise<boolean> {
+/**
+ * A big yes / no question, drawn for small hands. Most questions ask before something is lost ("Throw this find
+ * away?"), so by default the SAFE answer (`no`) is the big first button and the one that loses something sits
+ * second, quieter and marked. `go` is for a question whose yes loses nothing (a tick check?): yes comes first.
+ */
+export function askYesNo(text: string, yes: string, no: string, kind: 'danger' | 'go' = 'danger'): Promise<boolean> {
   return new Promise(resolve => {
     const done = (v: boolean) => { overlay.remove(); resolve(v); };
+    const yesBtn = h('button', { class: kind === 'go' ? 'big-btn' : 'big-btn soft ask-lose', onclick: () => done(true) }, yes);
+    const noBtn = h('button', { class: kind === 'go' ? 'big-btn soft' : 'big-btn', onclick: () => done(false) }, no);
     const overlay = h('div', { class: 'gate-overlay', role: 'dialog', 'aria-label': text },
       h('div', { class: 'gate-card' },
         h('p', { class: 'ask-text' }, text),
-        h('div', { class: 'ask-row' },
-          h('button', { class: 'big-btn', onclick: () => done(true) }, yes),
-          h('button', { class: 'big-btn soft', onclick: () => done(false) }, no),
-        ),
+        h('div', { class: 'ask-row' }, ...(kind === 'go' ? [yesBtn, noBtn] : [noBtn, yesBtn])),
       ),
     );
     document.body.append(overlay);

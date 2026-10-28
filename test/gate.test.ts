@@ -20,3 +20,31 @@ test('checking is strict', () => {
   assert.equal(checkGateAnswer(q, '71'), false);
   assert.equal(checkGateAnswer(q, 'abc'), false);
 });
+
+import { afterMiss, pausedFor, readLock, GATE_PAUSE_MS, OPEN_LOCK } from '../src/gate.ts';
+
+test('three wrong answers in a row pause the gate for a minute, then it opens again', () => {
+  let lock = OPEN_LOCK;
+  lock = afterMiss(lock, 1000);
+  lock = afterMiss(lock, 2000);
+  assert.equal(pausedFor(lock, 2000), 0);
+  lock = afterMiss(lock, 3000);
+  assert.equal(pausedFor(lock, 3000), GATE_PAUSE_MS);
+  assert.equal(pausedFor(lock, 3000 + GATE_PAUSE_MS), 0);
+  assert.equal(lock.misses, 0);
+});
+
+test('a stored lock is read safely', () => {
+  const now = 1_000_000;
+  assert.deepEqual(readLock(null, now), OPEN_LOCK);
+  assert.deepEqual(readLock('nonsense', now), OPEN_LOCK);
+  assert.deepEqual(readLock(JSON.stringify({ misses: 2, until: now + 5000 }), now), { misses: 2, until: now + 5000 });
+  // Far in the future (a clock change): ignored rather than a gate that never opens.
+  assert.equal(readLock(JSON.stringify({ misses: 1, until: now + 10 * GATE_PAUSE_MS }), now).until, 0);
+});
+
+test('every miss can be asked a fresh question', () => {
+  const seen = new Set<string>();
+  for (let i = 0; i < 20; i++) seen.add(makeGateQuestion().text);
+  assert.ok(seen.size > 5);
+});

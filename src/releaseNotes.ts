@@ -12,6 +12,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.3.0', date: '2026-10-28', title: 'Safer for explorers',
+    notes: [
+      'Reading aloud only uses voices on this device.',
+      'A grown-up is asked before a saved photo or voice note is removed.',
+      'Scout works with the tablet or phone held sideways.',
+    ],
+  },
+  {
     version: '2.2.0', date: '2026-10-28', title: 'Tap your drawings',
     notes: [
       'Tap a line, shape or path on your map to see how long or big it is.',

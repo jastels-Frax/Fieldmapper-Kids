@@ -9,11 +9,12 @@ badges and go on scavenger hunts with a buddy (Pip the rat or Hop the frog). It 
 much smaller app from Fraxinus Field Mapper (`fraxinusenviro/GPS2026felt`), sharing its stack and
 its two characters, and nothing else. Do not add code here that talks to Field Mapper's backend.
 
-Stack: vanilla TypeScript + Vite + MapLibre GL 5 + `idb` + `vite-plugin-pwa`. **No UI framework.**
+Stack: vanilla TypeScript + Vite + MapLibre GL 6 + `idb` + `vite-plugin-pwa`. **No UI framework.** MapLibre 6 finds its worker
+by URL: `mapView.ts` gives it the file Vite emits (`setWorkerUrl`), and `.mjs` is precached — keep both.
 
 ## Versions
 
-Scout is **2.2.0**. The version lives in `package.json` (shown on the opening screen and in the grown-up corner as
+Scout is **2.3.0**. The version lives in `package.json` (shown on the opening screen and in the grown-up corner as
 `__APP_VERSION__`); **every release bumps it and adds an entry to both `CHANGELOG.md` (detail, for us) and
 `src/releaseNotes.ts` (`RELEASES`, in the family's words, shown as "What's new")**. `test/releaseNotes.test.ts` fails
 when the three disagree. A patch (x.y.Z) for a fix, a minor (x.Y.0) for new things, a major for a new shape of app.
@@ -71,7 +72,7 @@ There is no linter; `tsc` is the gate.
 
 **Pure, DOM-free and unit-tested:** `badges.ts`, `challenges.ts`, `hunts.ts`, `gate.ts`, `csv.ts`,
 `geo.ts`, `categories.ts`, `buddies.ts`, `buddyLines.ts`, `critters.ts`, `cast.ts`, `tickGuide.ts`, `guides.ts`,
-`findModel.ts`, `findSplit.ts`, `gpsSteady.ts`, `geometryHit.ts`, `mapShapes.ts`, `quickFinds.ts`, `measure.ts`, `railTools.ts`, `avatarArt.ts`, `releaseNotes.ts`, `species.ts`, `familiar.ts`, `ids.ts`, `walk.ts`, `voiceRank.ts`, `heading.ts`, `look.ts`, `tiers.ts`, `sproutArt.ts`. Keep logic there and the DOM out of them.
+`findModel.ts`, `findSplit.ts`, `exportData.ts` (with fflate), `gpsSteady.ts`, `geometryHit.ts`, `mapShapes.ts`, `quickFinds.ts`, `measure.ts`, `railTools.ts`, `avatarArt.ts`, `releaseNotes.ts`, `species.ts`, `familiar.ts`, `ids.ts`, `walk.ts`, `voiceRank.ts`, `heading.ts`, `look.ts`, `tiers.ts`, `sproutArt.ts`. Keep logic there and the DOM out of them.
 
 ## Species lists
 
@@ -100,6 +101,16 @@ Everything" would take that badge away from every explorer who already earned it
 - **Child safety and privacy first.** No accounts, no uploads, no analytics, no third-party requests
   beyond the map tiles. Anything destructive or outward (delete, export, settings) sits behind the
   grown-up gate in Explorer mode. Exact coordinates are shown only in Together mode.
+  - **The Content-Security-Policy in `index.html`** allows Scout, `tiles.openfreemap.org` and
+    `server.arcgisonline.com` and nothing else; no inline scripts (the boot fallback is `public/boot.js`). A new
+    outside host is a decision, not a fix to the policy.
+  - **Reading aloud uses device voices only** (`voiceRank.onDevice`); a cloud voice only by a grown-up's warned
+    choice (`Settings.voiceCloudOk`).
+  - **Removing anything saved** (a find, a photo, a voice note, a drawing, a path) asks a grown-up in "On my own"
+    mode. **`askYesNo` puts the safe answer first** (`'danger'`, the default); pass `'go'` only when yes loses nothing.
+  - **The gate** gives a new sum per miss and pauses after three (`gate.ts`, kept across a reload).
+  - **Export** states what it holds and defaults to rough places (`exportData.roughPlace`, no paths).
+  - **Words that invite risk** (touching plants or animals, water) carry the safety line beside them.
 - **Text never runs past its box.** A small button uses a short word (`Category.short`), a word that must give way ends in …, and buttons and cards break a long word onto a new line (`overflow-wrap: break-word`). Check at 320 px wide with the Biggest text size and Chunky letters.
 - **Colours, borders and corners are tokens** (`--bg`, `--card`, `--ink`, `--green` (the accent), `--good-soft`…, `--bw`,
   `--radius`): never hard-code a colour in a new rule, or a theme (Night above all) will miss it.
@@ -108,6 +119,8 @@ Everything" would take that badge away from every explorer who already earned it
   age-specific. The modes are called "On my own" / "Together" on screen (`MODE_WORDS`); the stored values are unchanged.
 - **All text goes through `textContent`** (`ui.ts` `h()`); the only `innerHTML` is our own constant SVG markup
   (the buddies, the logos, `icons.ts`).
+- **A phone on its side** (`max-height: 500px` landscape) gets the rail along the top and a two-column opening
+  screen; the gate overlay scrolls on short screens. Round small buttons are 48 px.
 - **Desktop is one centred column**: at ≥ 760 px a sheet's body and header pad to a 720 px column; never place a
   sheet's controls against the window's edges.
 - **Words are short and are read aloud** (`say()`); every button has an emoji and a word.

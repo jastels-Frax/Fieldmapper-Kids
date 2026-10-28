@@ -5,6 +5,41 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.3.0 — 2026-10-28
+
+A safety pass, from a review of privacy, security, kid-friendliness and layout.
+
+- **Reading aloud never sends words over the internet by itself** (`voiceRank.onDevice` / `isCloudVoice`): only
+  device voices are ranked and cast ("online" left the natural-voice bonus). Edge had been picking "Microsoft …
+  Online (Natural)" and Chrome "Google US English", which send every word read (the explorer's name among them)
+  to Microsoft or Google. A grown-up can still pick a cloud voice: it is listed last, marked ☁️, and asked about;
+  `Settings.voiceCloudOk` records the yes, and a cloud voice picked before this is not used until confirmed.
+- **MapLibre 6.16** (critical advisory GHSA-jrc7-96c5-q579 in ≤ 6.4.0, an HTML-sanitizer bypass reachable through
+  map attribution). v6 has no default export and finds its worker beside its own file, so `mapView.ts` hands it the
+  worker Vite emits (`setWorkerUrl`), and `.mjs` joins the precache.
+- **Content-Security-Policy and no referrer** in `index.html`: Scout, OpenFreeMap and Esri imagery, nothing else;
+  scripts from Scout alone. The boot fallback left the page for `public/boot.js`, built with `textContent` (the
+  reason it shows can carry an error message).
+- **The gate**: a new sum after every wrong answer, and three misses in a row pause it for a minute, kept across a
+  reload (`gate.afterMiss` / `readLock`, tested).
+- **Removing a saved photo, drawing or voice note asks a grown-up in "On my own" mode** (it was possible through
+  ✏️ Change it with no gate); a voice note is always asked about.
+- **Yes / no questions put the safe answer first** (`askYesNo`, `kind` `'danger'` by default; the losing answer
+  is second, quieter, in the new `--danger` token). Only the tick-check question is `'go'`.
+- **Export** says what the file holds and offers **rough places** (on by default): finds and drawings rounded to
+  about 100 m (`exportData.roughPlace`), recorded paths left out, the README saying which (tested).
+- **Read aloud is asked in the welcome**, on by default for a Sprout (who cannot read yet).
+- **Safety words**: water (the Water cheer, the Beach Hunt), plants (no "how does the leaf feel?"; poison ivy), wild
+  animals (watch from far away, never touch or feed); "How to use" says them too.
+- **Pictures**: the tick-check plate no longer shows a bear and cub (Scout with his clipboard instead); the
+  challenges plate's "BREAKING ELLIOTT" poster title is covered with blank paper. Two stray screenshots left the
+  repository root. A long press on a picture no longer offers iOS's Share / Save to Photos.
+- **Privacy words** say what is true: the map services see the device's address and roughly where the map looks.
+- **Layout**: a phone on its side gets the side buttons along the top (only two fitted down the side), a two-column
+  opening screen and a scrolling gate; the installed app may turn any way (it was locked to portrait). Small round
+  buttons are 48 px and the photo remove button 44 px. A notice over a screen sits at the foot, not over the
+  guide's instructions.
+
 ## 2.2.0 — 2026-10-28
 
 - **Tap a drawing or a saved path on the map** to open its card (`shapeCard.ts`): what it is, how long or big (in

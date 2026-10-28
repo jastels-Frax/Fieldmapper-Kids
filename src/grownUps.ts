@@ -140,13 +140,27 @@ export function openGrownUps(host: GrownUpHost): void {
   void navigator.storage?.estimate?.().then(e => {
     if (e.usage) storage.textContent += ` · ${(e.usage / 1048576).toFixed(1)} MB used on this device`;
   });
+  // What the file holds is said before it is made, and a file to share gets rough places (exportData.roughPlace).
+  let rough = true;
+  const roughRow = h('button', { type: 'button', class: 'edit-row switch-row on', 'aria-pressed': 'true' });
+  const paintRough = () => {
+    roughRow.classList.toggle('on', rough);
+    roughRow.setAttribute('aria-pressed', String(rough));
+    roughRow.replaceChildren(h('span', { class: 'switch-emoji' }, '📍'),
+      h('span', { class: 'switch-text' }, h('strong', {}, 'Rough places (safer to share)'),
+        h('small', {}, rough ? 'Places rounded to about 100 m; recorded paths left out.' : 'Exact places and every recorded path, with times.')),
+      h('span', { class: 'switch-word' }, rough ? 'On' : 'Off'));
+  };
+  roughRow.addEventListener('click', () => { rough = !rough; paintRough(); });
+  paintRough();
+  const exportNote = h('p', { class: 'hint' }, 'The file holds every explorer\'s name and finds: their photos, voice notes and drawings, with when and where each was found. Keep it somewhere private.');
   const exportBtn = h('button', { class: 'big-btn' }, '📦 Save all finds as a file');
   exportBtn.addEventListener('click', async () => {
     if (!finds.length) return toast('There are no finds to save yet.');
     exportBtn.setAttribute('disabled', '');
     exportBtn.textContent = '📦 Packing…';
     try {
-      const blob = await buildExport(host.allFinds(), host.profiles.profiles(), host.allWalks(), getFindMedia, host.allSketches());
+      const blob = await buildExport(host.allFinds(), host.profiles.profiles(), host.allWalks(), getFindMedia, host.allSketches(), { rough });
       await saveFile(blob, `scout-finds-${new Date().toISOString().slice(0, 10)}.zip`);
     } catch {
       toast('Saving the file did not work.');
@@ -190,11 +204,11 @@ export function openGrownUps(host: GrownUpHost): void {
     h('button', { class: 'big-btn soft', onclick: () => speciesFile.click() }, '📥 Import a species list'),
     speciesFile,
     h('h2', { class: 'section-title' }, 'Finds'),
-    storage, exportBtn, wipe,
+    storage, exportNote, roughRow, exportBtn, wipe,
     h('h2', { class: 'section-title' }, 'Privacy'),
     h('p', { class: 'hint' },
-      'Everything stays on this device: explorers, finds, photos, voices, location, walks and recorded paths. There is no account and nothing is uploaded. ' +
-      'The map pictures come from OpenFreeMap (OpenStreetMap data) and, for satellite views, Esri World Imagery; those services see which part of the map is being looked at, as any web map does. ' +
+      'Everything stays on this device: explorers, finds, photos, voices, location, walks and recorded paths. There is no account and Scout uploads nothing. ' +
+      'The map pictures come from OpenFreeMap (OpenStreetMap data) and, for satellite views, Esri World Imagery; those services see the device\'s internet address and which part of the map is being looked at (around the explorer while the map follows them), as any web map does. ' +
       'Uninstalling the app or clearing the browser\'s site data deletes the finds, so save a file now and then.'),
     h('p', { class: 'hint' }, `Scout ${__APP_VERSION__} · made by Fraxinus`),
     h('div', { class: 'ask-row' },
