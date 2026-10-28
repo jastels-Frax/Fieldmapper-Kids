@@ -1,3 +1,4 @@
+import { icon } from './icons.ts';
 import type { Profile, Sketch } from './types.ts';
 import { h, openSheet, askYesNo, toast, uid, whenWords } from './ui.ts';
 import { say } from './speech.ts';
@@ -95,7 +96,7 @@ export function openDrawTool(host: DrawHost, mode: DrawMode, onClose: () => void
     h('div', { class: 'draw-head' },
       h('strong', {}, mode === 'measure' ? '📏' : '✏️'),
       readout,
-      h('button', { class: 'round-btn small', 'aria-label': 'Close', onclick: () => close() }, '✖️')),
+      h('button', { class: 'round-btn small', 'aria-label': 'Close', onclick: () => close() }, icon('close'))),
     hint,
     h('div', { class: 'draw-tools' }, kinds, colours),
     h('div', { class: 'draw-foot' }, keepBtn, undoBtn, clearBtn, listBtn),

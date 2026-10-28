@@ -115,8 +115,8 @@ html .map-card .choice.style-choice { padding: 10px 4px; font-size: 15px; min-he
 .switch-row.on .switch-word { background: var(--green); color: var(--card); border-color: var(--green); }
 .map-card { max-height: calc(100dvh - 32px); overflow-y: auto; }
 .rail-toggle { width: 44px; height: 44px; color: var(--ink); }
-.rail-toggle svg { transform: rotate(90deg); transition: transform 0.18s; }
-.side-btns.folded .rail-toggle svg { transform: rotate(-90deg); }
+.rail-toggle svg { transition: transform 0.18s; }
+.side-btns.folded .rail-toggle svg { transform: rotate(180deg); }
 
 .gps-note, .walk-note {
   position: absolute; left: 50%; transform: translateX(-50%); top: calc(76px + var(--safe-t));
@@ -1074,3 +1074,24 @@ button, .choice, .chip, .pill, .mini-choice, .launch-tile, .tool-text, .edit-row
 .quick-pick .tool-row { margin-bottom: 8px; }
 .quick-modes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 .quick-pick .mini-choice[disabled] { opacity: 0.4; }
+
+/* Scout's own icons (icons.ts): an inked line in the text colour, sized to the button around them. */
+.ic { display: inline-grid; place-items: center; line-height: 0; flex: 0 0 auto; }
+.ic svg { width: 1.15em; height: 1.15em; display: block; overflow: visible; }
+.round-btn > .ic svg { width: 30px; height: 30px; }
+.round-btn.small > .ic svg, .pic-del > .ic svg { width: 22px; height: 22px; }
+.sheet-head .round-btn > .ic svg { width: 32px; height: 32px; }
+.rail-toggle > .ic svg { width: 30px; height: 30px; }
+.ic-label { display: inline-flex; align-items: center; justify-content: center; gap: 0.35em; }
+.bubble-say svg { width: 24px; height: 24px; }
+
+/* A wide screen (a laptop, a desk): everything in a sheet keeps to one centred column, the header's controls
+   included, instead of the ✖ and the arrows sitting at the far edges of the window. The column is the padding,
+   so a child that forgot its own max-width or auto margins (a text box, a heading) still lands in it. */
+@media (min-width: 760px) {
+  .sheet-body { padding-left: max(16px, calc((100% - 720px) / 2)); padding-right: max(16px, calc((100% - 720px) / 2)); }
+  .sheet-head { padding-left: max(12px, calc((100% - 720px) / 2)); padding-right: max(12px, calc((100% - 720px) / 2)); }
+  .text-in { display: block; }
+  .top-bar .hello { flex: 0 1 auto; max-width: 360px; }
+  .bottom-bar { left: 50%; right: auto; width: min(100%, 720px); transform: translateX(-50%); }
+}

@@ -1,3 +1,4 @@
+import { icon } from './icons.ts';
 import type { Profile, Settings } from './types.ts';
 import { HUNTS, ITEM_LIBRARY, MAX_CUSTOM_ITEMS, huntProgress, makeCustomHunt, type Hunt, type HuntItem, type HuntRun } from './hunts.ts';
 import { askYesNo, h, openSheet, toast, uid } from './ui.ts';
@@ -161,7 +162,7 @@ function openHuntMaker(host: HuntHost, editing: Hunt | null, after: () => void):
     listEl.replaceChildren(...chosen.map((i, n) => h('div', { class: 'maker-row' },
       h('span', { class: 'hunt-item-emoji' }, i.emoji), h('span', { class: 'maker-text' }, i.text),
       i.rule ? h('span', { class: 'maker-auto', title: 'Ticked automatically by a matching find' }, 'auto') : null,
-      h('button', { class: 'round-btn small', 'aria-label': `Remove ${i.text}`, onclick: () => { chosen.splice(n, 1); paintList(); paintPalette(); } }, '✖️'),
+      h('button', { class: 'round-btn small', 'aria-label': `Remove ${i.text}`, onclick: () => { chosen.splice(n, 1); paintList(); paintPalette(); } }, icon('close')),
     )));
   };
 

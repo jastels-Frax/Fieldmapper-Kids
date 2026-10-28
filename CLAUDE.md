@@ -13,7 +13,7 @@ Stack: vanilla TypeScript + Vite + MapLibre GL 5 + `idb` + `vite-plugin-pwa`. **
 
 ## Versions
 
-Scout is **2.1.2**. The version lives in `package.json` (shown on the opening screen and in the grown-up corner as
+Scout is **2.1.3**. The version lives in `package.json` (shown on the opening screen and in the grown-up corner as
 `__APP_VERSION__`); **every release bumps it and adds an entry to both `CHANGELOG.md` (detail, for us) and
 `src/releaseNotes.ts` (`RELEASES`, in the family's words, shown as "What's new")**. `test/releaseNotes.test.ts` fails
 when the three disagree. A patch (x.y.Z) for a fix, a minor (x.Y.0) for new things, a major for a new shape of app.
@@ -39,6 +39,7 @@ There is no linter; `tsc` is the gate.
 | `drawTool.ts`, `measure.ts` | ✏️ Draw and 📏 Measure, ported from Field Mapper's `MeasurePanel`: TAP points (dragging pans the map) for a line or a shape; a short card at the foot of the map (`body.drawing` hides the bottom bar, quick row and dock, and makes find pins untappable); `MapView.onToolTap` routes taps while a tool is on and suppresses the long press. `measure.ts` (pure, tested) is the length (great-circle sum) and turf's `ringArea`, and the kid words (kid steps of 0.5 m; bedrooms, tennis courts, soccer fields). Drawings are `Sketch`es per profile (IndexedDB `sketches`), drawn by `MapView.setSketches`, listed in My drawings, exported as `drawings.geojson`; a measurement is kept only if they tap Keep as a drawing. |
 | `railTools.ts`, `buttonsScreen.ts` | The rail as data (`TOOLS`) and "My buttons": `Profile.tools` (absence = `TIER_TOOLS[tier]`: Sprout Me · Draw · Hunts · Done; Explorer adds Map and Path; Naturalist adds Measure). An empty choice is honoured. Path also needs the grown-ups' `pathRecording`. A new rail tool is a `TOOLS` row plus its action in `App.buildChrome` (the record is typed, so `tsc` asks). |
 | `avatarArt.ts`, `avatars.ts` | Storybook portraits (`src/assets/avatars/*.webp`, cropped from the book's pages; tested that every file is offered and every id has a file). `Profile.art` is the card picture when there is no photo (`cardPicture`: photo › art › emoji); `Profile.mapAvatar` is the map marker (`mapPicture`: its own emoji or portrait, absent = the card picture). Choosing a portrait or an animal for the card is choosing it over the photo. |
+| `icons.ts` | Scout's own icons (close, back, forward, speaker, up), one inked line in `currentColor`: use `icon()` / `labelled()` rather than the emoji ✖️ ⬅️ ➡️ 🔊, which every system draws differently. A new icon is a `PATHS` row; `test/icons.test.ts` holds them to the ink colour. |
 | `types.ts` | `Find` (with `pictures[]`, `species`, `sign`, `placeBy`), `Profile`, `Settings` (device-wide), `GuideId`. |
 | `findModel.ts`, `findSplit.ts` | `normalizeFind`: a stored find in the current shape (pictures are `{ id, kind }` only). `splitStoredFind`: any older find (version-1 `photo` / `drawing`, pictures inline) split into its light record and its media, run once by the version-4 upgrade. |
 | `storage.ts` | IndexedDB (`FieldMapperKids` — the pre-rename name, kept so nobody's finds are orphaned), `DB_VERSION` 5: `finds`, `findMedia`, `sketches`, `settings`, `trails`, `huntRuns`, `customHunts`, `profiles`, `speciesLists`, `walks`. **A find is two records**, as Field Mapper stores a feature (`feature_photos`): the LIGHT find (which pictures it has, `hasVoice`, the thumbnail) that every find is read as at launch, and its `findMedia` (picture and voice bytes), read only by `getFindMedia` / `getFullFind` when a find is opened, changed or exported. `saveFind(FullFind)` writes both; `saveFindInfo(Find)` writes the light record only — a copy without its media must never be saved as if it had none. `migrateToProfiles` turns a version-1 device's single explorer (in the settings) into the first profile and files every find and hunt run under it. |
@@ -104,8 +105,10 @@ Everything" would take that badge away from every explorer who already earned it
 - **Age tiers** (`tiers.ts`, `Profile.tier`, absence = Explorer): Phase 1 is built (the tier is recorded and chosen);
   the per-tier behaviour is planned in `docs/AGE_TIERS.md` — read it, and its Decisions, before adding anything
   age-specific. The modes are called "On my own" / "Together" on screen (`MODE_WORDS`); the stored values are unchanged.
-- **All text goes through `textContent`** (`ui.ts` `h()`); the only `innerHTML` is the buddy SVG,
-  which is our own constant markup.
+- **All text goes through `textContent`** (`ui.ts` `h()`); the only `innerHTML` is our own constant SVG markup
+  (the buddies, the logos, `icons.ts`).
+- **Desktop is one centred column**: at ≥ 760 px a sheet's body and header pad to a 720 px column; never place a
+  sheet's controls against the window's edges.
 - **Words are short and are read aloud** (`say()`); every button has an emoji and a word.
 - **Blank is not zero**: a find with no location is simply not on the map; nothing is invented.
 - **A hunt is stored BY VALUE on its run**, so editing a custom hunt never changes a hunt already

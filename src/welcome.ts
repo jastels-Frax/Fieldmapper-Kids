@@ -1,3 +1,4 @@
+import { labelled } from './icons.ts';
 import type { Mode, Profile } from './types.ts';
 import { h, toast } from './ui.ts';
 import { say } from './speech.ts';
@@ -44,7 +45,7 @@ export function welcome(): Promise<Profile> {
             h('span', { class: 'mode-emoji' }, info.emoji), h('strong', {}, info.title), h('span', {}, info.text));
         }),
         h('p', { class: 'hint' }, 'This can be switched any time with the 🧒 / 👨‍👧 button on the map. You can add more explorers later, each with their own finds.'),
-        h('button', { class: 'text-btn', onclick: stepTier }, '⬅️ Back'),
+        h('button', { class: 'text-btn', onclick: stepTier }, labelled('Back', 'back', 'before')),
       );
       root.scrollTop = 0;
     };
@@ -56,8 +57,8 @@ export function welcome(): Promise<Profile> {
         h('button', { class: 'big-btn', onclick: () => {
           if (!p.name) { toast("Type the explorer's name first."); return; }
           stepGo();
-        } }, 'Next ➡️'),
-        h('button', { class: 'text-btn', onclick: stepMode }, '⬅️ Back'),
+        } }, labelled('Next', 'forward')),
+        h('button', { class: 'text-btn', onclick: stepMode }, labelled('Back', 'back', 'before')),
       );
       root.scrollTop = 0;
     };
@@ -69,7 +70,7 @@ export function welcome(): Promise<Profile> {
         h('p', { class: 'welcome-sub' }, 'The map needs to know where you are. Your phone will ask: tap "Allow".'),
         h('p', { class: 'hint' }, 'Your location, photos and voice notes stay on this device. Nothing is uploaded.'),
         h('button', { class: 'big-btn', onclick: () => { root.remove(); resolve(p); } }, "🚀 Let's explore!"),
-        h('button', { class: 'text-btn', onclick: stepMe }, '⬅️ Back'),
+        h('button', { class: 'text-btn', onclick: stepMe }, labelled('Back', 'back', 'before')),
       );
       root.scrollTop = 0;
       say(`Ready, ${p.name}? I am ${g}. Let's explore!`);

@@ -1,3 +1,4 @@
+import { icon, labelled } from './icons.ts';
 import type { CategoryId, ColourId, Find, FullFind, Picture, Profile, Settings, SpeciesPick } from './types.ts';
 import { CATEGORIES, COLOURS, COUNTS, SIGNS, SIZES, categoryOf } from './categories.ts';
 import { askYesNo, blobUrl, h, openSheet, toast, uid } from './ui.ts';
@@ -100,8 +101,8 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
   const dots = h('div', { class: 'step-dots', 'aria-hidden': 'true', hidden: editing });
   // Back and forward live at the top, either side of the progress, so they are always in the same place and never
   // scrolled away (paintNav decides what each does on the step on screen).
-  const prevNav = h('button', { class: 'round-btn step-nav', 'aria-label': 'Go back a step' }, '⬅️') as HTMLButtonElement;
-  const nextNav = h('button', { class: 'round-btn step-nav', 'aria-label': 'Next step', hidden: editing }, '➡️') as HTMLButtonElement;
+  const prevNav = h('button', { class: 'round-btn step-nav', 'aria-label': 'Go back a step' }, icon('back')) as HTMLButtonElement;
+  const nextNav = h('button', { class: 'round-btn step-nav', 'aria-label': 'Next step', hidden: editing }, icon('forward')) as HTMLButtonElement;
   prevNav.addEventListener('click', () => { sounds.tap(); navBack?.(); });
   nextNav.addEventListener('click', () => { navForward?.(); });
   const head = sheet.querySelector('.sheet-head')!;
@@ -176,7 +177,7 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
     else overview();
   };
   /** In editing, the step's own "Next" reads as "Done". */
-  const nextLabel = (label = 'Next ➡️') => (editing || detour ? '✅ Done' : label);
+  const nextLabel = (): Node | string => (editing || detour ? '✅ Done' : labelled('Next', 'forward'));
   /** ✨ Save now: on every new find's step after the kind, so the rest is optional on a trail. */
   const saveNow = () => (editing || detour || !draft.category ? null
     : h('button', { class: 'big-btn soft save-now', onclick: () => void finish() }, '✨ Save now'));
@@ -235,12 +236,12 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
           const img = h('img', { alt: p.kind === 'photo' ? `Photo ${i + 1}` : `Drawing ${i + 1}` });
           const cell = h('div', { class: 'pic-cell' }, img,
             h('span', { class: 'pic-kind' }, p.kind === 'photo' ? '📷' : '🎨'),
-            h('button', { class: 'pic-del', 'aria-label': 'Remove this picture', onclick: () => { draft.pictures.splice(i, 1); paint(); } }, '✖'));
+            h('button', { class: 'pic-del', 'aria-label': 'Remove this picture', onclick: () => { draft.pictures.splice(i, 1); paint(); } }, icon('close')));
           gallery.append(cell);
           img.src = blobUrl(p.blob, cell);
           return cell;
         }));
-        nextBtn.textContent = editing ? '✅ Done' : draft.pictures.length ? 'Next ➡️' : '👀 No pictures, next';
+        nextBtn.replaceChildren(editing ? '✅ Done' : draft.pictures.length ? labelled('Next', 'forward') : '👀 No pictures, next');
         count.textContent = draft.pictures.length ? `${draft.pictures.length} ${draft.pictures.length === 1 ? 'picture' : 'pictures'}` : '';
       };
       const count = h('p', { class: 'hint center' });
@@ -327,7 +328,7 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
         if (draft.species && !draft.species.own) {
           chosen.append(h('div', { class: 'win-card' }, h('span', { class: 'win-emoji' }, '📚'),
             h('div', {}, h('strong', {}, draft.species.name), draft.species.scientific ? h('p', { class: 'latin' }, draft.species.scientific) : null),
-            h('button', { class: 'round-btn small', 'aria-label': 'Not this one', onclick: () => { draft.species = undefined; search.value = ''; paintChosen(); paintResults(); } }, '✖')));
+            h('button', { class: 'round-btn small', 'aria-label': 'Not this one', onclick: () => { draft.species = undefined; search.value = ''; paintChosen(); paintResults(); } }, icon('close'))));
         }
       };
       const choose = (sp: Species, andGo = false) => {

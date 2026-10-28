@@ -1,3 +1,4 @@
+import { icon } from './icons.ts';
 import type { Find, FullFind, Profile, Settings, Sketch } from './types.ts';
 import {
   allCustomHunts, allFinds, allHuntRuns, allProfiles, deleteAllFinds, deleteCustomHunt, deleteFind, deleteProfile,
@@ -504,8 +505,8 @@ export class App {
     const body = h('div', { class: 'side-body', id: 'side-body' });
     this.railBody = body;
     const toggle = h('button', { class: 'round-btn rail-toggle', 'aria-controls': 'side-body' });
-    // Field Mapper's caret (Phosphor caret-left), our own constant markup.
-    toggle.innerHTML = '<svg viewBox="0 0 256 256" width="26" height="26" fill="currentColor" aria-hidden="true"><path d="M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L91.31,128Z"/></svg>';
+    // Field Mapper's fold caret, drawn in Scout's own inked line (icons.ts).
+    toggle.append(icon('up'));
     const rail = h('div', { class: 'side-btns' }, toggle, body);
     const paint = () => {
       rail.classList.toggle('folded', folded);

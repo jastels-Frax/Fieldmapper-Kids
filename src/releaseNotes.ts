@@ -12,6 +12,13 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.1.3', date: '2026-10-28', title: 'Tidier on a computer',
+    notes: [
+      'Scout\'s own arrows and close buttons.',
+      'On a computer, every screen stays in one tidy column.',
+    ],
+  },
+  {
     version: '2.1.2', date: '2026-10-28', title: 'Easier to move through a find',
     notes: [
       'Go back and forward through a find with the arrows at the top.',

@@ -1,3 +1,4 @@
+import { icon } from './icons.ts';
 import { openHelp } from './help.ts';
 import { openWhatsNew } from './launch.ts';
 import type { Find, GuideId, Profile, Settings } from './types.ts';
@@ -102,7 +103,7 @@ export function openGrownUps(host: GrownUpHost): void {
           await deleteSpeciesList(l.id);
           invalidateSpecies();
           void paintLists();
-        } }, '✖'))),
+        } }, icon('close')))),
       h('p', { class: 'hint' }, `${list.length.toLocaleString()} species to choose from in all.`),
     );
   };

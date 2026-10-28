@@ -1,4 +1,6 @@
 /** Tiny DOM builder. Text always goes through textContent, never innerHTML. */
+import { icon } from './icons.ts';
+
 type Child = Node | string | null | undefined | false;
 type Attrs = Record<string, string | number | boolean | EventListener | undefined>;
 
@@ -30,7 +32,7 @@ export function openSheet(opts: { title: string; emoji?: string; onClose?: () =>
   const sheet = h('section', { class: `sheet ${opts.className ?? ''}`, role: 'dialog', 'aria-label': opts.title },
     h('header', { class: 'sheet-head' },
       // ✖, not ⬅️: it closes the whole screen, and must not be mistaken for the "⬅️ Go back" a step offers.
-      h('button', { class: 'round-btn close-btn', 'aria-label': 'Close', onclick: close }, '✖️'),
+      h('button', { class: 'round-btn close-btn', 'aria-label': 'Close', onclick: close }, icon('close')),
       h('h1', {}, opts.emoji ? `${opts.emoji} ${opts.title}` : opts.title),
     ),
     body,

@@ -5,6 +5,16 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.1.3 — 2026-10-28
+
+- **Scout's own icons** (`src/icons.ts`): close, back, forward, speaker and the rail's fold caret, drawn as one inked
+  line in `currentColor` instead of the emoji font's ✖️ ⬅️ ➡️ 🔊 (which every system draws differently — Windows as
+  blue tiles). Used in every sheet's ✖, the find steps' arrows, Next / Back on the welcome and the find steps, the
+  small remove buttons, the speech bubbles' speaker and the rail. `test/icons.test.ts` holds them to the ink colour.
+- **Desktop layout**: on a wide screen every sheet keeps to one centred 720 px column, its header included (the ✖ and
+  arrows sat at the far edges of the window, and a text box, the describe headings and the microphone escaped the
+  column). The name chip on the map no longer stretches across the window, and the bottom bar is centred.
+
 ## 2.1.2 — 2026-10-28
 
 - **⬅️ and ➡️ at the top of the find steps**, either side of the progress (`paintNav` in `capture.ts`). Forward is

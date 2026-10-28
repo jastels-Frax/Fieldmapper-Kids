@@ -1,3 +1,4 @@
+import { icon } from './icons.ts';
 import type { Expression } from './buddies.ts';
 import type { Line } from './buddyLines.ts';
 import type { GuideId } from './types.ts';
@@ -41,7 +42,7 @@ function says(g: GuideId, label: string, line: Line, opts: { quiet?: boolean; bi
     h('button', { class: 'bubble', onclick: () => sayNow(line.text, g), 'aria-label': `${nameOf(g)} says: ${line.text}. Tap to hear it again.` },
       h('span', { class: 'bubble-name' }, label),
       h('span', { class: 'bubble-text' }, line.text),
-      h('span', { class: 'bubble-say', 'aria-hidden': 'true' }, '🔊'),
+      icon('speaker', 'bubble-say'),
     ),
   );
 }
