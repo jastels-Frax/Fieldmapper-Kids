@@ -5,7 +5,7 @@ import type { TierId } from './tiers.ts';
  * can choose and order their own (`Profile.tools`, "My buttons"); absent, the rail is their age tier's default —
  * a Sprout's is short, a Naturalist's has the measuring tools. Pure.
  */
-export type ToolId = 'me' | 'map' | 'draw' | 'measure' | 'path' | 'hunts' | 'done';
+export type ToolId = 'me' | 'map' | 'photo' | 'draw' | 'measure' | 'path' | 'hunts' | 'done';
 
 export interface RailTool {
   id: ToolId;
@@ -19,6 +19,7 @@ export interface RailTool {
 export const TOOLS: RailTool[] = [
   { id: 'me', emoji: '📍', word: 'Me', what: 'Find me on the map, and follow me as I walk' },
   { id: 'map', emoji: '🗺️', word: 'Map', what: 'How the map looks, the facing arrow and keeping the screen on' },
+  { id: 'photo', emoji: '📷', word: 'Photo', what: 'Photo spots: take a picture of a view, and the map shows which way you looked' },
   { id: 'draw', emoji: '✏️', word: 'Draw', what: 'Draw lines and shapes on my map' },
   { id: 'measure', emoji: '📏', word: 'Measure', what: 'How far is it? How big is it?' },
   { id: 'path', emoji: '👣', word: 'Path', what: 'Record the path I walk' },
@@ -27,9 +28,9 @@ export const TOOLS: RailTool[] = [
 ];
 
 export const TIER_TOOLS: Record<TierId, ToolId[]> = {
-  sprout: ['me', 'draw', 'hunts', 'done'],
-  explorer: ['me', 'map', 'draw', 'path', 'hunts', 'done'],
-  naturalist: ['me', 'map', 'draw', 'measure', 'path', 'hunts', 'done'],
+  sprout: ['me', 'photo', 'draw', 'hunts', 'done'],
+  explorer: ['me', 'map', 'photo', 'draw', 'path', 'hunts', 'done'],
+  naturalist: ['me', 'map', 'photo', 'draw', 'measure', 'path', 'hunts', 'done'],
 };
 
 export function toolOf(id: ToolId): RailTool {

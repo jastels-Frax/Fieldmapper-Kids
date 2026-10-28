@@ -17,6 +17,12 @@ const PARTS: { emoji: string; title: string; lines: string[] }[] = [
     'They sit in a row above "I found something!".',
     'Tap one, take a photo, and it is saved where you are standing. Add more about it later in My Finds.',
   ] },
+  { emoji: '📷', title: 'Photo spots', lines: [
+    'Tap 📷 Photo on the map. Stand still, point your tablet at a view, and tap Take the picture.',
+    'Scout reads the compass as you tap, so your map shows a wedge pointing the way you looked. Not right? Tap an arrow, or ? if you are not sure.',
+    'Tap a photo spot on the map to see it. Come back another day, in another season, and tap 🔁 Take it again: then and now!',
+    'Watch where you step while you aim, and stay where your grown-up can see you.',
+  ] },
   { emoji: '✏️', title: 'Your drawings and paths', lines: [
     'Tap a line, a shape or a path on your map to see how long or how big it is.',
     'Give it a name, tap ✏️ Change it to move its dots (drag them), or 🗑️ Delete it.',

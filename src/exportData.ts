@@ -1,5 +1,6 @@
 import { zipSync, strToU8 } from 'fflate';
-import type { Find, FindMedia, Profile, Sketch } from './types.ts';
+import type { Find, FindMedia, PhotoSpot, Profile, Sketch, SpotMedia } from './types.ts';
+import { spotBearing, viewWedge } from './photoSpots.ts';
 import { categoryOf } from './categories.ts';
 import { csvCell } from './csv.ts';
 import { walkGeoJSON, type Walk } from './walk.ts';
@@ -28,6 +29,8 @@ export interface ExportOptions {
    * still a line from somebody's door. For a file that will be shared; the grown-up corner offers it first.
    */
   rough?: boolean;
+  /** Photo spots, with a reader for their pictures: `photo-spots.geojson` and `photo-spots/`. */
+  spots?: { list: PhotoSpot[]; media: (id: string) => Promise<SpotMedia> };
 }
 
 /**
@@ -93,6 +96,38 @@ export async function buildExport(finds: Find[], profiles: Profile[], walks: Wal
       })),
     }));
   }
+  const spotList = opts.spots?.list ?? [];
+  if (spotList.length) {
+    // Field Mapper's photo point export: a point per spot with its camera bearing, plus the view cone a GIS can draw
+    // (15 m, 50°, as Field Mapper's default) where the way is known. Every picture, named by spot and date.
+    const spotFeatures = [];
+    for (const [i, s] of spotList.slice().reverse().entries()) {
+      const n = String(i + 1).padStart(3, '0');
+      const m = await opts.spots!.media(s.id);
+      const pictures: string[] = [];
+      for (const [k, shot] of s.shots.entries()) {
+        const p = m.photos.find(x => x.id === shot.id);
+        if (!p) continue;
+        const path = `photo-spots/${n}_${shot.takenAt.slice(0, 10)}_${k + 1}.${ext(p.blob, 'jpg')}`;
+        files[path] = new Uint8Array(await p.blob.arrayBuffer());
+        pictures.push(path);
+      }
+      const props = {
+        id: s.id, explorer: (s.profileId && who.get(s.profileId)) || '', when: s.createdAt, name: s.name ?? '',
+        bearing_deg: spotBearing(s) ?? null, accuracy_m: s.accuracy ?? null, placed_by: s.placeBy ?? '',
+        pictures: pictures.join(';'),
+        taken: s.shots.map(x => x.takenAt).join(';'),
+        bearings: s.shots.map(x => (typeof x.bearing === 'number' ? String(x.bearing) : '')).join(';'),
+      };
+      const located = typeof s.lat === 'number' && typeof s.lon === 'number';
+      spotFeatures.push({ type: 'Feature', geometry: located ? { type: 'Point', coordinates: [place(s.lon!), place(s.lat!)] } : null, properties: { ...props, part: 'spot' } });
+      const b = spotBearing(s);
+      if (located && typeof b === 'number') {
+        spotFeatures.push({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [viewWedge(place(s.lon!), place(s.lat!), b)] }, properties: { id: s.id, part: 'view', bearing_deg: b } });
+      }
+    }
+    files['photo-spots.geojson'] = strToU8(JSON.stringify({ type: 'FeatureCollection', features: spotFeatures }, null, 1));
+  }
   files['finds.csv'] = strToU8(rows.map(r => r.map(csvCell).join(',')).join('\r\n'));
   files['README.txt'] = strToU8(
     `Scout - finds by ${profiles.map(p => p.name || 'Explorer').join(', ') || 'Explorer'}\n` +
@@ -102,6 +137,8 @@ export async function buildExport(finds: Find[], profiles: Profile[], walks: Wal
     `finds.csv      the same, as a table\n` +
     `paths.geojson  recorded paths as lines, with a time for every point\n` +
     `drawings.geojson  lines and shapes drawn on the map with the Draw tool\n` +
+    `photo-spots.geojson  photo spots: a point where the explorer stood (part=spot) and, where the way is known, a 15 m view wedge (part=view); bearings in degrees from north\n` +
+    `photo-spots/   every picture taken at a photo spot, named by spot and date\n` +
     `photos/, drawings/, voices/  the pictures and recordings, named as in the table\n` +
     `species        names chosen from ACCDC species lists (via Fraxinus Field Mapper) or a list a grown-up imported\n`,
   );

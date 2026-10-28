@@ -1,5 +1,5 @@
 import { openDB, type IDBPDatabase } from 'idb';
-import type { Find, FindMedia, FullFind, LegacySettings, Picture, Profile, Settings } from './types.ts';
+import type { Find, FindMedia, FullFind, LegacySettings, PhotoSpot, Picture, Profile, Settings, SpotMedia } from './types.ts';
 import { normalizeFind } from './findModel.ts';
 import { uid } from './ids.ts';
 import type { Hunt, HuntRun } from './hunts.ts';
@@ -22,11 +22,12 @@ const DB_NAME = 'FieldMapperKids';
  * 3: recorded paths ("walks").
  * 4: find media split out of the finds (`findMedia`).
  * 5: sketches drawn on the map (`sketches`).
+ * 6: photo spots (`photoSpots`) and their pictures (`spotMedia`), split as a find's are.
  * 2: explorer profiles and imported species lists. The DATA move (settings ->
  *    first profile, finds stamped with it) is `migrateToProfiles`, run by App,
  *    because it needs to know whether the device was ever set up.
  */
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 let dbp: Promise<IDBPDatabase> | null = null;
 function db(): Promise<IDBPDatabase> {
@@ -46,6 +47,10 @@ function db(): Promise<IDBPDatabase> {
       }
       if (oldVersion < 3) d.createObjectStore('walks', { keyPath: 'id' });
       if (oldVersion < 5) d.createObjectStore('sketches', { keyPath: 'id' });
+      if (oldVersion < 6) {
+        d.createObjectStore('photoSpots', { keyPath: 'id' });
+        d.createObjectStore('spotMedia', { keyPath: 'id' });
+      }
       if (oldVersion < 4) {
         // Pictures and voice notes move out of the finds into their own store (findSplit.ts). Done here, in the
         // upgrade, record by record: values are only MOVED, never read as files, so nothing Safari backs with a
@@ -186,6 +191,8 @@ export async function deleteAllFinds(): Promise<void> {
   await d.clear('huntRuns');
   await d.clear('walks');
   await d.clear('sketches');
+  await d.clear('photoSpots');
+  await d.clear('spotMedia');
 }
 
 export async function allWalks(): Promise<Walk[]> {
@@ -212,6 +219,58 @@ export async function saveSketch(s: Sketch): Promise<void> {
 
 export async function deleteSketch(id: string): Promise<void> {
   await (await db()).delete('sketches', id);
+}
+
+/** Every photo spot on the device, every explorer's, newest first: light (the thumbnail, never the pictures). */
+export async function allSpots(): Promise<PhotoSpot[]> {
+  const raw = (await (await db()).getAll('photoSpots')) as Record<string, unknown>[];
+  const out: PhotoSpot[] = [];
+  for (const r of raw) out.push(await reviveSpot(r));
+  return out.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+/** A photo spot's pictures, as in-memory Blobs; a picture that cannot be read is left out. */
+export async function getSpotMedia(id: string): Promise<SpotMedia> {
+  const raw = (await (await db()).get('spotMedia', id)) as { photos?: { id: string; blob: unknown }[] } | undefined;
+  const photos: SpotMedia['photos'] = [];
+  for (const p of raw?.photos ?? []) {
+    const { blob } = await revive(p.blob);
+    if (blob) photos.push({ id: p.id, blob });
+  }
+  return { photos };
+}
+
+/**
+ * Saves a photo spot, and its pictures when `media` is given (a new spot, or one taken again); without it only the
+ * details change (a name) and the pictures stay as they are — a copy with no pixels never records "no pictures".
+ * Returns the copy stored, to be kept in place of the one passed in (storedBytes.ts).
+ */
+export async function saveSpot(spot: PhotoSpot, media?: SpotMedia): Promise<PhotoSpot> {
+  const light: Record<string, unknown> = { ...spot };
+  if (spot.thumb) light.thumb = await toBytes(spot.thumb); else delete light.thumb;
+  // Packed BEFORE the transaction opens: reading a Blob is not a database request, and a transaction left waiting
+  // on one commits early (as saveFind packs first).
+  const pics = media && { id: spot.id, photos: await Promise.all(media.photos.map(async p => ({ id: p.id, blob: await toBytes(p.blob) }))) };
+  const tx = (await db()).transaction(['photoSpots', 'spotMedia'], 'readwrite');
+  await tx.objectStore('photoSpots').put(light);
+  if (pics) await tx.objectStore('spotMedia').put(pics);
+  await tx.done;
+  return reviveSpot(light);
+}
+
+export async function deleteSpot(id: string): Promise<void> {
+  const tx = (await db()).transaction(['photoSpots', 'spotMedia'], 'readwrite');
+  await tx.objectStore('photoSpots').delete(id);
+  await tx.objectStore('spotMedia').delete(id);
+  await tx.done;
+}
+
+async function reviveSpot(raw: Record<string, unknown>): Promise<PhotoSpot> {
+  const out = { ...raw } as unknown as PhotoSpot;
+  const t = await revive(raw.thumb);
+  if (t.blob) out.thumb = t.blob; else delete out.thumb;
+  if (!Array.isArray(out.shots)) out.shots = [];
+  return out;
 }
 
 /** A species list a grown-up imported (a Field Mapper species file, or a CSV). */
@@ -286,15 +345,16 @@ export async function saveProfile(p: Profile): Promise<Profile> {
 /** Deletes an explorer and everything that was theirs: finds and hunt runs. */
 export async function deleteProfile(id: string): Promise<void> {
   const d = await db();
-  const tx = d.transaction(['profiles', 'finds', 'findMedia', 'huntRuns', 'walks', 'sketches'], 'readwrite');
+  const tx = d.transaction(['profiles', 'finds', 'findMedia', 'huntRuns', 'walks', 'sketches', 'photoSpots', 'spotMedia'], 'readwrite');
   await tx.objectStore('profiles').delete(id);
-  for (const store of ['finds', 'huntRuns', 'walks', 'sketches'] as const) {
+  for (const store of ['finds', 'huntRuns', 'walks', 'sketches', 'photoSpots'] as const) {
     let cur = await tx.objectStore(store).openCursor();
     while (cur) {
       const v = cur.value as { id: string; profileId?: string };
       if (v.profileId === id) {
-        // A find's pictures go with it.
+        // A find's pictures go with it, and a photo spot's.
         if (store === 'finds') await tx.objectStore('findMedia').delete(v.id);
+        if (store === 'photoSpots') await tx.objectStore('spotMedia').delete(v.id);
         await cur.delete();
       }
       cur = await cur.continue();

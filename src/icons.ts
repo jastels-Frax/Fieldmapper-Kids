@@ -15,6 +15,8 @@ const PATHS = {
   forward: '<path d="M4.5 11.6c4.6.5 9.4.6 14.6.2"/><path d="M13.4 5.9c2.1 2.1 3.9 4 5.8 6-2 2-3.9 3.8-6 5.9"/>',
   /** 🔊 a little horn and two sound waves. */
   speaker: '<path d="M4.5 9.6h3.2l4.6-3.9v12.6l-4.6-3.9H4.5z"/><path d="M15.4 9.3c1.3 1.6 1.3 3.8 0 5.4"/><path d="M18.1 6.8c2.7 3 2.7 7.4 0 10.4"/>',
+  /** ⬆ a straight arrow, turned by its button to point any way (the photo spot's way picker). */
+  arrow: '<path d="M12.2 19.8c-.3-4.9-.4-9.8-.1-15.1"/><path d="M6.3 10.3c2-2 3.8-3.8 5.8-5.7 2 2 3.9 3.8 5.9 5.8"/>',
   /** ⌃ a chevron (the rail's fold). */
   up: '<path d="M5.8 15.4c2.1-2.2 4-4.3 6.2-6.4 2 2.1 4 4.2 6.1 6.5"/>',
 } as const;

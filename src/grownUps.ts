@@ -10,7 +10,7 @@ import { GUIDE_INFO, guideName } from './guides.ts';
 import { CRITTERS } from './critters.ts';
 import { tierOf } from './tiers.ts';
 import { parseFieldMapperList, parseSpeciesCsv } from './species.ts';
-import { allSpeciesLists, deleteSpeciesList, getFindMedia, saveSpeciesList } from './storage.ts';
+import { allSpeciesLists, deleteSpeciesList, getFindMedia, getSpotMedia, saveSpeciesList } from './storage.ts';
 import { invalidateSpecies, loadSpecies } from './speciesStore.ts';
 import { photoCount } from './findModel.ts';
 import type { Walk } from './walk.ts';
@@ -23,6 +23,7 @@ export interface GrownUpHost {
   allFinds: () => Find[];
   allWalks: () => Walk[];
   allSketches: () => import('./types.ts').Sketch[];
+  allSpots: () => import('./types.ts').PhotoSpot[];
   profiles: ProfileHost;
   applySettings: (s: Settings) => Promise<void>;
   deleteAll: () => Promise<void>;
@@ -153,14 +154,14 @@ export function openGrownUps(host: GrownUpHost): void {
   };
   roughRow.addEventListener('click', () => { rough = !rough; paintRough(); });
   paintRough();
-  const exportNote = h('p', { class: 'hint' }, 'The file holds every explorer\'s name and finds: their photos, voice notes and drawings, with when and where each was found. Keep it somewhere private.');
+  const exportNote = h('p', { class: 'hint' }, 'The file holds every explorer\'s name and finds: their photos, voice notes, drawings and photo spots, with when and where each was made. Keep it somewhere private.');
   const exportBtn = h('button', { class: 'big-btn' }, '📦 Save all finds as a file');
   exportBtn.addEventListener('click', async () => {
-    if (!finds.length) return toast('There are no finds to save yet.');
+    if (!finds.length && !host.allSpots().length) return toast('There is nothing to save yet.');
     exportBtn.setAttribute('disabled', '');
     exportBtn.textContent = '📦 Packing…';
     try {
-      const blob = await buildExport(host.allFinds(), host.profiles.profiles(), host.allWalks(), getFindMedia, host.allSketches(), { rough });
+      const blob = await buildExport(host.allFinds(), host.profiles.profiles(), host.allWalks(), getFindMedia, host.allSketches(), { rough, spots: { list: host.allSpots(), media: getSpotMedia } });
       await saveFile(blob, `scout-finds-${new Date().toISOString().slice(0, 10)}.zip`);
     } catch {
       toast('Saving the file did not work.');
@@ -169,10 +170,10 @@ export function openGrownUps(host: GrownUpHost): void {
       exportBtn.textContent = '📦 Save all finds as a file';
     }
   });
-  const wipe = h('button', { class: 'text-btn danger' }, '🗑️ Delete every find and path on this device');
+  const wipe = h('button', { class: 'text-btn danger' }, '🗑️ Delete every find, path, drawing and photo spot on this device');
   wipe.addEventListener('click', async () => {
-    if (!finds.length) return;
-    if (!(await askYesNo(`Delete all ${finds.length} finds and recorded paths, of every explorer, with their photos and voice notes? This cannot be undone. Save a file first if you want to keep them.`, 'Delete everything', 'Cancel'))) return;
+    if (!finds.length && !host.allSpots().length && !host.allSketches().length && !host.allWalks().length) return;
+    if (!(await askYesNo(`Delete all ${finds.length} finds, recorded paths, drawings and photo spots, of every explorer, with their photos and voice notes? This cannot be undone. Save a file first if you want to keep them.`, 'Delete everything', 'Cancel'))) return;
     await host.deleteAll();
     close();
     toast('All finds deleted.');

@@ -40,6 +40,9 @@ export interface BadgeExtras {
   /** Recorded paths: how many, and the longest in metres. */
   walks?: number;
   longestWalkM?: number;
+  /** Photo spots: how many, and how many were taken again on another day (photoSpots.repeatedSpots). */
+  photoSpots?: number;
+  spotsRetaken?: number;
 }
 
 interface BadgeRule extends Badge {
@@ -99,6 +102,8 @@ const RULES: BadgeRule[] = [
   { id: 'hunt1', emoji: '🔎', title: 'Treasure Hunter', how: 'Finish a scavenger hunt.', target: 1, measure: (_f, _c, x) => x.huntsCompleted ?? 0 },
   { id: 'hunt3', emoji: '🗺️', title: 'Hunt Master', how: 'Finish 3 scavenger hunts.', target: 3, measure: (_f, _c, x) => x.huntsCompleted ?? 0 },
   { id: 'ticks', emoji: '🕷️', title: 'Tick Checker', how: 'Do a tick check after exploring, 3 times.', target: 3, measure: (_f, _c, x) => x.tickChecks ?? 0 },
+  { id: 'spots', emoji: '🖼️', title: 'Photo Spotter', how: 'Save 3 photo spots with 📷 Photo.', target: 3, measure: (_f, _c, x) => x.photoSpots ?? 0 },
+  { id: 'thenNow', emoji: '🔁', title: 'Then and Now', how: 'Go back to a photo spot on another day and take it again.', target: 1, measure: (_f, _c, x) => x.spotsRetaken ?? 0 },
   { id: 'path1', emoji: '👣', title: 'Path Finder', how: 'Record a path of your walk.', target: 1, measure: (_f, _c, x) => x.walks ?? 0 },
   { id: 'path1k', emoji: '🥾', title: 'Trail Blazer', how: 'Record a path 1 kilometre long.', target: 1, measure: (_f, _c, x) => ((x.longestWalkM ?? 0) >= 1000 ? 1 : 0) },
   {

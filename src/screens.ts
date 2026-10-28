@@ -33,6 +33,8 @@ export interface ScreenHost {
   tickChecks: () => number;
   badgeExtras: () => import('./badges.ts').BadgeExtras;
   openWalks: () => void;
+  /** "My photo spots" (spotScreens.ts). */
+  openSpots: () => void;
   /** Opens the end-of-adventure tick check. */
   tickCheck: () => void;
 }
@@ -159,7 +161,9 @@ export function openBook(host: ScreenHost, start?: CategoryId): void {
     const n = host.finds().length;
     body.append(crewSays('squirrel', { text: `Acorn here! You have ${n} ${n === 1 ? 'sticker' : 'stickers'}. Tap one to look closer.`, pose: 'excited' }));
   }
-  body.append(chips, grid, h('button', { class: 'big-btn soft', onclick: () => host.openWalks() }, '👣 My paths'));
+  body.append(chips, grid, h('div', { class: 'ask-row book-more' },
+    h('button', { class: 'big-btn soft', onclick: () => host.openWalks() }, '👣 My paths'),
+    h('button', { class: 'big-btn soft', onclick: () => host.openSpots() }, '📷 Photo spots')));
   paint();
   // An edit or a delete made from a find opened here redraws the book behind it.
   const onChanged = () => (grid.isConnected ? paint() : window.removeEventListener(FINDS_CHANGED, onChanged));

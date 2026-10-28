@@ -5,6 +5,34 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.4.0 — 2026-10-28
+
+**Photo spots**, ported from Fraxinus Field Mapper's photo points (`PhotoPointData`, `PhotoCapturePanel`, the view cone
+of `MapManager.buildPhotoPointCone`).
+
+- **📷 Photo** on the map rail (in every tier's default buttons; an explorer who chose their own adds it in 🔧 My
+  buttons) opens a card at the foot of the map. Its tap starts the compass (iOS asks permission only from a tap), so
+  the facing arrow shows the way while the explorer aims. **📷 Take the picture** opens the camera and reads, at that
+  tap, the compass heading and the steadied fix (`steadyNow`, as a quick find).
+- After the picture: **which way were you looking?** — eight arrows and a **?**, the compass's arrow lit. A bearing is
+  stored in whole degrees with `facingBy` `compass` or `chosen`; **?** keeps it blank (Field Mapper's bearing is a
+  required number; here an unknown way draws no wedge rather than one pointing north). A name, and the place: where
+  the explorer stands, or a spot tapped on the map. A photo's own EXIF location is never read.
+- **On the map**: a round pin with the newest picture, over an orange wedge pointing the way (Field Mapper's colour and
+  white edge), at screen size rather than 15 m of ground, so it reads at every zoom. The wedge is tappable too.
+- **The spot page**: the picture, the date and way, every picture taken here in a strip, a name, 🔁 **Take it again**
+  (the card shows last time's picture, the way to look and how far away the spot is; the new picture joins the spot
+  without moving it), 🗺️ On the map, and deleting a picture or the spot (a grown-up asked in "On my own" mode).
+  Exact coordinates only in Together mode.
+- **My photo spots**: a list, from the card's 📋 and from My Finds.
+- **Storage**: `DB_VERSION` 6 adds `photoSpots` (light: the shots and a thumbnail) and `spotMedia` (the pictures, as
+  bytes), split as a find's are; both belong to a profile and go with it.
+- **Badges**: 🖼️ Photo Spotter (3 photo spots) and 🔁 Then and Now (a spot taken again on another day).
+- **Export**: `photo-spots.geojson` (a point per spot with its bearing, and Field Mapper's 15 m, 50° view wedge where
+  the way is known; rough places round both) and every picture under `photo-spots/`.
+- Deleting everything in the grown-up corner now also forgets the drawings on screen (they were cleared from the
+  database but stayed drawn until a reload).
+
 ## 2.3.1 — 2026-10-28
 
 - MapLibre's worker is emitted as `.js` (`vite.config.ts` `assetFileNames`), not `.mjs`: a module worker is refused

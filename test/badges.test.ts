@@ -84,3 +84,11 @@ test('path badges read the recorded walks', () => {
   assert.equal(b.path1k.earned, true);
   assert.equal(Object.fromEntries(badgeProgress([], clock, { walks: 1, longestWalkM: 999 }).map(x => [x.id, x])).path1k.earned, false);
 });
+
+test('photo spot badges count spots, and spots taken again on another day', () => {
+  const at = (x: object) => Object.fromEntries(badgeProgress([], clock, x).map(b => [b.id, b]));
+  assert.equal(at({ photoSpots: 2 }).spots.earned, false);
+  assert.equal(at({ photoSpots: 3 }).spots.earned, true);
+  assert.equal(at({ spotsRetaken: 0 }).thenNow.earned, false);
+  assert.equal(at({ spotsRetaken: 1 }).thenNow.earned, true);
+});

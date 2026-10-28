@@ -1,9 +1,10 @@
 import { icon } from './icons.ts';
-import type { Find, FullFind, Profile, Settings, Sketch } from './types.ts';
+import type { Find, FullFind, PhotoSpot, Profile, Settings, Sketch, SpotMedia, SpotShot } from './types.ts';
 import {
   allCustomHunts, allFinds, allHuntRuns, allProfiles, deleteAllFinds, deleteCustomHunt, deleteFind, deleteProfile,
   loadSettings, migrateToProfiles, saveCustomHunt, saveFind, saveHuntRun, saveProfile, saveSettings,
   allWalks, saveWalk, deleteWalk, allSketches, saveSketch, deleteSketch, getFullFind, getFindMedia, saveFindInfo,
+  allSpots, saveSpot, deleteSpot, getSpotMedia,
 } from './storage.ts';
 import { PathRecorder } from './recorder.ts';
 import { closeOrphan, distanceWords, durationWords, segmentsAtGaps, walkDurationMs, walkLengthM, type Walk, type WalkPoint } from './walk.ts';
@@ -42,7 +43,10 @@ import { openHelp } from './help.ts';
 import { openMapSheet } from './basemapPicker.ts';
 import { Compass } from './compass.ts';
 import { setKeepAwake, wakeLockSupported } from './wakeLock.ts';
-import { compassWord, smoothHeading } from './heading.ts';
+import { compassWord, norm, smoothHeading } from './heading.ts';
+import { closeSpotTool, openSpotTool, spotToolOpen, type SpotToolHost, type TakeAgain } from './photoSpotTool.ts';
+import { openSpot, openSpots, type SpotHost } from './spotScreens.ts';
+import { addShot, newestShot, removeShot, repeatedSpots } from './photoSpots.ts';
 import { MAX_QUICK, quickFor, quickKinds } from './quickFinds.ts';
 import { closeDrawTool, openDrawTool, type DrawHost, type DrawMode } from './drawTool.ts';
 import { closeShapeCard, openShapeCard } from './shapeCard.ts';
@@ -87,6 +91,10 @@ export class App {
   private drawing: DrawMode | null = null;
   /** The drawing being changed in ✏️ Draw: left off the map while its dots are drawn as the draft (paintSketches). */
   private editingSketchId: string | null = null;
+  private everySpot: PhotoSpot[] = [];
+  private spots: PhotoSpot[] = [];
+  /** The compass was started for 📷 Photo (not by the facing-arrow switch), so it stops when the card closes. */
+  private compassForSpot = false;
 
   async init(): Promise<void> {
     this.settings = await loadSettings();
@@ -105,6 +113,7 @@ export class App {
       return closed;
     }));
     this.everySketch = await allSketches();
+    this.everySpot = await allSpots();
     this.applyAudio();
     const first = this.profiles.find(p => p.id === this.settings.activeProfileId) ?? this.profiles[0];
     this.profile = first ?? { id: '', name: '', avatar: '🦊', mode: 'explorer', guide: 'frog', createdAt: '' };
@@ -114,7 +123,7 @@ export class App {
     this.map.onFindTap = id => openFind(this.screenHost(), id, () => this.refresh());
     // Press and hold the map: a find already placed on that spot. Not while a spot is being picked for a find.
     this.map.onLongPress = at => {
-      if (document.body.classList.contains('picking') || document.querySelector('.sheet')) return;
+      if (document.body.classList.contains('picking') || document.querySelector('.sheet') || spotToolOpen()) return;
       say('Ooh, right here! What did you find?');
       void this.capture(undefined, at);
     };
@@ -122,8 +131,10 @@ export class App {
     this.map.onUserPan = () => { if (this.settings.follow) void this.setFollow(false); };
     // A tap on a drawing or a path opens its card; a tap on empty map closes it.
     this.map.onMapTap = at => this.tapShape(at);
+    this.map.onSpotTap = id => { closeShapeCard(); openSpot(this.spotHost(), id); };
     this.map.setFinds(this.finds);
     this.paintSketches();
+    this.paintSpots();
     if (!first) {
       const w = await welcome();
       const p = await saveProfile(w.profile);
@@ -164,6 +175,7 @@ export class App {
     this.runs = this.everyRun.filter(mine);
     this.walks = this.everyWalk.filter(mine);
     this.sketches = this.everySketch.filter(mine);
+    this.spots = this.everySpot.filter(mine);
     this.profile.guide = normalizeGuide(this.profile.guide);
     setGuideName(this.profile.guide, guideName(this.profile.guide, this.profile.guideName));
     setNarrator(this.profile.guide);
@@ -177,6 +189,7 @@ export class App {
     await saveSettings(this.settings);
     closeDrawTool();
     closeShapeCard();
+    closeSpotTool();
     this.scopeToProfile();
     this.applySettingsToChrome();
     this.refresh();
@@ -397,7 +410,16 @@ export class App {
       tickChecks: this.tickCount(),
       walks: done.length,
       longestWalkM: Math.max(0, ...done.map(w => walkLengthM(w.points))),
+      photoSpots: this.spots.length,
+      spotsRetaken: repeatedSpots(this.spots),
     };
+  }
+
+  /** Toasts and says each badge earned since `before` (badges are derived: nothing is stored). */
+  private announceBadges(before: BadgeExtras, delayMs = 1200): void {
+    for (const b of newlyEarned([], [], undefined, before, this.badgeExtras())) {
+      setTimeout(() => { sounds.badge(); toast(`${b.emoji} New badge: ${b.title}!`, 4000); say(`You earned the ${b.title} badge!`); }, delayMs);
+    }
   }
 
   private walkHost(): WalkHost {
@@ -409,9 +431,7 @@ export class App {
         await saveWalk(w);
         this.upsertWalk(w);
         this.drawWalks();
-        for (const b of newlyEarned([], [], undefined, before, this.badgeExtras())) {
-          setTimeout(() => { sounds.badge(); toast(`${b.emoji} New badge: ${b.title}!`, 4000); say(`You earned the ${b.title} badge!`); }, 1200);
-        }
+        this.announceBadges(before);
       },
       remove: async w => {
         await deleteWalk(w.id);
@@ -445,6 +465,7 @@ export class App {
     const act: Record<ToolId, () => void> = {
       me: () => void this.meTap(),
       map: () => this.openMapCard(),
+      photo: () => this.toggleSpotTool(),
       draw: () => this.toggleDraw('sketch'),
       measure: () => this.toggleDraw('measure'),
       path: () => void this.toggleRecording(),
@@ -542,6 +563,7 @@ export class App {
     this.railBody.replaceChildren(...ids.map(id => this.toolBtns.get(id)!));
     this.railBody.dataset.count = String(ids.length);
     if (this.drawing && !ids.includes(this.drawing === 'sketch' ? 'draw' : 'measure')) closeDrawTool();
+    if (spotToolOpen() && !ids.includes('photo')) closeSpotTool();
   }
 
   /** ✏️ Draw and 📏 Measure: one at a time; tapping the lit button again puts it away. */
@@ -554,6 +576,7 @@ export class App {
   /** Opens ✏️ Draw or 📏 Measure; `editing` opens Draw on a saved drawing, from its card. */
   private openDraw(mode: DrawMode, editing?: Sketch): void {
     closeShapeCard();
+    closeSpotTool();
     closeDrawTool();
     this.drawing = mode;
     this.editingSketchId = editing?.id ?? null;
@@ -604,7 +627,7 @@ export class App {
    * paths only while they are shown, never the path recording now.
    */
   private tapShape(at: { lat: number; lon: number }): void {
-    if (document.body.classList.contains('picking') || document.querySelector('.sheet')) return;
+    if (document.body.classList.contains('picking') || document.querySelector('.sheet') || spotToolOpen()) return;
     const walks = this.settings.walksOnMap ? this.walks.filter(w => w.endedAt) : [];
     const picked = pickShape(this.sketches, walks, at.lon, at.lat, SHAPE_TAP_PX * metresPerPixel(at.lat, this.map.zoom()));
     if (!picked) { closeShapeCard(); return; }
@@ -626,6 +649,112 @@ export class App {
       b?.classList.toggle('on', this.drawing === mode);
       b?.setAttribute('aria-pressed', String(this.drawing === mode));
     }
+  }
+
+  // ── 📷 Photo spots ────────────────────────────────────────────
+
+  /** 📷 Photo: tapping the lit button again puts the card away. */
+  private toggleSpotTool(): void {
+    sounds.tap();
+    if (spotToolOpen()) { closeSpotTool(); return; }
+    this.openSpotCard();
+  }
+
+  /**
+   * Opens the photo spot card (photoSpotTool.ts), or `again` to take a saved spot again. The compass gives the way
+   * the camera looks, so it starts here, inside the tap (iOS asks permission only from one), unless the facing
+   * arrow already has it running; the arrow then shows on the map while the explorer aims.
+   */
+  private openSpotCard(again?: TakeAgain): void {
+    closeShapeCard();
+    closeDrawTool();
+    closeSpotTool();
+    if (!this.compass.running) {
+      this.compassForSpot = true;
+      void this.startCompass();
+    }
+    this.paintSpotBtn(true);
+    openSpotTool(this.spotToolHost(), () => {
+      this.paintSpotBtn(false);
+      if (this.compassForSpot && !this.settings.compass) this.stopCompass();
+      this.compassForSpot = false;
+    }, again);
+  }
+
+  private paintSpotBtn(on: boolean): void {
+    const b = this.toolBtns.get('photo');
+    b?.classList.toggle('on', on);
+    b?.setAttribute('aria-pressed', String(on));
+  }
+
+  private spotToolHost(): SpotToolHost {
+    return {
+      map: this.map,
+      profile: this.profile,
+      heading: () => (this.compass.hasReading && this.facingDeg != null ? norm(this.facingDeg) : null),
+      pickOnMap: start => pickOnMap(this.map, start),
+      saveNew: (spot, media) => this.saveNewSpot(spot, media),
+      addPicture: (spot, shot, blob) => this.addSpotPicture(spot, shot, blob),
+      openList: () => openSpots(this.spotHost()),
+    };
+  }
+
+  private spotHost(): SpotHost {
+    return {
+      profile: this.profile,
+      spots: () => this.spots,
+      media: id => getSpotMedia(id),
+      saveInfo: async spot => { this.putSpot(await saveSpot(spot)); },
+      remove: async spot => {
+        await deleteSpot(spot.id);
+        this.everySpot = this.everySpot.filter(x => x.id !== spot.id);
+        this.scopeToProfile();
+        this.paintSpots();
+      },
+      removePicture: async (spot, shotId) => {
+        const media = await getSpotMedia(spot.id);
+        const next = removeShot(spot, shotId);
+        const photos = media.photos.filter(p => p.id !== shotId);
+        // The pin shows the newest picture: if that one went, the one before it takes its place.
+        const newest = photos.find(p => p.id === newestShot(next)?.id);
+        const thumb = newest ? await downscale(newest.blob, 240, 0.8).catch(() => spot.thumb) : spot.thumb;
+        this.putSpot(await saveSpot({ ...next, thumb }, { photos }));
+      },
+      takeAgain: spot => this.openSpotCard({ spot, last: spot.thumb }),
+      showOnMap: spot => typeof spot.lat === 'number' && this.map.flyTo(spot.lat, spot.lon!),
+    };
+  }
+
+  private async saveNewSpot(spot: PhotoSpot, media: SpotMedia): Promise<void> {
+    const before = this.badgeExtras();
+    this.putSpot(await saveSpot(spot, media));
+    this.announceBadges(before);
+  }
+
+  /** Taken again: the new picture joins the spot, which then opens to show then and now. */
+  private async addSpotPicture(spot: PhotoSpot, shot: SpotShot, blob: Blob): Promise<void> {
+    const before = this.badgeExtras();
+    const media = await getSpotMedia(spot.id);
+    const thumb = await downscale(blob, 240, 0.8).catch(() => spot.thumb);
+    const stored = await saveSpot({ ...addShot(spot, shot), thumb }, { photos: [...media.photos, { id: shot.id, blob }] });
+    this.putSpot(stored);
+    sounds.save();
+    toast('🔁 Then and now!');
+    say('Then and now! Tap the pictures to see what changed.');
+    this.announceBadges(before, 1800);
+    openSpot(this.spotHost(), stored.id);
+  }
+
+  /** A new or changed spot, in its place (new ones first). */
+  private putSpot(spot: PhotoSpot): void {
+    const at = this.everySpot.findIndex(x => x.id === spot.id);
+    if (at >= 0) this.everySpot[at] = spot; else this.everySpot.unshift(spot);
+    this.scopeToProfile();
+    this.paintSpots();
+  }
+
+  private paintSpots(): void {
+    this.map.setSpots(this.spots);
   }
 
   private helloText(): string {
@@ -712,6 +841,7 @@ export class App {
   private async capture(existing?: Find, at?: { lat: number; lon: number }): Promise<void> {
     sounds.tap();
     closeShapeCard();
+    closeSpotTool();
     // Changing a find works on its pictures too, which are read only now (Field Mapper's getFeature, hydrated).
     const full = existing ? await getFullFind(existing.id) : undefined;
     if (existing && !full) return;
@@ -917,6 +1047,7 @@ export class App {
     this.map.clearFinds();
     this.map.setFinds(this.finds);
     this.paintSketches();
+    this.paintSpots();
     if (this.recBtn) this.drawWalks();
     this.paintStar();
     this.paintHunt();
@@ -944,6 +1075,7 @@ export class App {
       badgeExtras: () => this.badgeExtras(),
       tickCheck: () => this.openTickCheckScreen(),
       openWalks: () => openWalks(this.walkHost()),
+      openSpots: () => openSpots(this.spotHost()),
     };
   }
 
@@ -971,6 +1103,7 @@ export class App {
         this.everyRun = this.everyRun.filter(r => r.profileId !== p.id);
         this.everyWalk = this.everyWalk.filter(w => w.profileId !== p.id);
         this.everySketch = this.everySketch.filter(x => x.profileId !== p.id);
+        this.everySpot = this.everySpot.filter(x => x.profileId !== p.id);
         if (this.profile.id === p.id && this.profiles[0]) await this.switchTo(this.profiles[0].id);
         else { this.scopeToProfile(); this.refresh(); }
       },
@@ -989,6 +1122,7 @@ export class App {
       allFinds: () => this.everyFind,
       allWalks: () => this.everyWalk,
       allSketches: () => this.everySketch,
+      allSpots: () => this.everySpot,
       profiles: this.profileHost(),
       applySettings: async s => {
         this.settings = s;
@@ -1006,6 +1140,8 @@ export class App {
         this.everyFind = [];
         this.everyRun = [];
         this.everyWalk = [];
+        this.everySketch = [];
+        this.everySpot = [];
         this.scopeToProfile();
         this.refresh();
         this.map.setTrail([], false);

@@ -22,6 +22,9 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
 - **Map**: a big-button map with "Where am I?" (which also follows you), every find as a pin, and 📸 quick-find
   buttons (off until turned on in My buttons; the kinds you pick, or the kinds you find most): one tap, one photo,
   saved.
+- **Photo spots** (📷, new in 2.4): take a picture of a view; the compass remembers which way you looked, and the
+  map shows a wedge pointing that way (or tap an arrow yourself). Come back another day and 🔁 take it again to see
+  what changed — then and now.
 - **"I found something!"**: add as many photos and drawings as you like, pick what it is (bird, bug, plant,
   tree, flower, animal, mushroom, tracks & scat, rock, water, sky, mystery), and ✨ Save now — or go on: name it
   (type your own words, like "little plant", or pick a species), tap its colours, size and how many on one screen,
@@ -58,7 +61,7 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
   Bandit the raccoon hides the daily challenges. Tap the name at the top of the map to meet them.
 - **Tick check**: when a hunt ends, or any time from 🏠 on the map, Bramble walks the explorer through
   the places ticks hide, with a grown-ups' guide to checking and removing a tick.
-- **Badges**: 30 badges for exploring, collecting, drawing, telling stories and finishing hunts.
+- **Badges**: 33 badges for exploring, collecting, drawing, telling stories, photo spots and finishing hunts.
 - **Age levels**: 🌱 Sprout (about 4–6), 🧭 Explorer (about 7–9), 🔬 Naturalist (about 10–12), chosen by a grown-up.
   Today they set the starting look and mode; what each level asks and offers is planned in `docs/AGE_TIERS.md`.
 - **On my own or Together**, chosen on first launch and switched any time with the 🧒 / 👨‍👧 button on the map
@@ -73,7 +76,7 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
 
 ## Privacy
 
-Everything stays on the device, in the browser's IndexedDB: finds, photos, voice notes, locations and
+Everything stays on the device, in the browser's IndexedDB: finds, photos, photo spots, voice notes, locations and
 walks. There is no account, no sync and no analytics. The only network use is the map itself: map
 pictures come from [OpenFreeMap](https://openfreemap.org) (OpenStreetMap data) and, for satellite and
 hybrid, Esri World Imagery; those services see the device's internet address and which part of the map is being
@@ -92,7 +95,7 @@ green and everything else keeps working; places already viewed are cached.
 
 ## Versions
 
-Scout is at **2.3.0**. See [CHANGELOG.md](CHANGELOG.md); the app shows What's new on its opening screen.
+Scout is at **2.4.0**. See [CHANGELOG.md](CHANGELOG.md); the app shows What's new on its opening screen.
 
 ## Development
 

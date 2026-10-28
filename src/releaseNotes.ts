@@ -12,6 +12,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.4.0', date: '2026-10-28', title: 'Photo spots',
+    notes: [
+      'Tap 📷 Photo to take a picture of a view. Your map shows which way you looked.',
+      'Come back another day and take it again: then and now!',
+      'Two new badges: Photo Spotter and Then and Now.',
+    ],
+  },
+  {
     version: '2.3.1', date: '2026-10-28', title: 'A steadier map',
     notes: ['The map loads the same way on every kind of web host.'],
   },

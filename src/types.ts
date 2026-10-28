@@ -46,6 +46,47 @@ export interface Sketch {
   name?: string;
 }
 
+/**
+ * One picture taken at a photo spot (photoSpots.ts): Field Mapper's photo point (`PhotoPointData`), less what a
+ * child's app has no use for (observer, caption for a PDF log, duplicate hash, EXIF source).
+ */
+export interface SpotShot {
+  id: string;
+  /** ISO 8601, when it was taken (saved). */
+  takenAt: string;
+  /** Which way the camera looked, degrees clockwise from north (0–359). Absent = not known: blank is not zero. */
+  bearing?: number;
+  /** How the way was set: the device compass at the tap, or the explorer's own choice of arrow. */
+  facingBy?: 'compass' | 'chosen';
+}
+
+/** A photo spot's pictures, by shot id: read only when the spot is opened, taken again or exported. */
+export interface SpotMedia {
+  photos: { id: string; blob: Blob }[];
+}
+
+/**
+ * A place an explorer took a picture of the view, and which way they looked: a pin with a wedge on the map. They can
+ * come back and take it again on another day ("then and now"). Belongs to a profile. Stored light (the shots and a
+ * thumbnail), with the pictures in `spotMedia`, as a find is.
+ */
+export interface PhotoSpot {
+  id: string;
+  profileId?: string;
+  createdAt: string;
+  /** A name the explorer gave it ("The big pond"). */
+  name?: string;
+  /** Where the explorer stood. Absent when there was no fix and none was chosen: then it is not on the map. */
+  lat?: number;
+  lon?: number;
+  accuracy?: number;
+  placeBy?: 'gps' | 'map';
+  /** Every picture taken here, oldest first. */
+  shots: SpotShot[];
+  /** A small square copy of the newest picture, for the map pin and the lists. */
+  thumb?: Blob;
+}
+
 export interface SpeciesPick {
   name: string;
   scientific?: string;

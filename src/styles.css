@@ -175,7 +175,7 @@ body.picking .quick-row { visibility: hidden; }
 @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
 
 /* ── Map markers ─────────────────────────────────────── */
-.me-marker { width: 56px; height: 56px; z-index: 1; }
+.me-marker { width: 56px; height: 56px; z-index: 2; }
 .me-inner { position: relative; width: 56px; height: 56px; display: grid; place-items: center; }
 .me-ring { position: absolute; inset: 4px; border-radius: 50%; background: rgba(51, 154, 240, 0.35); border: 3px solid #1c7ed6; animation: ping 2s ease-out infinite; }
 .me-face { position: relative; font-size: 34px; filter: drop-shadow(0 2px 0 #fff); }
@@ -191,7 +191,16 @@ body.picking .quick-row { visibility: hidden; }
 @keyframes press-fill { from { transform: scale(0.3); opacity: 0.4; } to { transform: scale(1); opacity: 1; } }
 .facing-marker { pointer-events: none; line-height: 0; color: var(--green); z-index: 0; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35)); }
 .me-btn.on { background: var(--good-soft); outline: 3px solid var(--green); }
-.find-marker { width: 46px; height: 56px; padding: 0; border: 0; background: none; cursor: pointer; }
+.find-marker { width: 46px; height: 56px; padding: 0; border: 0; background: none; cursor: pointer; z-index: 1; }
+/* Photo spots (photoSpots.ts): a round pin over a wedge pointing the way the camera looked. The wedges sit under
+   every pin (z-index 0, as the facing arrow), the pins with the find pins, the explorer above them all. Like the find
+   pins, the marker elements are MapLibre's to position: everything is drawn inside them. */
+.spot-cone { z-index: 0; line-height: 0; pointer-events: none; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3)); }
+.spot-cone svg { pointer-events: none; }
+.spot-cone path { pointer-events: visiblePainted; cursor: pointer; }
+.spot-cone.draft path { fill-opacity: 0.55; stroke-dasharray: 8 6; }
+.spot-marker.draft { pointer-events: none; }
+.spot-marker.draft .find-pin { border-style: dashed; }
 .find-pin {
   position: absolute; left: 0; top: 0; width: 46px; height: 46px; border-radius: 50% 50% 50% 4px; transform: rotate(-45deg);
   background: var(--cat); border: var(--bw) solid var(--line); box-sizing: border-box; overflow: hidden;
@@ -797,6 +806,7 @@ html[data-theme="journal"] .sheet.walks { --plate: url("./assets/journal/walks.w
 html[data-theme="journal"] .sheet.walk-done { --plate: url("./assets/journal/walks.webp"); }
 html[data-theme="journal"] .sheet.profiles { --plate: url("./assets/journal/profiles.webp"); }
 html[data-theme="journal"] .sheet.look { --plate: url("./assets/journal/book.webp"); }
+html[data-theme="journal"] .sheet.spot-list { --plate: url("./assets/journal/celebrate.webp"); }
 html[data-theme="journal"] .sheet.celebrate { --plate: url("./assets/journal/celebrate.webp"); }
 html[data-theme="journal"] .sheet.help { --plate: url("./assets/journal/crew.webp"); }
 html[data-theme="journal"] .sheet.book .sheet-body::before, html[data-theme="journal"] .sheet.badges .sheet-body::before, html[data-theme="journal"] .sheet.challenges .sheet-body::before, html[data-theme="journal"] .sheet.crew .sheet-body::before, html[data-theme="journal"] .sheet.capture .sheet-body::before, html[data-theme="journal"] .sheet.hunts .sheet-body::before, html[data-theme="journal"] .sheet.hunt-preview .sheet-body::before, html[data-theme="journal"] .sheet.ticks .sheet-body::before, html[data-theme="journal"] .sheet.grownups .sheet-body::before, html[data-theme="journal"] .sheet.walks .sheet-body::before, html[data-theme="journal"] .sheet.walk-done .sheet-body::before, html[data-theme="journal"] .sheet.profiles .sheet-body::before, html[data-theme="journal"] .sheet.look .sheet-body::before, html[data-theme="journal"] .sheet.celebrate .sheet-body::before, html[data-theme="journal"] .sheet.help .sheet-body::before {
@@ -989,6 +999,7 @@ html .mini-choices .mini-emoji { font-size: 20px; }
 /* ✏️ Draw / 📏 Measure (drawTool.ts): a short card at the foot of the map; the bottom bar and quick row step aside. */
 body:is(.drawing, .shape-open) :is(.bottom-bar, .quick-row, .buddy-dock, .walk-note) { visibility: hidden; }
 body.drawing .maplibregl-marker:not(.me-marker) { pointer-events: none; }
+body.drawing .spot-cone path { pointer-events: none; }
 .draw-hud {
   position: fixed; left: 8px; right: 8px; bottom: calc(var(--bar-pad-b) + 6px); z-index: 30; max-width: 520px; margin: 0 auto;
   background: var(--card); border: var(--bw) solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-big);
@@ -1066,12 +1077,12 @@ html .map-avatar-pick .mode-card strong { font-size: 15px; }
 .launch-version { margin: 4px auto 0; font-size: 14px; }
 .release h3 { margin: 10px 0 0; }
 
-/* Seven buttons on a phone: a little smaller, so all of them fit. */
-@media (max-height: 780px) {
-  .side-body[data-count="7"] { gap: 4px; }
-  .side-body[data-count="7"] .rail-btn { width: 54px; height: 46px; }
-  .side-body[data-count="7"] .rail-btn .rail-emoji { font-size: 20px; }
-  .side-body[data-count="7"] .rail-btn .rail-word { font-size: 10px; margin-top: 1px; }
+/* Seven or eight buttons on a phone: a little smaller, so all of them fit (the body scrolls past that). */
+@media (max-height: 820px) {
+  .side-body:is([data-count="7"], [data-count="8"]) { gap: 4px; }
+  .side-body:is([data-count="7"], [data-count="8"]) .rail-btn { width: 54px; height: 46px; }
+  .side-body:is([data-count="7"], [data-count="8"]) .rail-btn .rail-emoji { font-size: 20px; }
+  .side-body:is([data-count="7"], [data-count="8"]) .rail-btn .rail-word { font-size: 10px; margin-top: 1px; }
 }
 
 /* No text past its own box: a long word in a narrow button (a big text size, wide letters) breaks onto a new line. */
@@ -1127,7 +1138,7 @@ body:has(.sheet) .toast { top: auto; bottom: calc(20px + var(--safe-b)); }
 @media (max-height: 500px) and (orientation: landscape) {
   .side-btns { flex-direction: row-reverse; align-items: flex-start; top: calc(70px + var(--safe-t)); }
   .side-body { flex-direction: row; max-height: none; max-width: calc(100vw - 110px); overflow-x: auto; overflow-y: hidden; padding: 2px 4px 4px; }
-  .side-body .rail-btn, .side-body[data-count="7"] .rail-btn { width: 56px; height: 50px; }
+  .side-body .rail-btn, .side-body:is([data-count="7"], [data-count="8"]) .rail-btn { width: 56px; height: 50px; }
   .side-body .rail-btn .rail-emoji { font-size: 21px; }
   .side-body .rail-btn .rail-word { font-size: 10px; margin-top: 1px; }
   .rail-toggle svg { transform: rotate(90deg); }
@@ -1138,4 +1149,54 @@ body:has(.sheet) .toast { top: auto; bottom: calc(20px + var(--safe-b)); }
   .launch-inner > .launch-welcome { grid-column: 1; grid-row: 3 / 7; }
   .launch-go { min-height: 56px; font-size: 21px; }
   .launch-tile { min-height: 64px; }
+}
+
+/* 📷 Photo spots (photoSpotTool.ts, spotScreens.ts): the card at the foot of the map, the way picker, the spot page. */
+.spot-hud { max-height: calc(100dvh - 84px - var(--safe-t)); overflow-y: auto; overscroll-behavior: contain; }
+.spot-hud .draw-hint { font-size: 14px; }
+.spot-where { font-weight: 800; opacity: 1; }
+.spot-where.here { color: var(--green); }
+.spot-again { display: flex; gap: 10px; align-items: center; }
+.spot-ghost { width: 84px; height: 84px; flex: 0 0 auto; object-fit: cover; border-radius: var(--radius-sm); border: var(--bw) solid var(--line); opacity: 0.85; }
+.spot-take { font-size: 18px !important; }
+.spot-pick { display: flex; gap: 12px; align-items: center; justify-content: center; }
+.spot-shot { width: 120px; height: 120px; flex: 0 0 auto; object-fit: cover; border-radius: var(--radius-sm); border: var(--bw) solid var(--line); }
+.spot-arrows { display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px); gap: 4px; flex: 0 0 auto; }
+.spot-arrow {
+  width: 44px; height: 44px; padding: 0; display: grid; place-items: center; border-radius: 12px;
+  background: var(--card); border: var(--bw) solid var(--line); color: var(--ink); font-weight: 900; font-size: 20px;
+}
+.spot-arrow .ic { width: 26px; height: 26px; transform: rotate(var(--rot, 0deg)); }
+.spot-arrow.on { background: var(--green); color: var(--card); border-color: var(--green); }
+.spot-arrow.unsure.on { background: var(--good-soft); color: var(--ink); }
+.spot-way { margin: 0; font-weight: 800; font-size: 15px; text-align: center; }
+.spot-place { display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap; font-size: 14px; font-weight: 700; }
+.spot-place > span { flex: 1 1 12em; min-width: 0; }
+html .spot-place .chip { min-height: 40px; padding: 4px 12px; font-size: 15px; }
+.spot-big { width: 100%; max-height: 52vh; object-fit: contain; background: var(--card); }
+.spot-caption { text-align: center; margin: 6px 0 4px; font-size: 16px; }
+.spot-strip { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; }
+.spot-thumb { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px; border-radius: var(--radius-sm); background: var(--card); border: var(--bw) solid var(--line); font-size: 12px; font-weight: 800; }
+.spot-thumb img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; }
+.spot-thumb.on { outline: 3px solid var(--green); background: var(--good-soft); }
+.spot-row-open { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; padding: 0; background: none; border: 0; text-align: left; color: inherit; font: inherit; }
+.spot-row-pic { width: 52px; height: 52px; flex: 0 0 auto; border-radius: 50%; overflow: hidden; display: grid; place-items: center; font-size: 26px; background: var(--good-soft); border: var(--bw) solid var(--line); }
+.spot-row-pic img { width: 100%; height: 100%; object-fit: cover; }
+.book-more .big-btn { flex: 1; }
+@media (max-width: 380px) {
+  .spot-shot { width: 96px; height: 96px; }
+  .spot-arrows { grid-template-columns: repeat(3, 42px); grid-template-rows: repeat(3, 42px); }
+  .spot-arrow { width: 42px; height: 42px; }
+}
+/* A phone on its side: the picture and arrows on the left, the rest beside them, so Save stays on screen. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .spot-hud { max-width: 760px; }
+  .spot-hud.saving { display: grid; grid-template-columns: auto 1fr; column-gap: 14px; row-gap: 6px; align-items: center; }
+  .spot-hud.saving > .draw-head { grid-column: 1 / -1; }
+  .spot-hud.saving > .spot-pick { grid-column: 1; grid-row: 2 / span 4; }
+  .spot-hud.saving > :not(.draw-head, .spot-pick) { grid-column: 2; }
+  .spot-hud .spot-shot { width: 84px; height: 84px; }
+  .spot-hud .spot-arrows { grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(3, 40px); }
+  .spot-hud .spot-arrow { width: 40px; height: 40px; }
+  .spot-hud .spot-ghost { width: 64px; height: 64px; }
 }
