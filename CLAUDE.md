@@ -10,7 +10,8 @@ much smaller app from Fraxinus Field Mapper (`fraxinusenviro/GPS2026felt`), shar
 its two characters, and nothing else. Do not add code here that talks to Field Mapper's backend.
 
 Stack: vanilla TypeScript + Vite + MapLibre GL 6 + `idb` + `vite-plugin-pwa`. **No UI framework.** MapLibre 6 finds its worker
-by URL: `mapView.ts` gives it the file Vite emits (`setWorkerUrl`), and `.mjs` is precached — keep both.
+by URL: `mapView.ts` gives it the file Vite emits (`setWorkerUrl`), renamed `.js` by `vite.config.ts` so any host
+serves it as JavaScript, and precached — keep all three.
 
 ## Versions
 

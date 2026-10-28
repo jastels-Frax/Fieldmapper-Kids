@@ -8,7 +8,16 @@ export default defineConfig({
   // Relative asset URLs, so the build works on any subpath (GitHub Pages included).
   base: './',
   // MapLibre alone is ~800 kB; one chunk, precached, is the simplest offline story.
-  build: { chunkSizeWarningLimit: 1600 },
+  build: {
+    chunkSizeWarningLimit: 1600,
+    rollupOptions: {
+      output: {
+        // MapLibre's worker ships as .mjs (mapView.ts setWorkerUrl). A module worker is refused unless served as
+        // JavaScript, and not every host types .mjs so: emitted as .js, every host does.
+        assetFileNames: info => (info.names?.some(n => n.endsWith('.mjs')) ? 'assets/[name]-[hash].js' : 'assets/[name]-[hash][extname]'),
+      },
+    },
+  },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
@@ -38,8 +47,8 @@ export default defineConfig({
       },
       workbox: {
         // species/*.json is the Nova Scotia species list (~140 kB gzipped): precached so naming works offline.
-        // .mjs: MapLibre's worker (mapView.ts setWorkerUrl), without which no map draws offline.
-        globPatterns: ['**/*.{js,mjs,css,html,svg,png,webp,woff2}', 'species/*.json'],
+        // MapLibre's worker is a .js (see build above): precached with the rest, or no map draws offline.
+        globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}', 'species/*.json'],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         runtimeCaching: [
           {

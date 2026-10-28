@@ -12,6 +12,10 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.3.1', date: '2026-10-28', title: 'A steadier map',
+    notes: ['The map loads the same way on every kind of web host.'],
+  },
+  {
     version: '2.3.0', date: '2026-10-28', title: 'Safer for explorers',
     notes: [
       'Reading aloud only uses voices on this device.',

@@ -5,6 +5,11 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.3.1 — 2026-10-28
+
+- MapLibre's worker is emitted as `.js` (`vite.config.ts` `assetFileNames`), not `.mjs`: a module worker is refused
+  unless served as JavaScript, and not every host types `.mjs` so. The precache pattern is back to `.js`.
+
 ## 2.3.0 — 2026-10-28
 
 A safety pass, from a review of privacy, security, kid-friendliness and layout.
