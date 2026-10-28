@@ -98,7 +98,19 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
   // A new find's header is just ✖ and the progress (the guide's bubble says what each step wants).
   if (!editing) sheet.classList.add('slim-head');
   const dots = h('div', { class: 'step-dots', 'aria-hidden': 'true', hidden: editing });
-  sheet.querySelector('.sheet-head')!.append(dots);
+  // Back and forward live at the top, either side of the progress, so they are always in the same place and never
+  // scrolled away (paintNav decides what each does on the step on screen).
+  const prevNav = h('button', { class: 'round-btn step-nav', 'aria-label': 'Go back a step' }, '⬅️') as HTMLButtonElement;
+  const nextNav = h('button', { class: 'round-btn step-nav', 'aria-label': 'Next step', hidden: editing }, '➡️') as HTMLButtonElement;
+  prevNav.addEventListener('click', () => { sounds.tap(); navBack?.(); });
+  nextNav.addEventListener('click', () => { navForward?.(); });
+  const head = sheet.querySelector('.sheet-head')!;
+  if (editing) head.querySelector('.close-btn')!.after(prevNav);
+  else head.append(prevNav, dots, nextNav);
+  let navBack: (() => void) | null = null;
+  let navForward: (() => void) | null = null;
+  /** The drawing pad is open over the picture step: back closes it, forward waits for Done drawing. */
+  let padOpen = false;
 
   // Editing opens on a summary of the find; each row opens ONE question and comes
   // back. Changing the kind of thing also asks the questions that depend on it.
@@ -114,9 +126,34 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
   let commit: (() => void) | null = null;
   const leave = () => { commit?.(); commit = null; };
   const current = (): Step => showing;
+  /**
+   * What ⬅️ and ➡️ do on the screen showing now. Forward is offered once the step can be left: not before the kind
+   * of thing is picked (every later step depends on it), and not on the save screen, whose Save is the way on.
+   */
+  const paintNav = () => {
+    const set = (btn: HTMLButtonElement, act: (() => void) | null) => { btn.disabled = !act; btn.hidden = editing && btn === nextNav ? true : btn.hidden; };
+    if (editing) {
+      navBack = onOverview ? null : () => { followUps = []; overview(); };
+      prevNav.hidden = onOverview;
+    } else if (padOpen || detour) {
+      navBack = () => go(stepIdx);
+      navForward = null;
+    } else {
+      const list = steps();
+      const st = list[stepIdx];
+      navBack = stepIdx > 0 ? () => go(stepIdx - 1) : null;
+      navForward = stepIdx < list.length - 1 && !(st === 'category' && !draft.category) ? next : null;
+    }
+    set(prevNav, navBack);
+    set(nextNav, navForward);
+  };
+  /** The editing summary is on screen (it has no step to go back from). */
+  let onOverview = false;
   const go = (i: number) => {
     leave();
     detour = false;
+    padOpen = false;
+    onOverview = false;
     const list = steps();
     stepIdx = Math.max(0, Math.min(list.length - 1, i));
     showing = list[stepIdx];
@@ -126,6 +163,7 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
     body.replaceChildren();
     body.scrollTop = 0;
     render[list[stepIdx]]();
+    paintNav();
   };
   const put = (...xs: (Node | null | false)[]) => body.append(...xs.filter((x): x is Node => !!x));
   const goStep = (st: Step) => go(Math.max(0, steps().indexOf(st)));
@@ -137,9 +175,6 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
     if (after) goStep(after);
     else overview();
   };
-  const prevBtn = () => editing
-    ? h('button', { class: 'text-btn', onclick: () => { followUps = []; overview(); } }, '⬅️ Back to my find')
-    : stepIdx > 0 ? h('button', { class: 'text-btn', onclick: () => go(stepIdx - 1) }, '⬅️ Go back') : null;
   /** In editing, the step's own "Next" reads as "Done". */
   const nextLabel = (label = 'Next ➡️') => (editing || detour ? '✅ Done' : label);
   /** ✨ Save now: on every new find's step after the kind, so the rest is optional on a trail. */
@@ -153,6 +188,7 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
     body.replaceChildren();
     body.scrollTop = 0;
     render.where();
+    paintNav();
   };
   const title = (text?: string, pose?: Expression) => {
     const line = stepLine(guide, current());
@@ -211,18 +247,17 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
       const nextBtn = h('button', { class: 'big-btn', onclick: next });
       const showPad = () => {
         pad = drawPad();
+        padOpen = true;
+        paintNav();
         body.replaceChildren(
           title('Draw what you see!', 'point'),
           pad.el,
-          h('div', { class: 'ask-row' },
-            h('button', { class: 'big-btn', onclick: async () => {
-              const b = await pad!.getBlob();
-              if (!b) { say('Draw something first!'); return; }
-              addPicture({ id: uid(), kind: 'drawing', blob: b });
-              go(stepIdx);
-            } }, '✅ Done drawing'),
-            h('button', { class: 'big-btn soft', onclick: () => go(stepIdx) }, '⬅️ Back'),
-          ),
+          h('button', { class: 'big-btn', onclick: async () => {
+            const b = await pad!.getBlob();
+            if (!b) { say('Draw something first!'); return; }
+            addPicture({ id: uid(), kind: 'drawing', blob: b });
+            go(stepIdx);
+          } }, '✅ Done drawing'),
         );
       };
       put(
@@ -259,7 +294,6 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
             },
           }, h('span', { class: 'choice-emoji' }, c.emoji), c.label),
         )),
-        prevBtn(),
       );
     },
 
@@ -275,7 +309,6 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
         h('p', { class: 'safety-note' }, '🐻 Ranger Bramble says: look at tracks and scat, but never touch scat. Wash your hands after exploring!'),
         h('button', { class: 'text-btn', onclick: next }, 'Skip ⏭️'),
         saveNow(),
-        prevBtn(),
       );
     },
 
@@ -359,7 +392,6 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
         h('button', { class: 'big-btn', onclick: next }, nextLabel()),
         h('button', { class: 'big-btn soft', onclick: () => { search.value = ''; draft.species = undefined; next(); } }, "🤷 I don't know yet"),
         saveNow(),
-        prevBtn(),
       );
       paintChosen();
       paintResults();
@@ -397,7 +429,6 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
         h('h3', { class: 'describe-head' }, '🔢 How many?'), pickRow(COUNTS, () => draft.count, v => { draft.count = v; }),
         h('button', { class: 'big-btn', onclick: next }, nextLabel()),
         saveNow(),
-        prevBtn(),
       );
     },
 
@@ -436,7 +467,7 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
       };
       // Editing with GPS chosen means "where I am now": ask for a fresh fix.
       if (editing) fix = steadyNow() ?? fix;
-      put(title(), cards, note, h('button', { class: 'big-btn', onclick: next }, nextLabel()), saveNow(), detour ? null : prevBtn());
+      put(title(), cards, note, h('button', { class: 'big-btn', onclick: next }, nextLabel()), saveNow());
       paint();
       if (!fix && !editing) void bestFix(8000, 30).then(f => { if (f) { fix = f; if (place.kind === 'none') place = { kind: 'gps' }; paint(); } });
     },
@@ -489,7 +520,6 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
           h('label', { class: 'field' }, h('span', {}, '✏️ Grown-up note'), note),
         );
       }
-      parts.push(prevBtn());
       put(...parts);
     },
   };
@@ -546,6 +576,8 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
 
   /** The summary a saved find opens on: every answer, each one tap from being changed. */
   function overview() {
+    onOverview = true;
+    paintNav();
     body.replaceChildren();
     body.scrollTop = 0;
     const cat = draft.category ? categoryOf(draft.category) : null;

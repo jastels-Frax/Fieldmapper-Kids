@@ -12,6 +12,13 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.1.2', date: '2026-10-28', title: 'Easier to move through a find',
+    notes: [
+      'Go back and forward through a find with the arrows at the top.',
+      'Writing boxes are easier to spot in the Field Journal look.',
+    ],
+  },
+  {
     version: '2.1.1', date: '2026-10-25', title: 'More room for finding',
     notes: [
       'The find steps have a slimmer top, so the buttons come first.',

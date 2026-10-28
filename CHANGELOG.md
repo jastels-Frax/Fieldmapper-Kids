@@ -5,6 +5,15 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.1.2 — 2026-10-28
+
+- **⬅️ and ➡️ at the top of the find steps**, either side of the progress (`paintNav` in `capture.ts`). Forward is
+  offered once the step can be left (not before the kind is picked) and not on the save screen; back closes the
+  drawing pad or the Where detour. Editing a find has ⬅️ back to its summary. Every "⬅️ Go back" / "⬅️ Back" button
+  at the foot of a step is gone.
+- **Text boxes in the Field Journal look have an inked edge**, a light page, an inset shadow and a clear ring while
+  in use (they were a dashed line on transparent paper).
+
 ## 2.1.1 — 2026-10-25
 
 - **The find steps' header is one slim row**: ✖ and the progress (`.sheet.slim-head`). "I found something!" is no
