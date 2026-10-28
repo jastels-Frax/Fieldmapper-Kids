@@ -179,6 +179,11 @@ export interface Settings {
   voiceMode: 'characters' | 'one';
   /** The speech voice a grown-up chose; absent = the best one installed. */
   voiceURI?: string;
+  /**
+   * The grown-up confirmed `voiceURI` though it reads over the internet (voiceRank.isCloudVoice). Without it a
+   * cloud voice chosen before that warning existed is not used: the best device voice speaks instead.
+   */
+  voiceCloudOk?: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {

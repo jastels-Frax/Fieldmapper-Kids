@@ -196,7 +196,7 @@ export class App {
   private applyAudio(): void {
     setReadAloud(this.settings.readAloud);
     setSounds(this.settings.sounds);
-    setVoice(this.settings.voiceURI);
+    setVoice(this.settings.voiceURI, this.settings.voiceCloudOk);
     setVoiceMode(this.settings.voiceMode);
   }
 

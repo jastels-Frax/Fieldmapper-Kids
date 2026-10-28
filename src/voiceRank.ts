@@ -4,6 +4,11 @@ import type { GuideId } from './types.ts';
  * Which of the device's speech voices sounds best. Browsers list every voice
  * the system has, and the default is often the oldest, most robotic one. Pure,
  * so it is tested without a browser.
+ *
+ * ONLY VOICES ON THE DEVICE ARE EVER CHOSEN AUTOMATICALLY (`onDevice`). Some browsers list cloud voices beside the
+ * device's own (Edge's "… Online (Natural)", Chrome's "Google US English"): those send every word they read — the
+ * explorer's name among them — to the company that runs them. A grown-up can still pick one on purpose in the
+ * grown-up corner, where it is marked and asked about (`isCloudVoice`).
  */
 export interface VoiceLike {
   name: string;
@@ -16,9 +21,19 @@ export interface VoiceLike {
 /** macOS / iOS novelty voices and old synthesizers: never chosen automatically. */
 const NOVELTY = /\b(albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|fred|good news|hysterical|jester|junior|kathy|organ|pipe organ|ralph|superstar|trinoids|whisper|wobble|zarvox|espeak|mbrola)\b/i;
 /** Signs of a modern, natural-sounding voice. */
-const NATURAL = /\b(natural|neural|premium|enhanced|online|wavenet|studio)\b/i;
+const NATURAL = /\b(natural|neural|premium|enhanced|wavenet|studio)\b/i;
 /** Voices known to sound good, by name. */
 const GOOD = /\b(samantha|ava|allison|susan|karen|daniel|moira|tessa|serena|kate|oliver|zoe|nicky|evan|joelle|siri|aria|jenny|guy|libby|sonia|ryan|clara|liam|google (us|uk) english)\b/i;
+
+/** A voice that reads over the internet: the words go to its maker. */
+export function isCloudVoice(v: VoiceLike): boolean {
+  return !v.localService;
+}
+
+/** The voices that speak on the device itself: the only ones Scout picks without a grown-up asking. */
+export function onDevice<T extends VoiceLike>(voices: T[]): T[] {
+  return voices.filter(v => !isCloudVoice(v));
+}
 
 export function englishVoices<T extends VoiceLike>(voices: T[]): T[] {
   return voices.filter(v => /^en([-_]|$)/i.test(v.lang) && !NOVELTY.test(v.name));
@@ -33,22 +48,26 @@ export function voiceScore(v: VoiceLike, region = 'CA'): number {
   const lang = v.lang.replace('_', '-').toUpperCase();
   if (lang === `EN-${region}`) s += 12;
   else if (lang === 'EN-US' || lang === 'EN-GB') s += 8;
-  // An online voice stops talking with no signal, which is often the case outdoors.
+  // An online voice stops talking with no signal, which is often the case outdoors (and is never auto-picked).
   if (v.localService) s += 6;
   if (/compact/i.test(v.name)) s -= 10;
   if (v.default) s += 1;
   return s;
 }
 
-/** The chosen voice if it is still installed, else the best one, else none. */
-export function pickVoice<T extends VoiceLike>(voices: T[], chosenURI?: string, region = 'CA'): T | null {
+/**
+ * The voice a grown-up chose if it is still installed (a cloud one only ever this way), else the best voice ON
+ * THE DEVICE, else none: silence rather than a cloud voice nobody chose.
+ */
+export function pickVoice<T extends VoiceLike>(voices: T[], chosenURI?: string, region = 'CA', cloudOk = false): T | null {
   if (chosenURI) {
     const c = voices.find(v => v.voiceURI === chosenURI);
-    if (c) return c;
+    // A cloud voice only when the grown-up confirmed it reads over the internet (Settings.voiceCloudOk).
+    if (c && (!isCloudVoice(c) || cloudOk)) return c;
   }
   let best: T | null = null;
   let bestScore = -Infinity;
-  for (const v of voices) {
+  for (const v of onDevice(voices)) {
     const sc = voiceScore(v, region);
     if (sc > bestScore) { best = v; bestScore = sc; }
   }
@@ -102,7 +121,8 @@ export function voiceRange(name: string): 'higher' | 'deeper' | 'unknown' {
  * just to be different. Deterministic, so Hop sounds the same every launch.
  */
 export function castVoices<T extends VoiceLike>(voices: T[], region = 'CA'): Record<GuideId, T | null> {
-  const ranked = voices.map(v => ({ v, s: voiceScore(v, region) })).filter(x => x.s > -50).sort((a, b) => b.s - a.s || a.v.name.localeCompare(b.v.name));
+  // The characters only ever speak with the device's own voices (see the top of this file).
+  const ranked = onDevice(voices).map(v => ({ v, s: voiceScore(v, region) })).filter(x => x.s > -50).sort((a, b) => b.s - a.s || a.v.name.localeCompare(b.v.name));
   const out = {} as Record<GuideId, T | null>;
   if (!ranked.length) { for (const g of CAST_ORDER) out[g] = null; return out; }
   const good = ranked.filter(x => x.s >= ranked[0].s - 25).map(x => x.v);

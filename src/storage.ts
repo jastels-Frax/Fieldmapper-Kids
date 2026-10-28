@@ -257,6 +257,7 @@ export async function loadSettings(): Promise<Settings> {
     // Absence: a device whose grown-up already picked a voice meant one voice; everyone else gets the characters.
     voiceMode: s?.voiceMode === 'one' || s?.voiceMode === 'characters' ? s.voiceMode : (s?.voiceURI ? 'one' : 'characters'),
     ...(s?.voiceURI ? { voiceURI: s.voiceURI } : {}),
+    ...(s?.voiceURI && s.voiceCloudOk ? { voiceCloudOk: true } : {}),
   };
 }
 

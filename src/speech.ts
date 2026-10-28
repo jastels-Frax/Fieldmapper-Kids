@@ -4,7 +4,8 @@ import type { GuideId } from './types.ts';
 
 /**
  * Reads words aloud with the device's own speech voices: nothing is sent over
- * the network, and it works offline. By default every character speaks in a
+ * the network, and it works offline. A cloud voice is never chosen automatically
+ * (voiceRank.onDevice); only a grown-up can pick one, warned, in the grown-up corner. By default every character speaks in a
  * voice of their own (voiceRank.castVoices: a different installed voice where
  * there are enough, plus their own pitch and pace); a grown-up can choose one
  * voice for everyone instead, the best installed or one they picked.
@@ -14,6 +15,7 @@ export type VoiceMode = 'characters' | 'one';
 let enabled = true;
 let mode: VoiceMode = 'characters';
 let chosenURI: string | undefined;
+let cloudOk = false;
 let voice: SpeechSynthesisVoice | null = null;
 let cast: Record<GuideId, SpeechSynthesisVoice | null> | null = null;
 /** Who reads the words no character is saying (the screens, the toasts): the explorer's own guide. */
@@ -27,7 +29,7 @@ function refreshVoice(): void {
   const s = synth();
   if (!s) return;
   const all = s.getVoices();
-  voice = pickVoice(all, chosenURI);
+  voice = pickVoice(all, chosenURI, 'CA', cloudOk);
   cast = castVoices(all);
 }
 
@@ -46,8 +48,9 @@ export function readAloudOn(): boolean {
   return enabled;
 }
 
-export function setVoice(uri: string | undefined): void {
+export function setVoice(uri: string | undefined, cloudConfirmed = false): void {
   chosenURI = uri;
+  cloudOk = cloudConfirmed;
   refreshVoice();
 }
 

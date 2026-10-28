@@ -2,6 +2,10 @@
 <html lang="en" data-mode="explorer">
   <head>
     <meta charset="UTF-8" />
+    <!-- Scout talks to itself and the two map services, and nothing else. Scripts come from Scout alone (boot.js is
+         a file, not inline). Map pictures are fetched with no referrer, so the services are not told the page. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tiles.openfreemap.org https://server.arcgisonline.com; connect-src 'self' data: blob: https://tiles.openfreemap.org https://server.arcgisonline.com; worker-src 'self' blob:; child-src 'self' blob:; media-src 'self' blob:; font-src 'self' data:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'" />
+    <meta name="referrer" content="no-referrer" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
     <meta name="theme-color" content="#4a3826" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -15,30 +19,7 @@
   <body>
     <div id="app"></div>
     <noscript>Scout needs JavaScript turned on.</noscript>
-    <script>
-      // If the app never starts, say so instead of leaving a white page. The commonest
-      // cause is GitHub Pages serving this repository's unbuilt source ("Deploy from a
-      // branch"), where the browser refuses to run src/main.ts.
-      (function () {
-        function fail(why) {
-          if (window.__scoutBooted || document.getElementById('boot-fail')) return;
-          var d = document.createElement('div');
-          d.id = 'boot-fail';
-          d.setAttribute('style', 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;background:#fff9db;font:18px/1.45 system-ui,sans-serif;color:#212529;text-align:center');
-          d.innerHTML = '<div style="max-width:440px"><div style="font-size:64px">🧭</div><h1 style="margin:8px 0">Scout could not start</h1>'
-            + '<p>Ask a grown-up to try again in a minute.</p>'
-            + '<p style="font-size:14px;color:#495057">For whoever published this page: ' + why + '</p>'
-            + '<button onclick="location.reload()" style="font:inherit;font-weight:800;padding:12px 22px;border-radius:16px;border:3px solid #121512;background:#2f9e44;color:#fff">Try again</button></div>';
-          document.body.appendChild(d);
-        }
-        window.__scoutFail = fail;
-        window.addEventListener('error', function (e) {
-          var t = e.target;
-          if (t && t.tagName === 'SCRIPT') fail('the app\'s script did not load. If this is GitHub Pages, set Settings → Pages → Source to "GitHub Actions" and re-run the "Deploy to Pages" workflow; "Deploy from a branch" serves the unbuilt source.');
-        }, true);
-        setTimeout(function () { fail('the app did not start within 30 seconds. Check the connection, then reload.'); }, 30000);
-      })();
-    </script>
+    <script src="./boot.js"></script>
     <script type="module" src="./src/main.ts"></script>
   </body>
 </html>

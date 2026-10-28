@@ -15,7 +15,7 @@ import { invalidateSpecies, loadSpecies } from './speciesStore.ts';
 import { photoCount } from './findModel.ts';
 import type { Walk } from './walk.ts';
 import { availableVoices, characterVoice, currentVoice, preview, previewCharacter } from './speech.ts';
-import { englishVoices, voiceScore } from './voiceRank.ts';
+import { englishVoices, isCloudVoice, voiceScore } from './voiceRank.ts';
 
 export interface GrownUpHost {
   settings: Settings;
@@ -57,7 +57,8 @@ export function openGrownUps(host: GrownUpHost): void {
   const voiceList = h('div', { class: 'profile-list' });
   const sample = "Hi! Let's go exploring and see what we can find!";
   const paintVoices = () => {
-    const list = englishVoices(availableVoices()).sort((a, b) => voiceScore(b) - voiceScore(a));
+    // The device's own voices first; a cloud voice is listed last, marked, and asked about (voiceRank.isCloudVoice).
+    const list = englishVoices(availableVoices()).sort((a, b) => Number(isCloudVoice(a)) - Number(isCloudVoice(b)) || voiceScore(b) - voiceScore(a));
     const now = currentVoice();
     const setMode = async (m: Settings['voiceMode']) => { s.voiceMode = m; await save(); paintVoices(); };
     const modeRow = (m: Settings['voiceMode'], emoji: string, title: string, hint: string) =>
@@ -77,11 +78,15 @@ export function openGrownUps(host: GrownUpHost): void {
     voiceList.replaceChildren(modes,
       h('div', { class: 'maker-row' }, h('span', { class: 'hunt-item-emoji' }, '✨'),
         h('span', { class: 'maker-text' }, h('strong', {}, 'Best voice on this device'), h('br'), h('span', { class: 'hint' }, now && !s.voiceURI ? `Using ${now.name}` : 'Picked automatically')),
-        h('button', { class: `round-btn small ${!s.voiceURI ? 'on' : ''}`, 'aria-label': 'Use the best voice', onclick: async () => { s.voiceURI = undefined; await save(); paintVoices(); speakSample(); } }, !s.voiceURI ? '✅' : '○')),
+        h('button', { class: `round-btn small ${!s.voiceURI ? 'on' : ''}`, 'aria-label': 'Use the best voice', onclick: async () => { s.voiceURI = undefined; s.voiceCloudOk = undefined; await save(); paintVoices(); speakSample(); } }, !s.voiceURI ? '✅' : '○')),
       ...list.slice(0, 12).map(v => h('div', { class: 'maker-row' }, h('span', { class: 'hunt-item-emoji' }, '🗣️'),
-        h('span', { class: 'maker-text' }, h('strong', {}, v.name), h('br'), h('span', { class: 'hint' }, `${v.lang}${v.localService ? '' : ' · needs internet'}`)),
+        h('span', { class: 'maker-text' }, h('strong', {}, v.name), h('br'), h('span', { class: `hint ${isCloudVoice(v) ? 'cloud-voice' : ''}` }, isCloudVoice(v) ? `${v.lang} · ☁️ sends the words over the internet` : `${v.lang} · on this device`)),
+        // Hearing a cloud voice sends the sample sentence only; no child's words.
         h('button', { class: 'round-btn small', 'aria-label': `Hear ${v.name}`, onclick: () => preview(sample, v) }, '▶️'),
-        h('button', { class: 'round-btn small', 'aria-label': `Use ${v.name}`, onclick: async () => { s.voiceURI = v.voiceURI; await save(); paintVoices(); } }, s.voiceURI === v.voiceURI ? '✅' : '○'))),
+        h('button', { class: 'round-btn small', 'aria-label': `Use ${v.name}`, onclick: async () => {
+          if (isCloudVoice(v) && !(await askYesNo(`${v.name} reads over the internet: every word Scout reads aloud, the explorers' names among them, goes to the company that runs it. Use it anyway?`, '☁️ Use it', '🔒 Keep a device voice'))) return;
+          s.voiceURI = v.voiceURI; s.voiceCloudOk = isCloudVoice(v) || undefined; await save(); paintVoices();
+        } }, s.voiceURI === v.voiceURI ? '✅' : '○'))),
       list.length ? h('span') : h('p', { class: 'hint' }, 'This device has no English speech voices installed.'),
     );
   };
@@ -177,7 +182,7 @@ export function openGrownUps(host: GrownUpHost): void {
     toggle('wakeLock', '💡 Keep the screen on whenever Scout is open (also on the 🗺️ Map card)'),
     h('p', { class: 'hint' }, 'Phones and tablets stop reading the GPS when the screen goes off, so a path only records while Scout is open on the screen. Keeping the screen on uses more battery. Paths stay on this device like everything else.'),
     h('h2', { class: 'section-title' }, 'Voice'),
-    h('p', { class: 'hint' }, 'Scout reads aloud with the voices built into this device, so nothing is sent anywhere. Tap ▶️ to hear one. For more natural voices, download an "Enhanced" or "Premium" English voice in the device settings (iPhone/iPad: Settings › Accessibility › Spoken Content › Voices; Android: Settings › Text-to-speech › Google › Install voice data), then come back here.'),
+    h('p', { class: 'hint' }, 'Scout reads aloud with the voices built into this device, so the words are not sent anywhere. Some browsers also list voices that work over the internet (marked ☁️): Scout never uses one unless you pick it here. Tap ▶️ to hear one. For more natural voices, download an "Enhanced" or "Premium" English voice in the device settings (iPhone/iPad: Settings › Accessibility › Spoken Content › Voices; Android: Settings › Text-to-speech › Google › Install voice data), then come back here.'),
     voiceList,
     h('h2', { class: 'section-title' }, 'Species lists'),
     h('p', { class: 'hint' }, 'Explorers can name what they found from these lists. Add another Field Mapper species file (db-….json, e.g. another province) or a CSV of common name, scientific name, taxon.'),

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pickVoice, voiceScore, englishVoices } from '../src/voiceRank.ts';
+import { pickVoice, voiceScore, englishVoices, castVoices as castAll, isCloudVoice } from '../src/voiceRank.ts';
 
 const v = (name: string, lang = 'en-US', localService = true) => ({ name, lang, localService, voiceURI: name });
 
@@ -10,7 +10,7 @@ test('a natural voice beats the default robot', () => {
 });
 
 test('neural / natural voices rank first, and a Canadian one is preferred', () => {
-  assert.ok(voiceScore(v('Microsoft Aria Online (Natural) - English (United States)', 'en-US', false)) > voiceScore(v('Microsoft Zira Desktop')));
+  assert.ok(voiceScore(v('Microsoft Aria (Natural) - English (United States)')) > voiceScore(v('Microsoft Zira Desktop')));
   assert.ok(voiceScore(v('Karen', 'en-CA')) > voiceScore(v('Karen', 'en-AU')));
 });
 
@@ -68,4 +68,18 @@ test('voice range from the voice name', () => {
   assert.equal(voiceRange('Microsoft Aria Online (Natural)'), 'higher');
   assert.equal(voiceRange('Microsoft Guy Online (Natural)'), 'deeper');
   assert.equal(voiceRange('Mystery voice'), 'unknown');
+});
+
+test('a voice that reads over the internet is never chosen automatically, for one voice or for the characters', () => {
+  // Edge and Chrome on Windows: cloud voices with "nicer" names beside the device's own.
+  const edge = [v('Microsoft Clara Online (Natural) - English (Canada)', 'en-CA', false), v('Google US English', 'en-US', false), v('Microsoft Zira - English (United States)'), v('Microsoft David - English (United States)')];
+  assert.equal(pickVoice(edge)!.name, 'Microsoft Zira - English (United States)');
+  const cast = castAll(edge);
+  for (const [g, voice] of Object.entries(cast)) assert.ok(voice && !isCloudVoice(voice), `${g} got ${voice?.name}`);
+  // Only cloud voices: silence, never the cloud.
+  assert.equal(pickVoice([v('Google US English', 'en-US', false)]), null);
+  assert.ok(Object.values(castAll([v('Google US English', 'en-US', false)])).every(x => x === null));
+  // A grown-up's choice of a cloud voice counts only once they confirmed it reads over the internet.
+  assert.equal(pickVoice(edge, 'Google US English')!.name, 'Microsoft Zira - English (United States)');
+  assert.equal(pickVoice(edge, 'Google US English', 'CA', true)!.name, 'Google US English');
 });

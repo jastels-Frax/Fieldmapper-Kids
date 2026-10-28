@@ -1,5 +1,10 @@
 import { segmentsAtGaps } from './walk.ts';
-import maplibregl, { type Map as MlMap, type Marker, type StyleSpecification } from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
+import type { Map as MlMap, Marker, StyleSpecification } from 'maplibre-gl';
+// MapLibre 6 looks for its worker beside its own file, which no longer exists once the app is bundled: give it the
+// worker file Vite emits (a same-origin module, which the page's Content-Security-Policy allows).
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
+maplibregl.setWorkerUrl(workerUrl);
 import type { Basemap, Find, Sketch } from './types.ts';
 import { categoryOf } from './categories.ts';
 import type { Fix } from './gps.ts';
