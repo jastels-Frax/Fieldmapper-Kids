@@ -44,7 +44,9 @@ import { Compass } from './compass.ts';
 import { setKeepAwake, wakeLockSupported } from './wakeLock.ts';
 import { compassWord, smoothHeading } from './heading.ts';
 import { MAX_QUICK, quickFor, quickKinds } from './quickFinds.ts';
-import { closeDrawTool, openDrawTool, type DrawMode } from './drawTool.ts';
+import { closeDrawTool, openDrawTool, type DrawHost, type DrawMode } from './drawTool.ts';
+import { closeShapeCard, openShapeCard } from './shapeCard.ts';
+import { SHAPE_TAP_PX, metresPerPixel, pickShape } from './mapShapes.ts';
 import { TOOLS, railFor, type ToolId } from './railTools.ts';
 import { categoryOf } from './categories.ts';
 import { downscale } from './image.ts';
@@ -83,6 +85,8 @@ export class App {
   private toolBtns = new Map<ToolId, HTMLElement>();
   private railBody!: HTMLElement;
   private drawing: DrawMode | null = null;
+  /** The drawing being changed in ✏️ Draw: left off the map while its dots are drawn as the draft (paintSketches). */
+  private editingSketchId: string | null = null;
 
   async init(): Promise<void> {
     this.settings = await loadSettings();
@@ -116,8 +120,10 @@ export class App {
     };
     // Dragging the map to look around stops following (see meTap).
     this.map.onUserPan = () => { if (this.settings.follow) void this.setFollow(false); };
+    // A tap on a drawing or a path opens its card; a tap on empty map closes it.
+    this.map.onMapTap = at => this.tapShape(at);
     this.map.setFinds(this.finds);
-    this.map.setSketches(this.sketches);
+    this.paintSketches();
     if (!first) {
       const p = await saveProfile(await welcome());
       this.profiles = [p];
@@ -166,6 +172,7 @@ export class App {
     this.settings = { ...this.settings, activeProfileId: id };
     await saveSettings(this.settings);
     closeDrawTool();
+    closeShapeCard();
     this.scopeToProfile();
     this.applySettingsToChrome();
     this.refresh();
@@ -537,28 +544,76 @@ export class App {
   private toggleDraw(mode: DrawMode): void {
     sounds.tap();
     if (this.drawing === mode) { closeDrawTool(); return; }
+    this.openDraw(mode);
+  }
+
+  /** Opens ✏️ Draw or 📏 Measure; `editing` opens Draw on a saved drawing, from its card. */
+  private openDraw(mode: DrawMode, editing?: Sketch): void {
+    closeShapeCard();
+    closeDrawTool();
     this.drawing = mode;
+    this.editingSketchId = editing?.id ?? null;
     this.paintDrawBtns();
-    openDrawTool({
+    this.paintSketches();
+    openDrawTool(this.drawHost(), mode, () => {
+      if (this.drawing === mode) this.drawing = null;
+      this.editingSketchId = null;
+      this.paintSketches();
+      this.paintDrawBtns();
+    }, editing);
+  }
+
+  private drawHost(): DrawHost {
+    return {
       map: this.map,
       profile: this.profile,
       sketches: () => this.sketches,
-      save: async sk => {
-        await saveSketch(sk);
-        this.everySketch.unshift(sk);
-        this.scopeToProfile();
-        this.map.setSketches(this.sketches);
-      },
-      remove: async sk => {
-        await deleteSketch(sk.id);
-        this.everySketch = this.everySketch.filter(x => x.id !== sk.id);
-        this.scopeToProfile();
-        this.map.setSketches(this.sketches);
-      },
-    }, mode, () => {
-      if (this.drawing === mode) this.drawing = null;
-      this.paintDrawBtns();
-    });
+      save: sk => this.saveSketch(sk),
+      remove: sk => this.removeSketch(sk),
+    };
+  }
+
+  /** Saves a new drawing, or a changed one in its place. */
+  private async saveSketch(sk: Sketch): Promise<void> {
+    await saveSketch(sk);
+    const at = this.everySketch.findIndex(x => x.id === sk.id);
+    if (at >= 0) this.everySketch[at] = sk; else this.everySketch.unshift(sk);
+    this.scopeToProfile();
+    this.paintSketches();
+  }
+
+  private async removeSketch(sk: Sketch): Promise<void> {
+    await deleteSketch(sk.id);
+    this.everySketch = this.everySketch.filter(x => x.id !== sk.id);
+    this.scopeToProfile();
+    this.paintSketches();
+  }
+
+  /** The drawings on the map: every one of this explorer's, less the one being changed (drawn as the draft). */
+  private paintSketches(): void {
+    this.map.setSketches(this.editingSketchId ? this.sketches.filter(s => s.id !== this.editingSketchId) : this.sketches);
+  }
+
+  /**
+   * A tap on the map with no tool on: the drawing or saved path under it opens its card (shapeCard.ts), as Field
+   * Mapper's Identify answers a tap; a tap on empty map closes the card. Only what is drawn takes part — saved
+   * paths only while they are shown, never the path recording now.
+   */
+  private tapShape(at: { lat: number; lon: number }): void {
+    if (document.body.classList.contains('picking') || document.querySelector('.sheet')) return;
+    const walks = this.settings.walksOnMap ? this.walks.filter(w => w.endedAt) : [];
+    const picked = pickShape(this.sketches, walks, at.lon, at.lat, SHAPE_TAP_PX * metresPerPixel(at.lat, this.map.zoom()));
+    if (!picked) { closeShapeCard(); return; }
+    const walkHost = this.walkHost();
+    openShapeCard({
+      map: this.map,
+      profile: this.profile,
+      saveSketch: sk => this.saveSketch(sk),
+      removeSketch: sk => this.removeSketch(sk),
+      saveWalk: w => walkHost.save(w),
+      removeWalk: w => walkHost.remove(w),
+      editSketch: sk => this.openDraw('sketch', sk),
+    }, picked);
   }
 
   private paintDrawBtns(): void {
@@ -652,6 +707,7 @@ export class App {
 
   private async capture(existing?: Find, at?: { lat: number; lon: number }): Promise<void> {
     sounds.tap();
+    closeShapeCard();
     // Changing a find works on its pictures too, which are read only now (Field Mapper's getFeature, hydrated).
     const full = existing ? await getFullFind(existing.id) : undefined;
     if (existing && !full) return;
@@ -856,7 +912,7 @@ export class App {
     this.paintQuick();
     this.map.clearFinds();
     this.map.setFinds(this.finds);
-    this.map.setSketches(this.sketches);
+    this.paintSketches();
     if (this.recBtn) this.drawWalks();
     this.paintStar();
     this.paintHunt();

@@ -9,7 +9,7 @@ const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 /** Esri World Imagery. Capped at z18: finer requests can fail, and MapLibre overzooms the last level. */
 const IMAGERY_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 /** Layers this app adds; a basemap switch never touches them. */
-const OWN_LAYERS = new Set(['sat', 'trail-line', 'walks-line', 'live-walk-line', 'sketch-fill', 'sketch-line', 'draft-fill', 'draft-line', 'draft-pts']);
+const OWN_LAYERS = new Set(['sat', 'trail-line', 'walks-line', 'live-walk-line', 'picked-halo', 'sketch-fill', 'sketch-line', 'draft-fill', 'draft-line', 'draft-pts']);
 
 /** What the map draws with no network and nothing cached: grass. Finds still show. */
 const OFFLINE_STYLE: StyleSpecification = {
@@ -54,6 +54,16 @@ export class MapView {
   onUserPan: () => void = () => {};
   /** A tap on the map while a drawing tool is on (the ✏️ Draw and 📏 Measure tools). Null when none is. */
   onToolTap: ((at: { lat: number; lon: number }) => void) | null = null;
+  /** A tap on the map itself (not a pin) while no tool is on: what is there (App.tapShape). */
+  onMapTap: (at: { lat: number; lon: number }) => void = () => {};
+  /**
+   * While a drawing is being drawn or changed: a dot dragged to a new place (its index in the drawing's points).
+   * Field Mapper's GeometryEditor drags vertices the same way. Null when nothing is being drawn.
+   */
+  onDraftDrag: ((i: number, at: { lat: number; lon: number }) => void) | null = null;
+  /** The click a drag ends with must not also add a point there. */
+  private suppressClickUntil = 0;
+  private dragIndex = -1;
   offline = false;
 
   private baseVisibility = new Map<string, 'visible' | 'none'>();
@@ -73,7 +83,16 @@ export class MapView {
     });
     this.map.touchZoomRotate.disableRotation();
     this.bindLongPress();
-    this.map.on('click', e => this.onToolTap?.({ lat: e.lngLat.lat, lon: e.lngLat.lng }));
+    this.map.on('click', e => {
+      if (Date.now() < this.suppressClickUntil) return;
+      const at = { lat: e.lngLat.lat, lon: e.lngLat.lng };
+      // A drawing tool takes every tap, even one landing on the explorer's own marker (the pins step aside then).
+      if (this.onToolTap) { this.onToolTap(at); return; }
+      // A pin is a marker with its own tap (onFindTap); the map underneath must not answer it too.
+      if ((e.originalEvent?.target as Element | null)?.closest?.('.maplibregl-marker')) return;
+      this.onMapTap(at);
+    });
+    this.bindDraftDrag();
     this.map.on('dragstart', e => { if ((e as { originalEvent?: Event }).originalEvent) this.onUserPan(); });
     this.setAvatar(avatar);
     await new Promise<void>(r => (this.map.loaded() ? r() : this.map.once('load', () => r())));
@@ -95,6 +114,10 @@ export class MapView {
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': '#e8590c', 'line-width': 7, 'line-opacity': 0.95 },
     });
+    // The drawing or path whose card is open: a pale halo under it, so the explorer sees which one they tapped.
+    this.map.addSource('picked', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    this.map.addLayer({ id: 'picked-halo', type: 'line', source: 'picked', layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#ffffff', 'line-width': 15, 'line-opacity': 0.9, 'line-blur': 1 } }, 'walks-line');
     // Drawings (saved sketches) and the shape being drawn or measured right now.
     this.map.addSource('sketches', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
     this.map.addLayer({ id: 'sketch-fill', type: 'fill', source: 'sketches', filter: ['==', ['geometry-type'], 'Polygon'],
@@ -107,7 +130,7 @@ export class MapView {
     this.map.addLayer({ id: 'draft-line', type: 'line', source: 'draft', filter: ['==', ['geometry-type'], 'LineString'],
       layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['get', 'colour'], 'line-width': 5, 'line-dasharray': [1.5, 1] } });
     this.map.addLayer({ id: 'draft-pts', type: 'circle', source: 'draft', filter: ['==', ['geometry-type'], 'Point'],
-      paint: { 'circle-radius': 8, 'circle-color': '#ffffff', 'circle-stroke-color': ['get', 'colour'], 'circle-stroke-width': 4 } });
+      paint: { 'circle-radius': 10, 'circle-color': '#ffffff', 'circle-stroke-color': ['get', 'colour'], 'circle-stroke-width': 4 } });
     for (const l of this.map.getStyle().layers ?? []) {
       if (OWN_LAYERS.has(l.id)) continue;
       this.baseVisibility.set(l.id, ((l.layout as { visibility?: 'visible' | 'none' } | undefined)?.visibility) ?? 'visible');
@@ -187,6 +210,65 @@ export class MapView {
       e.preventDefault();
       this.onLongPress({ lat: e.lngLat.lat, lon: e.lngLat.lng });
     });
+  }
+
+  /**
+   * Dragging a dot of the drawing being drawn or changed (onDraftDrag). A press within reach of a dot takes the
+   * gesture from the map's own panning (MapLibre's preventDefault on mousedown / touchstart); anywhere else, the map
+   * pans as usual. The click that ends a drag is swallowed, or it would add a point where the dot was dropped.
+   */
+  private bindDraftDrag(): void {
+    const REACH_PX = 24;
+    const start = (e: maplibregl.MapMouseEvent | maplibregl.MapTouchEvent) => {
+      if (!this.onDraftDrag) return;
+      if ('points' in e && e.points.length !== 1) return;
+      const p = e.point;
+      const hits = this.map.queryRenderedFeatures([[p.x - REACH_PX, p.y - REACH_PX], [p.x + REACH_PX, p.y + REACH_PX]], { layers: ['draft-pts'] });
+      let best = -1, bestD = Infinity;
+      for (const f of hits) {
+        const c = (f.geometry as { coordinates?: [number, number] }).coordinates;
+        const i = Number(f.properties?.i);
+        if (!c || !Number.isInteger(i)) continue;
+        const q = this.map.project(c);
+        const d = Math.hypot(q.x - p.x, q.y - p.y);
+        if (d < bestD) { bestD = d; best = i; }
+      }
+      if (best < 0) return;
+      e.preventDefault();
+      this.dragIndex = best;
+      this.suppressClickUntil = Number.POSITIVE_INFINITY;
+    };
+    const move = (e: maplibregl.MapMouseEvent | maplibregl.MapTouchEvent) => {
+      if (this.dragIndex < 0) return;
+      this.onDraftDrag?.(this.dragIndex, { lat: e.lngLat.lat, lon: e.lngLat.lng });
+    };
+    const end = () => {
+      if (this.dragIndex < 0) return;
+      this.dragIndex = -1;
+      this.suppressClickUntil = Date.now() + 400;
+    };
+    this.map.on('mousedown', start);
+    this.map.on('touchstart', start);
+    this.map.on('mousemove', move);
+    this.map.on('touchmove', move);
+    this.map.on('mouseup', end);
+    this.map.on('touchend', end);
+    this.map.on('touchcancel', end);
+    // A mouse let go outside the map still ends the drag.
+    window.addEventListener('mouseup', end);
+  }
+
+  /** The map's zoom now (for mapShapes.metresPerPixel). */
+  zoom(): number {
+    return this.map?.getZoom() ?? 0;
+  }
+
+  /** The halo under the drawing or path whose card is open; null takes it away. */
+  setPicked(geometry: { type: string; coordinates?: unknown } | null): void {
+    (this.map?.getSource('picked') as maplibregl.GeoJSONSource | undefined)?.setData({
+      type: 'FeatureCollection',
+      features: geometry ? [{ type: 'Feature', properties: {}, geometry }] : [],
+    } as Parameters<maplibregl.GeoJSONSource['setData']>[0]);
   }
 
   setAvatar(face: Face): void {
@@ -352,7 +434,8 @@ export class MapView {
   /** The shape being drawn or measured: its points, its line, and (an area) its fill. */
   setDraft(points: [number, number][], kind: 'line' | 'area', colour: string): void {
     const props = { colour };
-    const features: { type: 'Feature'; properties: { colour: string }; geometry: { type: 'Point'; coordinates: [number, number] } | { type: 'LineString'; coordinates: [number, number][] } | { type: 'Polygon'; coordinates: [number, number][][] } }[] = points.map(p => ({ type: 'Feature', properties: props, geometry: { type: 'Point', coordinates: p } }));
+    // Each dot carries its index, which is what a drag moves (bindDraftDrag).
+    const features: { type: 'Feature'; properties: { colour: string; i?: number }; geometry: { type: 'Point'; coordinates: [number, number] } | { type: 'LineString'; coordinates: [number, number][] } | { type: 'Polygon'; coordinates: [number, number][][] } }[] = points.map((p, i) => ({ type: 'Feature', properties: { ...props, i }, geometry: { type: 'Point', coordinates: p } }));
     if (points.length > 1) {
       const line = kind === 'area' && points.length > 2 ? [...points, points[0]] : points;
       features.push({ type: 'Feature', properties: props, geometry: { type: 'LineString', coordinates: line } });

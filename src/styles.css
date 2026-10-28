@@ -980,7 +980,7 @@ html .mini-choices .mini-choice { padding: 5px 10px; min-height: 44px; font-size
 html .mini-choices .mini-emoji { font-size: 20px; }
 
 /* ✏️ Draw / 📏 Measure (drawTool.ts): a short card at the foot of the map; the bottom bar and quick row step aside. */
-body.drawing .bottom-bar, body.drawing .quick-row, body.drawing .buddy-dock, body.drawing .walk-note { visibility: hidden; }
+body:is(.drawing, .shape-open) :is(.bottom-bar, .quick-row, .buddy-dock, .walk-note) { visibility: hidden; }
 body.drawing .maplibregl-marker:not(.me-marker) { pointer-events: none; }
 .draw-hud {
   position: fixed; left: 8px; right: 8px; bottom: calc(var(--bar-pad-b) + 6px); z-index: 30; max-width: 520px; margin: 0 auto;
@@ -1095,3 +1095,11 @@ button, .choice, .chip, .pill, .mini-choice, .launch-tile, .tool-text, .edit-row
   .top-bar .hello { flex: 0 1 auto; max-width: 360px; }
   .bottom-bar { left: 50%; right: auto; width: min(100%, 720px); transform: translateX(-50%); }
 }
+
+/* A tapped drawing or path (shapeCard.ts): the drawing tool's card, with its facts and a name box. */
+.shape-title { font-size: 18px; }
+.shape-facts p { margin: 0; font-size: 15px; font-weight: 700; }
+.shape-card .text-in { font-size: 16px; padding: 8px 12px; }
+.shape-card .draw-foot .big-btn { min-height: 52px; }
+.shape-card .shape-delete { flex: 0 0 auto; width: auto; padding: 6px 16px; }
+.shape-note { flex: 1; margin: 0; font-size: 14px; }

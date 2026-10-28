@@ -5,6 +5,22 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.2.0 — 2026-10-28
+
+- **Tap a drawing or a saved path on the map** to open its card (`shapeCard.ts`): what it is, how long or big (in
+  metres and kid words), when, a name box (kept as typed), 🔍 see all of it, ✏️ Change it (drawings) and 🗑️ Delete
+  (the gate in "On my own" mode, as in the lists). A pale halo shows which one was tapped (`MapView.setPicked`); a
+  tap on empty map closes the card. A recorded path can be named but not reshaped: it is where the explorer walked.
+- **The pick is Field Mapper's**: `src/geometryHit.ts` is COPIED from Field Mapper's `lib/geometryHit.ts` with its
+  test (a line measured to its segments, a tap inside a shape counts, ties to the smaller shape); `mapShapes.ts`
+  (pure, tested) builds the pool from what is drawn and allows 22 px (Field Mapper: 14) for a child's finger.
+- **✏️ Change it reopens ✏️ Draw on the drawing** (`openDrawTool(..., editing)`): its own dots, shape and colour;
+  Save writes it back under the same id; ✖ with changes asks first. The drawing is left off the map while its dots
+  are the draft (`App.paintSketches`).
+- **Dots can be dragged**, in every drawing and measurement (`MapView.onDraftDrag`, Field Mapper's GeometryEditor
+  vertex drag): a press within 24 px of a dot takes the gesture from the map's panning, and the click that ends the
+  drag is swallowed.
+
 ## 2.1.3 — 2026-10-28
 
 - **Scout's own icons** (`src/icons.ts`): close, back, forward, speaker and the rail's fold caret, drawn as one inked

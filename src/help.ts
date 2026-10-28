@@ -17,6 +17,11 @@ const PARTS: { emoji: string; title: string; lines: string[] }[] = [
     'They sit in a row above "I found something!".',
     'Tap one, take a photo, and it is saved where you are standing. Add more about it later in My Finds.',
   ] },
+  { emoji: '✏️', title: 'Your drawings and paths', lines: [
+    'Tap a line, a shape or a path on your map to see how long or how big it is.',
+    'Give it a name, tap ✏️ Change it to move its dots (drag them), or 🗑️ Delete it.',
+    'A path shows where you really walked, so it can be named but not changed.',
+  ] },
   { emoji: '🗺️', title: 'The map buttons', lines: [
     ...TOOLS.map(t => `${t.emoji} ${t.word}: ${t.what}.`),
     'Choose your own buttons, and their order, in 🔧 My buttons. The arrow at the top folds them away.',

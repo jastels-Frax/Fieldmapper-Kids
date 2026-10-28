@@ -33,11 +33,17 @@ let closeOpen: (() => void) | null = null;
  * finger dragging on a map is how the map pans. One tool at a time; the bottom bar steps aside while it is open.
  * A drawing is saved for the explorer; a measurement is not, unless they keep it as a drawing.
  */
-export function openDrawTool(host: DrawHost, mode: DrawMode, onClose: () => void): () => void {
+/**
+ * `editing`: a saved drawing to change (from its card, shapeCard.ts): it starts with its own dots, shape and colour,
+ * Save writes it back under the same id, and the tool closes. Its dots can be dragged, as every drawing's can.
+ */
+export function openDrawTool(host: DrawHost, mode: DrawMode, onClose: () => void, editing?: Sketch): () => void {
   closeOpen?.();
-  let points: LonLat[] = [];
-  let kind: Sketch['kind'] = 'line';
-  let colour = mode === 'measure' ? MEASURE_COLOUR : SKETCH_COLOURS[0].hex;
+  let points: LonLat[] = editing ? editing.points.map(p => [p[0], p[1]] as LonLat) : [];
+  let kind: Sketch['kind'] = editing?.kind ?? 'line';
+  let colour = editing?.colour ?? (mode === 'measure' ? MEASURE_COLOUR : SKETCH_COLOURS[0].hex);
+  const asOpened = JSON.stringify({ points, kind, colour });
+  const changed = () => JSON.stringify({ points, kind, colour }) !== asOpened;
 
   const readout = h('div', { class: 'draw-readout', 'aria-live': 'polite' });
   const hint = h('p', { class: 'draw-hint' });
@@ -48,8 +54,8 @@ export function openDrawTool(host: DrawHost, mode: DrawMode, onClose: () => void
   const undoBtn = ico('↩️', 'Undo the last point', () => { points.pop(); sounds.tap(); paint(); });
   const clearBtn = ico('🗑️', 'Clear', () => { points = []; sounds.tap(); paint(); });
   const keepBtn = h('button', { class: 'big-btn draw-save', type: 'button', onclick: () => void keep() },
-    mode === 'measure' ? '✏️ Keep as a drawing' : '✅ Save my drawing');
-  const listBtn = mode === 'sketch' ? ico('📋', 'My drawings', () => openDrawings(host)) : null;
+    editing ? '✅ Save changes' : mode === 'measure' ? '✏️ Keep as a drawing' : '✅ Save my drawing');
+  const listBtn = mode === 'sketch' && !editing ? ico('📋', 'My drawings', () => openDrawings(host)) : null;
 
   const paint = () => {
     host.map.setDraft(points, kind, colour);
@@ -65,12 +71,13 @@ export function openDrawTool(host: DrawHost, mode: DrawMode, onClose: () => void
     const line = kind === 'area' ? perimeterM(points) : pathLengthM(points);
     const area = kind === 'area' ? areaM2(points) : 0;
     readout.replaceChildren(...[
-      points.length < 2 ? h('strong', {}, mode === 'measure' ? 'Measure: tap two places' : 'Draw on the map')
+      points.length < 2 ? h('strong', {}, mode === 'measure' ? 'Measure: tap two places' : editing ? 'Change my drawing' : 'Draw on the map')
         : h('strong', {}, `${kind === 'area' ? 'Around: ' : ''}${distanceWords(line)}`, h('span', {}, ` · ${distanceKid(line)}`)),
       area > 0 ? h('strong', {}, `Inside: ${areaWords(area)}`, h('span', {}, ` · ${areaKid(area)}`)) : null,
     ].filter((x): x is HTMLElement => !!x));
     hint.textContent = points.length === 0 ? '👆 Tap the map to add points. Drag to move the map.'
-      : kind === 'area' && points.length < 3 ? '👆 A shape needs three points or more.' : '';
+      : kind === 'area' && points.length < 3 ? '👆 A shape needs three points or more.'
+      : '✋ Drag a dot to move it. Tap the map to add more.';
     hint.hidden = !hint.textContent;
     undoBtn.toggleAttribute('disabled', !points.length);
     clearBtn.toggleAttribute('disabled', !points.length);
@@ -79,6 +86,18 @@ export function openDrawTool(host: DrawHost, mode: DrawMode, onClose: () => void
 
   const keep = async () => {
     if (points.length < (kind === 'area' ? 3 : 2)) return;
+    if (editing) {
+      try {
+        await host.save({ ...editing, kind, points: [...points], colour });
+        sounds.save();
+        say('Changed!');
+        toast('✏️ Drawing changed');
+        close();
+      } catch {
+        toast('That change did not save.');
+      }
+      return;
+    }
     const s: Sketch = { id: uid(), profileId: host.profile.id, createdAt: new Date().toISOString(), kind, points: [...points], colour: mode === 'measure' ? SKETCH_COLOURS[1].hex : colour };
     try {
       await host.save(s);
@@ -96,7 +115,11 @@ export function openDrawTool(host: DrawHost, mode: DrawMode, onClose: () => void
     h('div', { class: 'draw-head' },
       h('strong', {}, mode === 'measure' ? '📏' : '✏️'),
       readout,
-      h('button', { class: 'round-btn small', 'aria-label': 'Close', onclick: () => close() }, icon('close'))),
+      h('button', { class: 'round-btn small', 'aria-label': 'Close', onclick: async () => {
+        // Leaving a drawing half-changed asks first; a new drawing's dots go with the tool, as they always have.
+        if (editing && changed() && !(await askYesNo('Stop without saving the changes?', '↩️ Yes, stop', '✏️ Keep changing'))) return;
+        close();
+      } }, icon('close'))),
     hint,
     h('div', { class: 'draw-tools' }, kinds, colours),
     h('div', { class: 'draw-foot' }, keepBtn, undoBtn, clearBtn, listBtn),
@@ -107,15 +130,21 @@ export function openDrawTool(host: DrawHost, mode: DrawMode, onClose: () => void
     sounds.tap();
     paint();
   };
+  host.map.onDraftDrag = (i, at) => {
+    if (!points[i]) return;
+    points[i] = [at.lon, at.lat];
+    paint();
+  };
   document.body.classList.add('drawing');
   document.body.append(hud);
   paint();
-  say(mode === 'measure' ? 'Tap the map to measure how far it is.' : 'Tap the map to draw a line or a shape.');
+  say(editing ? 'Drag a dot to move it, or tap the map to add more.' : mode === 'measure' ? 'Tap the map to measure how far it is.' : 'Tap the map to draw a line or a shape.');
 
   function close(): void {
     if (closeOpen !== close) return;
     closeOpen = null;
     host.map.onToolTap = null;
+    host.map.onDraftDrag = null;
     host.map.setDraft([], 'line', colour);
     document.body.classList.remove('drawing');
     hud.remove();

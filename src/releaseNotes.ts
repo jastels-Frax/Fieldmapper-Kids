@@ -12,6 +12,13 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.2.0', date: '2026-10-28', title: 'Tap your drawings',
+    notes: [
+      'Tap a line, shape or path on your map to see how long or big it is.',
+      'Name it, change it by dragging its dots, or delete it.',
+    ],
+  },
+  {
     version: '2.1.3', date: '2026-10-28', title: 'Tidier on a computer',
     notes: [
       'Scout\'s own arrows and close buttons.',
