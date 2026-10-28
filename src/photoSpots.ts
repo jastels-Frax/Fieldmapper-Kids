@@ -29,6 +29,30 @@ export function newestShot(spot: Pick<PhotoSpot, 'shots'>): SpotShot | undefined
   return spot.shots[spot.shots.length - 1];
 }
 
+/**
+ * How big the wedge is drawn at a zoom, as a share of its full size. Field Mapper draws its cone in metres, so it
+ * shrinks with the ground as the map zooms out; Scout does the same below `WEDGE_FULL_ZOOM` (half the size for each
+ * zoom level out) and stops growing above it, so a child zoomed right in still gets a wedge they can read, and one
+ * zoomed out to the whole park does not get a fan of wedges bigger than the places they point at.
+ */
+export const WEDGE_FULL_ZOOM = 18;
+/** Below this share of its full size a wedge is too small to read, and is not drawn (about zoom 15). */
+export const WEDGE_MIN_SCALE = 1 / 8;
+
+export function wedgeScale(zoom: number): number {
+  return Math.min(1, 2 ** (zoom - WEDGE_FULL_ZOOM));
+}
+
+/**
+ * The pin's size at a zoom: full from zoom 18 in, easing down to 0.6 at zoom 14 and out, so a park full of photo
+ * spots is a scatter of small pins rather than a heap, and at the everyday zoom (17) a wedge pointing north still
+ * shows past its pin. Never smaller: it has to stay a picture a child can tap.
+ */
+export function spotPinScale(zoom: number): number {
+  const t = Math.max(0, Math.min(1, (zoom - 14) / 4));
+  return Math.round((0.6 + 0.4 * t) * 100) / 100;
+}
+
 /** A compass reading as stored: whole degrees, 0–359 (Field Mapper rounds the same way). */
 export function storedBearing(deg: number): number {
   return Math.round(norm(deg)) % 360;

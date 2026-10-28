@@ -5,6 +5,16 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.4.1 — 2026-10-28
+
+- **Photo spots scale with the map.** The wedge was drawn at one screen size at every zoom, so zoomed out it covered
+  the places it pointed at. It now shrinks with the ground below zoom 18, as Field Mapper's metre-sized cone does
+  (`photoSpots.wedgeScale`: half the size per zoom level out), stops growing at zoom 18 so it stays readable zoomed in,
+  and is not drawn below an eighth of its size (about zoom 15). The pin eases from full size at zoom 18 to 0.6 at
+  zoom 14 (`spotPinScale`). Both are CSS variables (`--spot-scale`, `--spot-pin-scale`) set on the map on every zoom.
+- The full-size wedge is a little longer (140 px), so at the everyday zoom (17) one pointing north still shows past
+  its pin. Saving a spot zooms to 18, where its wedge is full size.
+
 ## 2.4.0 — 2026-10-28
 
 **Photo spots**, ported from Fraxinus Field Mapper's photo points (`PhotoPointData`, `PhotoCapturePanel`, the view cone

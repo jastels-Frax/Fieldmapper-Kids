@@ -12,6 +12,10 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.4.1', date: '2026-10-28', title: 'Tidier photo spots',
+    notes: ['Photo spots get smaller as you zoom out, so they no longer cover the map.'],
+  },
+  {
     version: '2.4.0', date: '2026-10-28', title: 'Photo spots',
     notes: [
       'Tap 📷 Photo to take a picture of a view. Your map shows which way you looked.',

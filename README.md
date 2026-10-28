@@ -95,7 +95,7 @@ green and everything else keeps working; places already viewed are cached.
 
 ## Versions
 
-Scout is at **2.4.0**. See [CHANGELOG.md](CHANGELOG.md); the app shows What's new on its opening screen.
+Scout is at **2.4.1**. See [CHANGELOG.md](CHANGELOG.md); the app shows What's new on its opening screen.
 
 ## Development
 

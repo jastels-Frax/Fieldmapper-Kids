@@ -6,7 +6,7 @@ import type { Map as MlMap, Marker, StyleSpecification } from 'maplibre-gl';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 maplibregl.setWorkerUrl(workerUrl);
 import type { Basemap, Find, PhotoSpot, Sketch } from './types.ts';
-import { newestShot, spotBearing, spotTitle } from './photoSpots.ts';
+import { WEDGE_FULL_ZOOM, WEDGE_MIN_SCALE, newestShot, spotBearing, spotPinScale, spotTitle, wedgeScale } from './photoSpots.ts';
 import { categoryOf } from './categories.ts';
 import type { Fix } from './gps.ts';
 import { blobUrl } from './ui.ts';
@@ -49,14 +49,15 @@ const FACING_SVG = `<svg viewBox="0 0 160 160" width="168" height="168" aria-hid
 
 /**
  * A photo spot's view wedge: Field Mapper's photo-point cone (`buildPhotoPointCone`, its default orange #f97316 at
- * 0.35 with a white edge), drawn at SCREEN size rather than in metres — the departure: a child reads a thumb-sized
- * wedge at every zoom, where 15 m of ground is a speck zoomed out. Apex at (90,90), pointing north at 0°, 60° wide.
+ * 0.35 with a white edge). Apex at (150,150), pointing north at 0°, 60° wide, 140 px long at full size. It is scaled
+ * with the map (`wedgeScale`, through `--spot-scale`): shrinking with the ground as Field Mapper's metre-sized cone
+ * does when zoomed out, but never growing past full size zoomed in, where a cone in metres would cover the screen.
  * Only the wedge itself takes a tap (it is the big half of what a spot looks like, as Field Mapper's cone carries
  * its photo's id for the same reason). Our own constant markup.
  */
 const SPOT_COLOUR = '#f97316';
-const SPOT_CONE_SVG = `<svg viewBox="0 0 180 180" width="180" height="180" aria-hidden="true">
-  <path d="M90 90 L48 17.3 A84 84 0 0 1 132 17.3 Z" fill="${SPOT_COLOUR}" fill-opacity="0.38" stroke="#ffffff" stroke-opacity="0.8" stroke-width="2.5" stroke-linejoin="round"/>
+const SPOT_CONE_SVG = `<svg viewBox="0 0 300 300" width="300" height="300" aria-hidden="true">
+  <path d="M150 150 L80 28.8 A140 140 0 0 1 220 28.8 Z" fill="${SPOT_COLOUR}" fill-opacity="0.38" stroke="#ffffff" stroke-opacity="0.85" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
 </svg>`;
 
 export class MapView {
@@ -115,6 +116,18 @@ export class MapView {
       this.onMapTap(at);
     });
     this.bindDraftDrag();
+    // Photo spot wedges and pins follow the zoom (photoSpots.wedgeScale / spotPinScale), set once per frame as CSS
+    // variables on the map, which every spot marker reads.
+    const scaleSpots = () => {
+      const z = this.map.getZoom();
+      const el = this.map.getContainer();
+      const w = wedgeScale(z);
+      el.style.setProperty('--spot-scale', String(w));
+      el.style.setProperty('--spot-pin-scale', String(spotPinScale(z)));
+      el.classList.toggle('spots-far', w < WEDGE_MIN_SCALE);
+    };
+    this.map.on('zoom', scaleSpots);
+    scaleSpots();
     this.map.on('dragstart', e => { if ((e as { originalEvent?: Event }).originalEvent) this.onUserPan(); });
     this.setAvatar(avatar);
     await new Promise<void>(r => (this.map.loaded() ? r() : this.map.once('load', () => r())));
@@ -392,7 +405,8 @@ export class MapView {
    */
   showAbove(lat: number, lon: number, coveredPx: number): void {
     const top = document.querySelector('.top-bar')?.getBoundingClientRect().bottom ?? 0;
-    this.map.flyTo({ center: [lon, lat], zoom: Math.max(this.map.getZoom(), 17), offset: [0, (top - coveredPx) / 2], duration: 800 });
+    // Close enough that a photo spot's wedge is drawn at full size, so it can be seen turning.
+    this.map.flyTo({ center: [lon, lat], zoom: Math.max(this.map.getZoom(), WEDGE_FULL_ZOOM), offset: [0, (top - coveredPx) / 2], duration: 800 });
   }
 
   setFinds(finds: Find[]): void {
@@ -493,6 +507,9 @@ export class MapView {
     el.className = 'find-marker spot-marker';
     el.style.setProperty('--cat', SPOT_COLOUR);
     el.setAttribute('aria-label', label);
+    // Everything drawn sits in one box that shrinks towards the pin's tip as the map zooms out (`--spot-pin-scale`).
+    const art = document.createElement('span');
+    art.className = 'spot-art';
     const pin = document.createElement('span');
     pin.className = 'find-pin';
     const face = document.createElement('span');
@@ -507,11 +524,12 @@ export class MapView {
       face.append(img);
       el.classList.add('has-photo');
       queueMicrotask(() => { img.src = blobUrl(thumb, el); });
-      el.append(badge);
+      art.append(badge);
     } else {
       face.append(badge);
     }
-    el.prepend(pin);
+    art.prepend(pin);
+    el.append(art);
     return el;
   }
 

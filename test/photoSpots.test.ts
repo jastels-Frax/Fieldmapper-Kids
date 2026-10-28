@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ARROWS, addShot, backAtSpotWords, lookingWords, nearestArrow, removeShot, repeatedSpots, shotDays, spotBearing, spotTitle, storedBearing, viewWedge } from '../src/photoSpots.ts';
+import { ARROWS, WEDGE_FULL_ZOOM, WEDGE_MIN_SCALE, addShot, spotPinScale, wedgeScale, backAtSpotWords, lookingWords, nearestArrow, removeShot, repeatedSpots, shotDays, spotBearing, spotTitle, storedBearing, viewWedge } from '../src/photoSpots.ts';
 import { distanceM } from '../src/geo.ts';
 import type { PhotoSpot } from '../src/types.ts';
 
@@ -74,4 +74,22 @@ test('coming back to a spot: here within the GPS wobble, else how far in round n
   assert.equal(backAtSpotWords(12, 15).here, true);
   assert.equal(backAtSpotWords(42, 5).text, 'The spot is 40 metres away');
   assert.equal(backAtSpotWords(1260, 5).text, 'The spot is 1.3 kilometres away');
+});
+
+test('the wedge shrinks with the ground zoomed out, never grows past full size zoomed in, and hides when tiny', () => {
+  assert.equal(wedgeScale(WEDGE_FULL_ZOOM), 1);
+  assert.equal(wedgeScale(WEDGE_FULL_ZOOM + 3), 1, 'zoomed right in it stays readable, not screen-filling');
+  assert.equal(wedgeScale(WEDGE_FULL_ZOOM - 1), 0.5, 'one zoom level out, half the size: as metres on the ground');
+  assert.equal(wedgeScale(WEDGE_FULL_ZOOM - 2), 0.25);
+  assert.ok(wedgeScale(14) < WEDGE_MIN_SCALE, 'a whole-park view draws no wedges');
+  assert.ok(wedgeScale(16) >= WEDGE_MIN_SCALE);
+});
+
+test('the pin eases from full size at zoom 18 to 0.6 at zoom 14, and no smaller', () => {
+  assert.equal(spotPinScale(20), 1);
+  assert.equal(spotPinScale(18), 1);
+  assert.equal(spotPinScale(17), 0.9);
+  assert.equal(spotPinScale(16), 0.8);
+  assert.equal(spotPinScale(14), 0.6);
+  assert.equal(spotPinScale(5), 0.6);
 });
