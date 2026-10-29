@@ -10,7 +10,8 @@ export type CategoryId = 'bird' | 'bug' | 'plant' | 'tree' | 'flower' | 'animal'
   | 'mammal' | 'amphibian' | 'reptile' | 'fish' | 'snail'
   | 'capstem' | 'shelf' | 'puffball'
   | 'lichen' | 'crusty' | 'leafy' | 'bushy'
-  | 'forest' | 'meadow' | 'wetland' | 'beach' | 'habitat';
+  | 'forest' | 'meadow' | 'wetland' | 'beach' | 'habitat'
+  | 'other';
 
 /** The five groups the kinds are sorted into (categories.ts `GROUPS`). */
 export type GroupId = 'plants' | 'animals' | 'mushrooms' | 'lichens' | 'habitats';
@@ -192,6 +193,9 @@ export type MapAvatar = { kind: 'emoji'; emoji: string } | { kind: 'art'; art: s
 
 export type Basemap = 'streets' | 'satellite' | 'hybrid';
 
+/** How big finds' pins and photo spots are drawn on the map (the Map card). */
+export type PinSize = 'small' | 'medium' | 'large';
+
 /** Device settings, shared by every explorer on it. */
 export interface Settings {
   activeProfileId?: string;
@@ -227,6 +231,8 @@ export interface Settings {
   compass: boolean;
   /** Keep the map centred on the explorer as they move: Field Mapper's Follow (`follow_user`). */
   follow: boolean;
+  /** The size of pins and photo spots on the map (the Map card); absent = medium. */
+  pinSize?: PinSize;
   /**
    * 'characters': every guide and crew member speaks in a voice of their own (the default).
    * 'one': everyone speaks in one voice, `voiceURI` or the best installed.

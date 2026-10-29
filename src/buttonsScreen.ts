@@ -4,9 +4,8 @@ import { say } from './speech.ts';
 import { sounds } from './sound.ts';
 import { buddySays } from './buddyView.ts';
 import { tierOf } from './tiers.ts';
-import { GROUPS, categoryOf, kindsOf } from './categories.ts';
 import { kindIcon } from './kindIcon.ts';
-import { MAX_QUICK, pickedKinds, toggleQuickKind } from './quickFinds.ts';
+import { MAX_QUICK, QUICK_CHOICES, pickedKinds, quickFace, toggleQuickKind } from './quickFinds.ts';
 import { TIER_TOOLS, TOOLS, moveTool, railFor, toggleTool, toolOf, type ToolId } from './railTools.ts';
 
 /**
@@ -64,22 +63,20 @@ export function openMyButtons(profile: Profile, save: (p: Profile) => Promise<Pr
     if (picked.length) {
       const full = picked.length >= MAX_QUICK;
       part.append(
-        h('p', { class: 'hint' }, `Pick up to ${MAX_QUICK}: ${picked.map(k => categoryOf(k).label).join(', ')}.`),
-        // Every kind, under its group, as the "What is it?" screen sorts them.
-        ...[...GROUPS.map(g => ({ head: g.label, kinds: kindsOf(g) })), { head: 'Not sure', kinds: [categoryOf('mystery')] }].flatMap(({ head, kinds }) => [
-          h('h3', { class: 'describe-head' }, head),
-          h('div', { class: 'mini-choices' }, ...kinds.map(c => {
-            const isOn = picked.includes(c.id);
-            return h('button', {
-              class: `mini-choice ${isOn ? 'on' : ''}`, 'aria-pressed': String(isOn), disabled: !isOn && full,
-              onclick: () => {
-                const kinds = toggleQuickKind(picked, c.id);
-                // Taking the last one off goes back to "the things I find most", which is what an empty pick means.
-                void commitQuick(kinds.length ? { on: true, kinds } : { on: true }, isOn ? `${c.label} off` : `${c.label} on`);
-              },
-            }, kindIcon(c, 'mini-emoji'), c.label);
-          })),
-        ]),
+        h('p', { class: 'hint' }, `Pick up to ${MAX_QUICK}: ${picked.map(k => quickFace(k).label).join(', ')}. Make each find a fern, a frog… later in My Finds.`),
+        // The top of "What is it?" only: a quick find is saved as its group and made a fern or a frog later.
+        h('div', { class: 'mini-choices' }, ...QUICK_CHOICES.map(id => {
+          const q = quickFace(id);
+          const isOn = picked.includes(id);
+          return h('button', {
+            class: `mini-choice ${isOn ? 'on' : ''}`, 'aria-pressed': String(isOn), disabled: !isOn && full,
+            onclick: () => {
+              const kinds = toggleQuickKind(picked, id);
+              // Taking the last one off goes back to "the things I find most", which is what an empty pick means.
+              void commitQuick(kinds.length ? { on: true, kinds } : { on: true }, isOn ? `${q.label} off` : `${q.label} on`);
+            },
+          }, kindIcon(q, 'mini-emoji'), q.label);
+        })),
       );
     }
     return part;

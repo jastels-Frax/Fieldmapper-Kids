@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { CATEGORIES, GROUPS, categoryOf, findName, groupOf, isKind, kindWords, kindsOf, oneOf } from '../src/categories.ts';
 import { KIND_ART_IDS, kindArt } from '../src/kindArt.ts';
 
-test('every kind is in exactly one group, except "not sure"', () => {
+test('every kind is in exactly one group, except "Other" and "Not sure"', () => {
   assert.equal(new Set(CATEGORIES.map(c => c.id)).size, CATEGORIES.length);
   const listed = GROUPS.flatMap(g => g.kinds);
   assert.equal(new Set(listed).size, listed.length, 'a kind listed twice');
   for (const c of CATEGORIES) {
-    if (c.id === 'mystery') { assert.equal(c.group, undefined); continue; }
+    if (c.id === 'mystery' || c.id === 'other') { assert.equal(c.group, undefined); continue; }
     const g = GROUPS.find(x => x.id === c.group);
     assert.ok(g, `${c.id} has no group`);
     assert.ok(g.kinds.includes(c.id), `${c.id} is not in ${g.id}'s list`);
@@ -37,11 +37,12 @@ test('a kind refines a kind of its own group, one level deep', () => {
 test('every kind has something to say, and a sentence that reads', () => {
   for (const c of CATEGORIES) {
     assert.ok(c.cheer && c.talk.length >= 2 && c.facts.length >= 2, c.id);
-    assert.match(oneOf(c), /^(a|an|some|the) [a-z]/, c.id);
+    assert.match(oneOf(c), /^(a|an|some|the|something) [a-z]/, c.id);
   }
   assert.equal(oneOf(categoryOf('animal')), 'an animal');
   assert.equal(oneOf(categoryOf('crusty')), 'a crusty lichen');
   assert.equal(oneOf(categoryOf('water')), 'some water');
+  assert.equal(oneOf(categoryOf('other')), 'something else');
 });
 
 test('kindWords names the group only when it adds something', () => {

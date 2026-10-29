@@ -47,7 +47,7 @@ import { compassWord, norm, smoothHeading } from './heading.ts';
 import { closeSpotTool, openSpotTool, spotToolOpen, type SpotToolHost, type TakeAgain } from './photoSpotTool.ts';
 import { openSpot, openSpots, type SpotHost } from './spotScreens.ts';
 import { addShot, newestShot, removeShot, repeatedSpots } from './photoSpots.ts';
-import { MAX_QUICK, quickFor, quickKinds } from './quickFinds.ts';
+import { MAX_QUICK, quickFace, quickFor, quickKinds } from './quickFinds.ts';
 import { closeDrawTool, openDrawTool, type DrawHost, type DrawMode } from './drawTool.ts';
 import { closeShapeCard, openShapeCard } from './shapeCard.ts';
 import { SHAPE_TAP_PX, metresPerPixel, pickShape } from './mapShapes.ts';
@@ -117,6 +117,7 @@ export class App {
     this.everySketch = await allSketches();
     this.everySpot = await allSpots();
     this.applyAudio();
+    this.applyPinSize();
     const first = this.profiles.find(p => p.id === this.settings.activeProfileId) ?? this.profiles[0];
     this.profile = first ?? { id: '', name: '', avatar: '🦊', mode: 'explorer', guide: 'frog', createdAt: '' };
     this.scopeToProfile();
@@ -210,6 +211,11 @@ export class App {
     sounds.pick();
     toast(toTogether ? '👨‍👧 Exploring together with a grown-up' : '🧒 Exploring on my own');
     say(toTogether ? 'Exploring together! Stay with your grown-up.' : 'Exploring on my own!');
+  }
+
+  /** How big pins and photo spots are drawn (the Map card's "Size of pins"): one attribute, read by the CSS. */
+  private applyPinSize(): void {
+    document.documentElement.dataset.pinSize = this.settings.pinSize ?? 'medium';
   }
 
   private applyAudio(): void {
@@ -322,7 +328,14 @@ export class App {
         },
         on: () => !!this.profile.mapEveryone, toggle: () => this.toggleEveryone(),
       }] : []),
-    ]);
+    ], {
+      now: () => this.settings.pinSize ?? 'medium',
+      pick: async size => {
+        this.settings = { ...this.settings, pinSize: size };
+        this.applyPinSize();
+        await saveSettings(this.settings);
+      },
+    });
   }
 
   private async setFollow(on: boolean): Promise<void> {
@@ -1045,9 +1058,9 @@ export class App {
     this.quickRow.replaceChildren(
       h('span', { class: 'quick-label', 'aria-hidden': 'true' }, '📸'),
       ...kinds.map(id => {
-        const c = categoryOf(id);
-        return h('button', { class: 'quick-chip', style: `--cat:${c.colour}`, 'aria-label': `Quick find: take a photo of a ${c.label.toLowerCase()}`, onclick: () => this.quickFind(id) },
-          kindIcon(c, 'quick-emoji'), h('span', { class: 'quick-word' }, c.short ?? c.label));
+        const q = quickFace(id);
+        return h('button', { class: 'quick-chip', style: `--cat:${q.colour}`, 'aria-label': `Quick find: take a photo, saved as ${q.label}`, onclick: () => this.quickFind(id) },
+          kindIcon(q, 'quick-emoji'), h('span', { class: 'quick-word' }, q.label));
       }),
     );
     requestAnimationFrame(() => fitQuickWords(this.quickRow));

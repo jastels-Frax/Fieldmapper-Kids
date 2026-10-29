@@ -64,7 +64,7 @@ export const CATEGORIES: Category[] = [
     facts: ['Squirrels bury nuts and forget some, which grow into trees.', 'Frogs can breathe through their skin.', 'Watch wild animals from far away. Never touch or feed them.'],
   },
   {
-    id: 'mushroom', group: 'mushrooms', pick: 'Another shape', emoji: '🍄', label: 'Mushroom', colour: '#c92a2a', cheer: 'A mushroom! Look, but never eat it!',
+    id: 'mushroom', group: 'mushrooms', pick: 'Another shape', hint: 'Coral, jelly or cups', art: 'coral', emoji: '🍄', label: 'Mushroom', colour: '#c92a2a', cheer: 'A mushroom! Look, but never eat it!',
     talk: ['Is it growing on the ground or on wood?', 'Does it have a cap and a stem, or is it a shelf?', 'Is it slimy, smooth or bumpy?'],
     facts: ['Never eat a wild mushroom. Some look friendly and are poison.', 'A mushroom is just the fruit. The rest of the fungus hides underground or inside wood.', 'Fungi help rot old logs and leaves back into soil.'],
   },
@@ -214,6 +214,13 @@ export const CATEGORIES: Category[] = [
     cheer: 'A habitat! A home for living things.',
     talk: ['Who do you think lives here?', 'Is it wet or dry?', 'Is it sunny or shady?'],
     facts: ['A habitat is a place where plants and animals live.', 'Every habitat has its own living things.', 'Leave a habitat the way you found it.'],
+  },
+  {
+    // Not in a group: something the explorer knows is not a plant, an animal, a mushroom, a lichen or a place.
+    id: 'other', full: 'Something else', one: 'something else', emoji: '🧩', label: 'Other', colour: '#5c7cfa',
+    cheer: 'Something else! Every find counts.',
+    talk: ['What is it made of?', 'Where do you think it came from?', 'Was it made by nature or by people?'],
+    facts: ['Shells, feathers and bones are clues about animals that were nearby.', 'Some things outside were made by people, like trash. Ask a grown-up before you pick anything up.', 'Explorers write down what they notice, even when it does not fit a group.'],
   },
   {
     id: 'mystery', emoji: '❓', label: 'Mystery', colour: '#9775fa', cheer: 'A mystery! Ooooh!',

@@ -12,6 +12,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.7.0', date: '2026-10-29', title: 'Name anything',
+    notes: [
+      "Search every species from any kind. Picked one of another kind? Scout asks if you want to change it.",
+      'New: 🧩 Other, three sizes of pins (🗺️ Map), and a coral fungus for "Another shape".',
+      'Quick finds are Plant, Animal, Mushroom… Make them a fern or a frog later.',
+    ],
+  },
+  {
     version: '2.6.0', date: '2026-10-29', title: "Everyone's finds",
     notes: [
       "More than one explorer on this tablet? Turn on 🗺️ Map ▸ Everyone's finds to see each other's finds on the map.",

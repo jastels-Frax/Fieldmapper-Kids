@@ -313,6 +313,8 @@ export async function loadSettings(): Promise<Settings> {
     wakeLock: s?.wakeLock ?? DEFAULT_SETTINGS.wakeLock,
     compass: s?.compass ?? DEFAULT_SETTINGS.compass,
     follow: s?.follow ?? DEFAULT_SETTINGS.follow,
+    // Absent (or a size this build does not know) = medium.
+    ...(s?.pinSize === 'small' || s?.pinSize === 'large' ? { pinSize: s.pinSize } : {}),
     // Absence: a device whose grown-up already picked a voice meant one voice; everyone else gets the characters.
     voiceMode: s?.voiceMode === 'one' || s?.voiceMode === 'characters' ? s.voiceMode : (s?.voiceURI ? 'one' : 'characters'),
     ...(s?.voiceURI ? { voiceURI: s.voiceURI } : {}),

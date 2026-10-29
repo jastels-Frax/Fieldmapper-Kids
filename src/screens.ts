@@ -126,18 +126,20 @@ export function celebrate(host: ScreenHost, f: Find, newBadges: BadgeProgress[],
 export function openBook(host: ScreenHost): void {
   const { body, close } = openSheet({ title: 'My Finds', emoji: '📖', className: 'book' });
   void close;
-  type Filter = GroupId | 'mystery' | 'all' | 'fav';
+  type Filter = GroupId | 'other' | 'mystery' | 'all' | 'fav';
   let filter: Filter = 'all';
   const chips = h('div', { class: 'chips' });
   const grid = h('div', { class: 'sticker-grid' });
-  /** A find's shelf in the book: its group, or "not sure" for a mystery. */
-  const shelfOf = (f: Find): Filter => groupOf(f.category)?.id ?? 'mystery';
+  /** A find's shelf in the book: its group, else "Other" or "Not sure" (a mystery). */
+  const shelfOf = (f: Find): Filter => groupOf(f.category)?.id ?? (f.category === 'other' ? 'other' : 'mystery');
 
   const paint = () => {
     const counts = new Map<Filter, number>();
     for (const f of host.finds()) counts.set(shelfOf(f), (counts.get(shelfOf(f)) ?? 0) + 1);
     const mystery = categoryOf('mystery');
+    const other = categoryOf('other');
     const shelves = [...GROUPS.map(g => ({ id: g.id as Filter, emoji: g.emoji, art: g.art, label: g.label, colour: g.colour })),
+      { id: 'other' as Filter, emoji: other.emoji, label: other.label, colour: other.colour },
       { id: 'mystery' as Filter, emoji: mystery.emoji, label: 'Not sure', colour: mystery.colour }];
     chips.replaceChildren(
       h('button', { class: `chip ${filter === 'all' ? 'on' : ''}`, onclick: () => { filter = 'all'; paint(); } }, `🌍 All ${host.finds().length}`),

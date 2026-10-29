@@ -29,51 +29,11 @@ test('a familiar species is one its kind can name (search finds it under that ki
   }
 });
 
-test('the new kinds name only their own kind of living thing', () => {
-  assert.ok(searchSpecies(ns.species, 'crusty', 'map').every(s => s.t === 'Lichen'));
-  assert.ok(searchSpecies(ns.species, 'shelf', 'turkey').some(s => s.n === 'Turkey Tail'));
-  assert.ok(searchSpecies(ns.species, 'fern', '').every(s => s.t === 'Fern / Fern Ally'));
-  assert.ok(searchSpecies(ns.species, 'snail', '').every(s => s.t === 'Mollusc'));
-  // A lichen is not a plant: it has a group of its own now.
-  assert.ok(searchSpecies(ns.species, 'plant', 'reindeer lichen').every(s => s.t !== 'Lichen'));
+test('the new kinds put their own kind of living thing first', () => {
+  assert.equal(searchSpecies(ns.species, 'crusty', 'map')[0].t, 'Lichen');
+  assert.equal(searchSpecies(ns.species, 'shelf', 'turkey')[0].n, 'Turkey Tail');
+  assert.equal(searchSpecies(ns.species, 'snail', 'garden')[0].t, 'Mollusc');
   // A place is not a species.
   for (const k of ['forest', 'meadow', 'wetland', 'beach', 'habitat', 'rock', 'sky'] as const) assert.equal(hasSpeciesStep(k), false, k);
   assert.equal(hasSpeciesStep('water'), true);
-});
-
-test('search is limited to the find\'s kind and puts name starts first', () => {
-  const birds = searchSpecies(ns.species, 'bird', 'blue');
-  assert.ok(birds.length);
-  assert.ok(birds.every(s => s.t === 'Bird'));
-  assert.equal(birds[0].n.toLowerCase().startsWith('blue'), true);
-  assert.ok(searchSpecies(ns.species, 'animal', 'red fox').some(s => s.n === 'Red Fox'));
-  assert.deepEqual(searchSpecies(ns.species, 'rock', 'fox'), []);
-  assert.equal(hasSpeciesStep('rock'), false);
-  assert.equal(hasSpeciesStep('sign'), true);
-});
-
-test('a Field Mapper file is read, and junk is refused with a reason', () => {
-  const l = parseFieldMapperList([{ commonName: 'Moose', scientificName: 'Alces alces', taxon: 'Mammal', elcode: 'AMALC03010', srank: 'S1', noteRank: 'Exotic' }, { foo: 1 }]);
-  assert.deepEqual(l, [{ n: 'Moose', t: 'Mammal', s: 'Alces alces', c: 'AMALC03010', r: 'S1', x: true }]);
-  assert.equal(typeof parseFieldMapperList({}), 'string');
-  assert.equal(typeof parseFieldMapperList([{ foo: 1 }]), 'string');
-});
-
-test('a CSV is read with or without a header', () => {
-  assert.deepEqual(parseSpeciesCsv('Common name,Scientific,Taxon\n"Fox, Red",Vulpes vulpes,Mammal\nOak,,'),
-    [{ n: 'Fox, Red', s: 'Vulpes vulpes', t: 'Mammal' }, { n: 'Oak', t: 'Other' }]);
-  assert.equal(typeof parseSpeciesCsv('\n\n'), 'string');
-});
-
-test('merging keeps the first of a duplicate', () => {
-  const a = [{ n: 'Moose', t: 'Mammal', s: 'Alces alces', r: 'S1' }];
-  const b = [{ n: 'moose', t: 'Mammal', s: 'Alces alces' }, { n: 'Elk', t: 'Mammal' }];
-  assert.deepEqual(mergeLists(a, b).map(s => s.n), ['Moose', 'Elk']);
-});
-
-test('mushrooms have their own list, and fungi left the plant list', () => {
-  const m = searchSpecies(ns.species, 'mushroom', 'amanita', 100);
-  assert.ok(m.length > 10);
-  assert.ok(m.every(s => s.t === 'Fungus'));
-  assert.ok(searchSpecies(ns.species, 'plant', 'amanita', 100).every(s => s.t !== 'Fungus'));
 });

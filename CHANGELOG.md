@@ -5,6 +5,29 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.7.0 — 2026-10-29
+
+- **Any species from any kind** (`species.searchSpecies`): the search reaches the whole list, not only the taxa of the
+  find's kind. Within names starting with the words typed, the find's own kind comes first; each result says what kind
+  it is (its emoji and taxon). **Picking one from another kind asks** (`speciesKind.kindToOffer`, Y/N): "Turkey Tail is a
+  kind of shelf mushroom. Make this find Shelf mushroom?" Yes changes the kind (a track's clue is dropped, and that one
+  asks with the safe answer first); No keeps both as they are. A mystery or "Other" that gets a name is asked too. The
+  kind offered is the most particular one whose familiar species list names it (Red Maple → tree, Turkey Tail → shelf,
+  Map Lichen → crusty), else the kind of its taxon (`TAXON_KIND`; a taxon not in it — an imported list's "Other" —
+  asks nothing). Habitats, rock and sky still have no species step.
+- **🧩 Other** (`other`), a top-level choice beside ❓ Not sure: something that is not a plant, an animal, a mushroom, a
+  lichen or a place. It has a species step that searches everything, a shelf of its own in the sticker book, and is
+  not in a group or in "One of Everything".
+- **Three sizes of pins** (🗺️ Map ▸ Size of pins: Small · Medium · Big; `Settings.pinSize`, device-wide, absent =
+  medium): finds' pins (34 / 46 / 62 px) and photo spots (42 / 56 / 74 px), every measure of both drawn from two CSS
+  variables (`--pin`, `--spot`) set by `html[data-pin-size]`.
+- **"Another shape" has a drawing: a coral fungus** (`kindArt` `coral`), with the hint "Coral, jelly or cups", so it
+  no longer looks like Cap and stem. It is the `mushroom` kind's picture everywhere, so mushroom finds saved as plain
+  "Mushroom" before 2.5 (and by a Sprout, who picks only the group) show the coral too.
+- **Quick finds are the top of "What is it?" only** (`QUICK_CHOICES`: the five groups, Other and Not sure), saved as
+  that and refined later with Change it. A pick stored before (Bird, Bug…) folds to its group (Animal), and the most-found
+  choices count finds by group.
+
 ## 2.6.0 — 2026-10-29
 
 - **Everyone's finds** (👫, the 🗺️ Map card): the map shows the finds of every explorer on THIS device, not just the

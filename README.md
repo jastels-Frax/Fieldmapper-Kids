@@ -20,14 +20,15 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
 - **Storybook pictures** (new in 2.0): characters from the Scout the Survey Squirrel book for your card, and a
   different picture on the map if you like.
 - **Map**: a big-button map with "Where am I?" (which also follows you), every find as a pin, and 📸 quick-find
-  buttons (off until turned on in My buttons; the kinds you pick, or the kinds you find most): one tap, one photo,
-  saved.
+  buttons (off until turned on in My buttons; Plant, Animal, Mushroom… — the ones you pick, or the ones you find
+  most): one tap, one photo, saved, and made a fern or a frog later.
 - **Photo spots** (📷, new in 2.4): take a picture of a view; the compass remembers which way you looked, and the
   map shows a camera dot with a wedge pointing that way (or tap an arrow yourself). Come back another day and 🔁 take it again to see
   what changed — then and now.
 - **"I found something!"**: add as many photos and drawings as you like, pick what it is — a plant, an animal, a
   mushroom, a lichen or a habitat (new in 2.5), then its kind (a fern, a frog, a shelf mushroom, a crusty lichen, a
-  wetland…), or ❓ not sure — and ✨ Save now — or go on: name it
+  wetland…), or 🧩 other, or ❓ not sure — and ✨ Save now — or go on: name it (any species can be searched from any
+  kind; one of another kind asks before changing the find to match)
   (type your own words, like "little plant", or pick a species), tap its colours, size and how many on one screen,
   and record as many voice notes as you like. It goes where you stood by GPS; you are only asked where when the
   GPS is unsure. Sprouts get three screens: picture, group, save. The celebration goes back to the map by itself.
@@ -37,7 +38,7 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
 - **Explorers**: several profiles on one device, each with a name, an "about me", a photo or animal
   picture, Explorer or Together mode, their own finds, hunts and badges, and their own guide — any of
   the eight characters, renamed if they like.
-- **Map styles**: streets, satellite or hybrid.
+- **Map styles**: streets, satellite or hybrid, and small, medium or big pins.
 - **Everyone's finds** (new in 2.6): with more than one explorer on a tablet, each can show the others' finds on
   their map (🗺️ Map card). Their pins wear their picture and open to look at, not to change. Same tablet only.
 - **Which way am I facing?** (🧭): an arrow on the map turns with the device compass (iPhone/iPad ask permission

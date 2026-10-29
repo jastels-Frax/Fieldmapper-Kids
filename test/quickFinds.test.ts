@@ -1,23 +1,35 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { quickKinds, DEFAULT_QUICK, quickFor, pickedKinds, toggleQuickKind, MAX_QUICK } from '../src/quickFinds.ts';
-import { CATEGORIES } from '../src/categories.ts';
+import { quickKinds, DEFAULT_QUICK, quickFor, pickedKinds, toggleQuickKind, MAX_QUICK, QUICK_CHOICES, quickChoiceOf, quickFace } from '../src/quickFinds.ts';
+import { CATEGORIES, GROUPS } from '../src/categories.ts';
 import type { CategoryId } from '../src/types.ts';
 
 const finds = (...c: CategoryId[]) => c.map(category => ({ category }));
 
+test('the choices are the top of "What is it?": the groups, Other and Not sure', () => {
+  assert.deepEqual(QUICK_CHOICES, [...GROUPS.map(g => g.generic), 'other', 'mystery']);
+  assert.equal(quickChoiceOf('bird'), 'animal');
+  assert.equal(quickChoiceOf('shelf'), 'mushroom');
+  assert.equal(quickChoiceOf('water'), 'habitat');
+  assert.equal(quickChoiceOf('other'), 'other');
+  assert.equal(quickFace('plant').label, 'Plant');
+  assert.equal(quickFace('lichen').art, 'lichen');
+  assert.equal(quickFace('mystery').label, 'Not sure');
+});
+
 test('no finds yet: the defaults', () => {
   assert.deepEqual(quickKinds([]), DEFAULT_QUICK);
+  for (const c of DEFAULT_QUICK) assert.ok(QUICK_CHOICES.includes(c));
 });
 
-test('most found first, ties to the most recent, topped up from the defaults', () => {
-  assert.deepEqual(quickKinds(finds('tree', 'rock', 'tree', 'rock', 'mushroom')), ['tree', 'rock', 'mushroom']);
-  assert.deepEqual(quickKinds(finds('rock')), ['rock', 'bird', 'flower']);
-  assert.deepEqual(quickKinds(finds('bird', 'bird')), ['bird', 'flower', 'bug']);
+test('most found GROUP first, ties to the most recent, topped up from the defaults', () => {
+  assert.deepEqual(quickKinds(finds('tree', 'rock', 'fern', 'rock', 'shelf')), ['plant', 'habitat', 'mushroom']);
+  assert.deepEqual(quickKinds(finds('rock')), ['habitat', 'animal', 'plant']);
+  assert.deepEqual(quickKinds(finds('bird', 'mammal')), ['animal', 'plant', 'mushroom']);
 });
 
-test('a mystery is not a kind worth a button', () => {
-  assert.deepEqual(quickKinds(finds('mystery', 'mystery', 'tree')), ['tree', 'bird', 'flower']);
+test('a mystery is not a choice worth a button by itself', () => {
+  assert.deepEqual(quickKinds(finds('mystery', 'mystery', 'tree')), ['plant', 'animal', 'mushroom']);
 });
 
 test('quick finds are off until an explorer turns them on', () => {
@@ -25,23 +37,25 @@ test('quick finds are off until an explorer turns them on', () => {
   assert.deepEqual(quickFor({ on: false, kinds: ['rock'] }, finds('bird')), []);
 });
 
-test('on: the kinds picked, else the kinds found most', () => {
-  assert.deepEqual(quickFor({ on: true }, finds('tree', 'tree')), ['tree', 'bird', 'flower']);
-  assert.deepEqual(quickFor({ on: true, kinds: [] }, finds('tree')), ['tree', 'bird', 'flower']);
-  assert.deepEqual(quickFor({ on: true, kinds: ['sign', 'rock'] }, finds('tree')), ['sign', 'rock']);
+test('on: the choices picked, else the groups found most', () => {
+  assert.deepEqual(quickFor({ on: true }, finds('tree', 'tree')), ['plant', 'animal', 'mushroom']);
+  assert.deepEqual(quickFor({ on: true, kinds: [] }, finds('tree')), ['plant', 'animal', 'mushroom']);
+  assert.deepEqual(quickFor({ on: true, kinds: ['sign', 'rock'] }, finds('tree')), ['animal', 'habitat']);
 });
 
-test('a stored pick keeps only real kinds, once each, at most three', () => {
-  assert.deepEqual(pickedKinds(['rock', 'nope', 'rock', 'bird', 'bug', 'sky']), ['rock', 'bird', 'bug']);
+test('a stored pick of kinds (from before the buttons were groups) folds to groups, once each, at most three', () => {
+  assert.deepEqual(pickedKinds(['bird', 'bug', 'bushy']), ['animal', 'lichen']);
+  assert.deepEqual(pickedKinds(['rock', 'nope', 'rock', 'bird', 'tree', 'shelf']), ['habitat', 'animal', 'plant']);
   assert.equal(MAX_QUICK, 3);
 });
 
-test('tapping a kind adds it while there is room and takes it off when picked', () => {
-  assert.deepEqual(toggleQuickKind(undefined, 'bird'), ['bird']);
-  assert.deepEqual(toggleQuickKind(['bird', 'bug'], 'bird'), ['bug']);
-  assert.deepEqual(toggleQuickKind(['bird', 'bug', 'rock'], 'sky'), ['bird', 'bug', 'rock']);
+test('tapping a choice adds it while there is room and takes it off when picked', () => {
+  assert.deepEqual(toggleQuickKind(undefined, 'animal'), ['animal']);
+  assert.deepEqual(toggleQuickKind(['animal', 'plant'], 'animal'), ['plant']);
+  assert.deepEqual(toggleQuickKind(['animal', 'plant', 'habitat'], 'other'), ['animal', 'plant', 'habitat']);
 });
 
 test('every quick-find word is short enough for a chip', () => {
+  for (const id of QUICK_CHOICES) assert.ok(quickFace(id).label.length <= 8, `${id}: give it a short word`);
   for (const c of CATEGORIES) assert.ok((c.short ?? c.label).length <= 8, `${c.id}: give it a short word`);
 });

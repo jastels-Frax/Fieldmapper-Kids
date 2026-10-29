@@ -9,12 +9,14 @@ const PARTS: { emoji: string; title: string; lines: string[] }[] = [
   { emoji: '✨', title: 'Saving a find', lines: [
     'Tap "I found something!" at the bottom of the map.',
     'Take a photo, pick one from your photos, or draw it.',
-    'Then say what it is: a plant, an animal, a mushroom, a lichen or a habitat (a place). Each one opens its kinds: a fern, a frog, a shelf mushroom, a crusty lichen, a wetland… Not sure? Tap ❓ Not sure.',
+    'Then say what it is: a plant, an animal, a mushroom, a lichen or a habitat (a place). Each one opens its kinds: a fern, a frog, a shelf mushroom, a crusty lichen, a wetland… Something else? Tap 🧩 Other. Not sure? Tap ❓ Not sure.',
+    'Type its name to search every species. If it turns out to be a different kind (you picked Plant and it is a Turkey Tail), Scout asks if you want to change it.',
     'Tap ✨ Save now any time, or keep going: give it a name, its colours and size, and record voice notes.',
     'Hold your finger on the map to save a find right at that spot.',
   ] },
   { emoji: '📸', title: 'Quick finds', lines: [
-    'Turn them on in 🔧 My buttons. Pick up to three kinds of things, or let Scout show the things you find most.',
+    'Turn them on in 🔧 My buttons. Pick up to three, like Plant, Animal or Mushroom, or let Scout show the things you find most.',
+    'A quick find is saved as Plant or Animal… Make it a fern or a frog later: open it in My Finds and tap ✏️ Change it.',
     'They sit in a row above "I found something!".',
     'Tap one, take a photo, and it is saved where you are standing. Add more about it later in My Finds.',
   ] },

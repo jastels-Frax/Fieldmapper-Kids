@@ -49,14 +49,20 @@ export const CATEGORY_TAXA: Partial<Record<CategoryId, string[]>> = {
   mystery: [],
 };
 
-/** Mystery means "anything": every taxon. */
+/** A mystery and "Other" mean "anything": every taxon. */
 export function taxaFor(cat: CategoryId): string[] | null {
-  if (cat === 'mystery') return null;
+  if (cat === 'mystery' || cat === 'other') return null;
   return CATEGORY_TAXA[cat] ?? [];
 }
 
 export function hasSpeciesStep(cat: CategoryId): boolean {
-  return cat === 'mystery' || (CATEGORY_TAXA[cat]?.length ?? 0) > 0;
+  return taxaFor(cat) === null || (CATEGORY_TAXA[cat]?.length ?? 0) > 0;
+}
+
+/** Is a species of this taxon one this kind of find names? (A mystery or "Other" names anything.) */
+export function belongsTo(cat: CategoryId, taxon: string): boolean {
+  const taxa = taxaFor(cat);
+  return !taxa || taxa.includes(taxon);
 }
 
 /** Commoner first: S5, S4, then introduced (SNA) species, then the rest. */
@@ -71,15 +77,14 @@ function rankWeight(r?: string): number {
 const fold = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 /**
- * Species of the find's kind matching what was typed: a common or scientific
- * name starting with it beats one merely containing it, then commoner first.
+ * Species matching what was typed, from the WHOLE list: a find's kind does not limit what can be named (a child who
+ * picked Plant and types "turkey tail" finds the mushroom; capture.ts then offers to change the kind). A name starting
+ * with the words beats one merely containing them; within that, the find's own kind first; then commoner first.
  */
 export function searchSpecies(list: Species[], cat: CategoryId, query: string, limit = 40): Species[] {
-  const taxa = taxaFor(cat);
-  const pool = taxa ? list.filter(sp => taxa.includes(sp.t)) : list;
   const q = fold(query.trim());
   const scored: [number, Species][] = [];
-  for (const sp of pool) {
+  for (const sp of list) {
     const n = fold(sp.n), s = fold(sp.s ?? '');
     let score: number;
     if (!q) score = 10;
@@ -87,7 +92,7 @@ export function searchSpecies(list: Species[], cat: CategoryId, query: string, l
     else if (s.startsWith(q)) score = 1;
     else if (n.includes(q) || s.includes(q)) score = 2;
     else continue;
-    scored.push([score * 10 + rankWeight(sp.r), sp]);
+    scored.push([score * 20 + (belongsTo(cat, sp.t) ? 0 : 10) + rankWeight(sp.r), sp]);
   }
   scored.sort((a, b) => a[0] - b[0] || a[1].n.localeCompare(b[1].n));
   return scored.slice(0, limit).map(x => x[1]);

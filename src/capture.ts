@@ -1,6 +1,7 @@
 import { icon, labelled } from './icons.ts';
 import type { ColourId, Find, FullFind, Picture, Profile, Settings, SpeciesPick } from './types.ts';
-import { COLOURS, COUNTS, GROUPS, SIGNS, SIZES, categoryOf, groupOf, kindWords, kindsOf, type Category, type Group } from './categories.ts';
+import { COLOURS, COUNTS, GROUPS, SIGNS, SIZES, categoryOf, fullName, groupOf, kindWords, kindsOf, type Category, type Group } from './categories.ts';
+import { kindForSpecies, kindToOffer } from './speciesKind.ts';
 import { kindIcon } from './kindIcon.ts';
 import { askYesNo, blobUrl, h, openSheet, toast, uid } from './ui.ts';
 import { say } from './speech.ts';
@@ -299,7 +300,7 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
     },
 
     category() {
-      // Two levels: the five groups (and "not sure"), then the kinds in the one tapped. A Sprout stops at the group.
+      // Two levels: the five groups (and "Other" and "Not sure"), then the kinds in the one tapped. A Sprout stops at the group.
       // Coming back to this step opens the group of the kind already picked, with it lit.
       const pickKind = (c: Category) => {
         const changedKind = draft.category !== c.id;
@@ -322,6 +323,7 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
         body.replaceChildren();
         const picked = draft.category ? groupOf(draft.category)?.id : undefined;
         const mystery = categoryOf('mystery');
+        const other = categoryOf('other');
         put(
           title(),
           h('div', { class: 'choice-grid' },
@@ -330,6 +332,7 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
               sounds.tap();
               showKinds(g);
             })),
+            choice(other, other.label, draft.category === 'other', () => pickKind(other), 'Something else'),
             choice(mystery, 'Not sure', draft.category === 'mystery', () => pickKind(mystery)),
           ),
         );
@@ -387,13 +390,32 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
             h('button', { class: 'round-btn small', 'aria-label': 'Not this one', onclick: () => { draft.species = undefined; search.value = ''; paintChosen(); paintResults(); } }, icon('close'))));
         }
       };
-      const choose = (sp: Species, andGo = false) => {
+      const choose = async (sp: Species, andGo = false) => {
         draft.species = { name: sp.n, ...(sp.s ? { scientific: sp.s } : {}), taxon: sp.t, ...(sp.c ? { code: sp.c } : {}) } satisfies SpeciesPick;
         search.value = sp.n;
         sounds.pick();
         say(`${sp.n}!`);
         paintChosen();
         paintResults();
+        // Any species can be named from any kind (searchSpecies). One from another kind asks before the find changes
+        // to match: "Turkey Tail is a kind of shelf mushroom. Make it Shelf mushroom?" No keeps both as they are.
+        const offer = kindToOffer(draft.category!, sp);
+        if (offer) {
+          const was = categoryOf(draft.category!), now = categoryOf(offer);
+          const yes = await askYesNo(`${sp.n} is a kind of ${fullName(now).toLowerCase()}. Make this find ${fullName(now)}?`,
+            `✅ Yes, ${fullName(now)}`, `No, keep ${fullName(was)}`, was.id === 'sign' ? 'danger' : 'go');
+          if (yes) {
+            if (draft.category === 'sign') draft.sign = undefined;
+            draft.category = offer;
+            say(now.cheer);
+            // The step list depends on the kind (a track has a clue step): stay on this step in the new list.
+            if (!editing) {
+              stepIdx = Math.max(0, steps().indexOf('species'));
+              dots.replaceChildren(...steps().map((_, j) => h('span', { class: j <= stepIdx ? 'on' : '' })));
+              paintNav();
+            }
+          }
+        }
         if (andGo) setTimeout(next, 600);
       };
       // What the box says becomes the explorer's own name, unless it IS the species picked from the list.
@@ -413,9 +435,12 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
         if (!q || (draft.species && !draft.species.own && draft.species.name === q)) return;
         results.append(h('button', { class: 'species-row own-name', onclick: () => { commit?.(); sounds.pick(); say(`${q}!`); next(); } },
           h('strong', {}, `✏️ Call it “${q}”`), h('span', { class: 'species-taxon' }, 'my own name')));
-        for (const sp of searchSpecies(list, cat, q, 30)) {
-          results.append(h('button', { class: 'species-row', onclick: () => choose(sp) },
-            h('strong', {}, sp.n), sp.s ? h('span', { class: 'latin' }, sp.s) : null, h('span', { class: 'species-taxon' }, sp.t)));
+        for (const sp of searchSpecies(list, draft.category!, q, 30)) {
+          // What kind it is, so a species from outside this find's kind is plain to see before it is picked.
+          const k = kindForSpecies(sp);
+          results.append(h('button', { class: 'species-row', onclick: () => void choose(sp) },
+            h('strong', {}, sp.n), sp.s ? h('span', { class: 'latin' }, sp.s) : null,
+            h('span', { class: 'species-taxon' }, k ? `${categoryOf(k).emoji} ${sp.t}` : sp.t)));
         }
       };
       search.addEventListener('input', () => {
@@ -435,9 +460,9 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
             const art = artFor(sp.n)!;
             const fig = h('span', { class: 'art-fig', 'aria-hidden': 'true' });
             fig.innerHTML = art.svg();
-            return h('button', { class: 'art-chip', onclick: () => { say(art.tell); choose(sp, true); } }, fig, h('strong', {}, art.label));
+            return h('button', { class: 'art-chip', onclick: () => { say(art.tell); void choose(sp, true); } }, fig, h('strong', {}, art.label));
           }),
-          ...known.filter(sp => !artFor(sp.n)).map(sp => h('button', { class: 'hunt-chip', onclick: () => choose(sp, true) }, sp.n)),
+          ...known.filter(sp => !artFor(sp.n)).map(sp => h('button', { class: 'hunt-chip', onclick: () => void choose(sp, true) }, sp.n)),
         );
         paintResults();
       });

@@ -1,6 +1,6 @@
 /**
  * Drawings for the kinds no emoji says (categories.ts `art`): the lichens and their three shapes, moss, a shelf
- * mushroom, a puffball and a wetland. In the crew's sticker style (buddies.ts): flat colour, a bold black line. Small
+ * mushroom, a puffball, a coral fungus and a wetland. In the crew's sticker style (buddies.ts): flat colour, a bold black line. Small
  * and filter-free, because they also stand on map pins and sticker-book chips. Pure strings: our own constant markup,
  * the one kind of innerHTML this app allows.
  */
@@ -86,6 +86,21 @@ const ART: Record<string, string> = {
     + `<circle cx="22" cy="38" r="1.5" fill="#c9b48f"/><circle cx="40" cy="34" r="1.5" fill="#c9b48f"/><circle cx="30" cy="46" r="1.5" fill="#c9b48f"/><circle cx="44" cy="46" r="1.5" fill="#c9b48f"/>`
     + `<circle cx="29" cy="15" r="2" fill="#a68a64"/><circle cx="35" cy="11" r="2.4" fill="#a68a64"/><circle cx="31" cy="6" r="1.6" fill="#a68a64"/>`,
   ),
+  /**
+   * Coral: a coral fungus, a dense clump of upright branches that fork at their tips (the mushroom of "another
+   * shape"). Every outline is drawn before any fill, so the branches join without seams.
+   */
+  coral: (() => {
+    const trunks = 'M32 55 L32 30 M30 55 L20 36 M34 55 L44 36 M28 55 L14 45 M36 55 L50 45';
+    const tips = 'M32 30 L28 19 M32 30 L36 19 M20 36 L15 26 M20 36 L23 25 M44 36 L41 25 M44 36 L49 26 M14 45 L9 37 M14 45 L16 35 M50 45 L48 35 M50 45 L55 37';
+    const twigs = 'M28 19 L26 12 M28 19 L30 12 M36 19 L34 12 M36 19 L38 12 M15 26 L12 19 M23 25 L24 18 M41 25 L40 18 M49 26 L52 19';
+    const fill = '#f6a96b';
+    return svg(
+      line('M6 56 L58 56', INK, 2.6)
+      + line(trunks, INK, 8) + line(tips, INK, 6.6) + line(twigs, INK, 5.4)
+      + line(trunks, fill, 5.4) + line(tips, fill, 4) + line(twigs, fill, 2.8),
+    );
+  })(),
   /** Wetland: cattails standing in water. */
   wetland: svg(
     shape('M4 48 C14 44 22 52 32 48 C42 44 50 52 60 48 L60 60 L4 60 Z', '#4dabf7')

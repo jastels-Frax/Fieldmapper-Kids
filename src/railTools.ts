@@ -18,7 +18,7 @@ export interface RailTool {
 
 export const TOOLS: RailTool[] = [
   { id: 'me', emoji: '📍', word: 'Me', what: 'Find me on the map, and follow me as I walk' },
-  { id: 'map', emoji: '🗺️', word: 'Map', what: 'How the map looks, the facing arrow and keeping the screen on' },
+  { id: 'map', emoji: '🗺️', word: 'Map', what: 'How the map looks, how big the pins are, the facing arrow and keeping the screen on' },
   { id: 'photo', emoji: '📷', word: 'Photo', what: 'Photo spots: take a picture of a view, and the map shows which way you looked' },
   { id: 'draw', emoji: '✏️', word: 'Draw', what: 'Draw lines and shapes on my map' },
   { id: 'measure', emoji: '📏', word: 'Measure', what: 'How far is it? How big is it?' },
