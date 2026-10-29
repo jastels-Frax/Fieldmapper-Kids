@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ARROWS, SPOT_FULL_ZOOM, addShot, beamOpacity, spotScale, backAtSpotWords, lookingWords, nearestArrow, removeShot, repeatedSpots, shotDays, spotBearing, spotTitle, storedBearing, viewWedge } from '../src/photoSpots.ts';
+import { ARROWS, addShot, backAtSpotWords, lookingWords, nearestArrow, removeShot, repeatedSpots, shotDays, spotBearing, spotTitle, storedBearing, viewWedge } from '../src/photoSpots.ts';
 import { distanceM } from '../src/geo.ts';
 import type { PhotoSpot } from '../src/types.ts';
 
@@ -74,20 +74,4 @@ test('coming back to a spot: here within the GPS wobble, else how far in round n
   assert.equal(backAtSpotWords(12, 15).here, true);
   assert.equal(backAtSpotWords(42, 5).text, 'The spot is 40 metres away');
   assert.equal(backAtSpotWords(1260, 5).text, 'The spot is 1.3 kilometres away');
-});
-
-test('a spot scales as ONE piece: full size from zoom 18, easing to 0.65 at zoom 14, and no smaller', () => {
-  assert.equal(spotScale(SPOT_FULL_ZOOM), 1);
-  assert.equal(spotScale(20), 1, 'zoomed right in it stays its own size, not screen-filling');
-  assert.equal(spotScale(16), 0.83);
-  assert.equal(spotScale(14), 0.65);
-  assert.equal(spotScale(5), 0.65, 'still a badge a child can tap');
-});
-
-test('the beam fades out between zoom 16 and 15, leaving the badge alone zoomed far out', () => {
-  assert.equal(beamOpacity(18), 1);
-  assert.equal(beamOpacity(16), 1);
-  assert.equal(beamOpacity(15.5), 0.5);
-  assert.equal(beamOpacity(15), 0);
-  assert.equal(beamOpacity(12), 0);
 });

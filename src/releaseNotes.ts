@@ -12,6 +12,10 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.4.3', date: '2026-10-29', title: 'Photo spots, mapper style',
+    notes: ['A photo spot is a camera dot with a wedge, so it never looks like a find.'],
+  },
+  {
     version: '2.4.2', date: '2026-10-29', title: 'New photo spot pictures',
     notes: ['A photo spot is now your photo in a circle, with a beam showing which way you looked.'],
   },

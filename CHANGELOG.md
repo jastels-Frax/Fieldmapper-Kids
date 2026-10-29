@@ -5,6 +5,17 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.4.3 — 2026-10-29
+
+- **Photo spots are Field Mapper's photo-point symbol** (`MapManager.drawPhotoPointIcon`, ported to `MapView.spotIcon`):
+  an orange observer dot with a white edge, under a 70° view wedge at 75% with a white edge, pointing the way the camera
+  looked — one fixed size like Field Mapper's `icon-size` (56 px here for a child's finger; Field Mapper's is about 27),
+  with a small camera in the dot, kept upright while the wedge turns. **No photo on the map**: the round photo badge of
+  2.4.2 read as one more find, and a find is a pin with its picture. The picture is on the spot's page.
+- The zoom scaling of 2.4.1–2.4.2 is gone with it (`spotScale`, `beamOpacity`): a symbol the size of a find pin needs
+  none, as in Field Mapper.
+- While a spot is being saved its preview sits above the explorer's marker, so the wedge can be seen turning.
+
 ## 2.4.2 — 2026-10-29
 
 - **Photo spots redrawn as ONE icon** (`MapView.spotIcon`): a round photo badge centred on the spot (white ring, orange

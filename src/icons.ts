@@ -26,6 +26,11 @@ const PATHS = {
 export type IconId = keyof typeof PATHS;
 export const ICON_IDS = Object.keys(PATHS) as IconId[];
 
+/** One icon's strokes alone, for drawing it inside another SVG (the photo spot symbol). */
+export function iconPaths(id: IconId): string {
+  return PATHS[id];
+}
+
 /** The SVG for one icon, as markup (also read by the test). */
 export function iconSvg(id: IconId): string {
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${PATHS[id]}</svg>`;

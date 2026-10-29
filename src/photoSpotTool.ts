@@ -176,7 +176,7 @@ export function openSpotTool(host: SpotToolHost, onClose: () => void, again?: Ta
           h('span', {}, pl.by === 'map' ? '📍 Where you tapped on the map' : `📍 Where you are standing${pl.accuracy != null ? ` (${accuracyWords(pl.accuracy).text.toLowerCase()})` : ''}`),
           h('button', { class: 'chip', type: 'button', onclick: () => void choosePlace() }, '✏️ Change'));
       }
-      host.map.setSpotDraft(p, d.bearing, d.thumb);
+      host.map.setSpotDraft(p, d.bearing);
     };
 
     const choosePlace = async () => {
@@ -222,7 +222,7 @@ export function openSpotTool(host: SpotToolHost, onClose: () => void, again?: Ta
     hud.replaceChildren(
       h('div', { class: 'draw-head' },
         h('strong', { 'aria-hidden': 'true' }, '📷'),
-        h('span', { class: 'draw-readout' }, h('strong', {}, again ? 'Then and now!' : 'Which way were you looking?'), h('span', {}, again ? 'Check the way, then add it.' : 'The beam on the map points that way.')),
+        h('span', { class: 'draw-readout' }, h('strong', {}, again ? 'Then and now!' : 'Which way were you looking?'), h('span', {}, again ? 'Check the way, then add it.' : 'The wedge on the map points that way.')),
         h('button', { class: 'round-btn small', 'aria-label': 'Close', onclick: async () => {
           if (await askYesNo('Stop without saving this picture?', '🗑️ Yes, stop', '📷 Keep it')) close();
         } }, icon('close'))),
@@ -235,7 +235,7 @@ export function openSpotTool(host: SpotToolHost, onClose: () => void, again?: Ta
         h('button', { class: 'draw-ico', type: 'button', 'aria-label': 'Take the picture again', title: 'Take it again', onclick: () => take() }, '🔄')),
     );
     paint();
-    // The spot in the middle of the map that the card leaves showing, so its beam can be seen turning.
+    // The spot in the middle of the map that the card leaves showing, so its wedge can be seen turning.
     const p = at();
     if (p) requestAnimationFrame(() => host.map.showAbove(p.lat, p.lon, hud.offsetHeight));
     say(d.bearing != null ? `${lookingWords(d.bearing)}. Is that right? Tap an arrow to change it.` : 'Which way were you looking? Tap an arrow.');

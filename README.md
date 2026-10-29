@@ -23,7 +23,7 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
   buttons (off until turned on in My buttons; the kinds you pick, or the kinds you find most): one tap, one photo,
   saved.
 - **Photo spots** (📷, new in 2.4): take a picture of a view; the compass remembers which way you looked, and the
-  map shows the photo with a beam pointing that way (or tap an arrow yourself). Come back another day and 🔁 take it again to see
+  map shows a camera dot with a wedge pointing that way (or tap an arrow yourself). Come back another day and 🔁 take it again to see
   what changed — then and now.
 - **"I found something!"**: add as many photos and drawings as you like, pick what it is (bird, bug, plant,
   tree, flower, animal, mushroom, tracks & scat, rock, water, sky, mystery), and ✨ Save now — or go on: name it
@@ -95,7 +95,7 @@ green and everything else keeps working; places already viewed are cached.
 
 ## Versions
 
-Scout is at **2.4.2**. See [CHANGELOG.md](CHANGELOG.md); the app shows What's new on its opening screen.
+Scout is at **2.4.3**. See [CHANGELOG.md](CHANGELOG.md); the app shows What's new on its opening screen.
 
 ## Development
 

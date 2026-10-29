@@ -5,8 +5,8 @@ import { localDay } from './geo.ts';
 /**
  * Photo spots, the pure half: Field Mapper's photo points (`PhotoPointData` + `buildPhotoFeature`, the view cone of
  * `MapManager.buildPhotoPointCone`) for a child. A spot is where the explorer stood, the picture, and which way the
- * camera looked; on the map it is a round photo badge with a beam pointing that way. Three departures, each for a child:
- * - the direction may be UNKNOWN (no compass, and "not sure" chosen): absent, never 0, which would draw a beam
+ * camera looked; on the map it is Field Mapper's photo-point symbol, a dot with a wedge pointing that way. Three departures, each for a child:
+ * - the direction may be UNKNOWN (no compass, and "not sure" chosen): absent, never 0, which would draw a wedge
  *   pointing north that nobody chose (Field Mapper's bearing is a required number);
  * - a library photo's own location (EXIF) is never read — Scout's rule — so a spot is placed by the GPS or a tap;
  * - a spot can be taken AGAIN on another day, keeping every picture: then and now, what changed with the seasons.
@@ -15,7 +15,7 @@ import { localDay } from './geo.ts';
 /** The eight arrows a child picks the way from, clockwise from north; the map never turns, so up is north. */
 export const ARROWS: { deg: number; word: string }[] = [0, 45, 90, 135, 180, 225, 270, 315].map(deg => ({ deg, word: compassWord(deg) }));
 
-/** The way a spot looks on the map: its newest picture's that has one. Undefined = no beam. */
+/** The way a spot looks on the map: its newest picture's that has one. Undefined = no wedge. */
 export function spotBearing(spot: Pick<PhotoSpot, 'shots'>): number | undefined {
   for (let i = spot.shots.length - 1; i >= 0; i--) {
     const b = spot.shots[i].bearing;
@@ -27,27 +27,6 @@ export function spotBearing(spot: Pick<PhotoSpot, 'shots'>): number | undefined 
 /** The newest picture taken at a spot. */
 export function newestShot(spot: Pick<PhotoSpot, 'shots'>): SpotShot | undefined {
   return spot.shots[spot.shots.length - 1];
-}
-
-/**
- * A photo spot on the map is ONE icon — a round photo badge with a beam fanning out the way the camera looked — and it
- * scales as ONE piece. (It was a pin and a wedge, two markers scaled two different ways, and read as two unrelated
- * things.) Full size from `SPOT_FULL_ZOOM` in; easing down to 0.65 at zoom 14 and out, so a park full of spots is a
- * scatter of small badges rather than a heap. Never smaller: the badge has to stay a picture a child can tap.
- *
- * Field Mapper draws its cone in metres beside a fixed-size icon; that is exactly the two-ways scaling that looked
- * awkward here, so Scout keeps the beam in proportion to its badge instead.
- */
-export const SPOT_FULL_ZOOM = 18;
-
-export function spotScale(zoom: number): number {
-  const t = Math.max(0, Math.min(1, (zoom - 14) / 4));
-  return Math.round((0.65 + 0.35 * t) * 100) / 100;
-}
-
-/** The beam fades out between zoom 16 and 15: zoomed out to the whole park, a spot is its badge alone. */
-export function beamOpacity(zoom: number): number {
-  return Math.round(Math.max(0, Math.min(1, zoom - 15)) * 100) / 100;
 }
 
 /** A compass reading as stored: whole degrees, 0–359 (Field Mapper rounds the same way). */
@@ -93,8 +72,8 @@ export function spotTitle(spot: Pick<PhotoSpot, 'name'>): string {
 
 /**
  * The view wedge as a polygon on the ground: apex at the spot, `angleDeg` wide, `lengthM` long — Field Mapper's
- * `buildPhotoPointCone` (two great-circle hops from the apex). Scout draws its beam in proportion to its badge instead
- * (`spotScale`), so this is what the
+ * `buildPhotoPointCone` (two great-circle hops from the apex). Scout's map draws Field Mapper's fixed-size photo-point
+ * symbol instead, so this is what the
  * export writes, for a grown-up's GIS. [lon, lat] pairs, closed.
  */
 export function viewWedge(lon: number, lat: number, bearing: number, angleDeg = 50, lengthM = 15): [number, number][] {

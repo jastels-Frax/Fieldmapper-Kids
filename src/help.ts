@@ -19,7 +19,7 @@ const PARTS: { emoji: string; title: string; lines: string[] }[] = [
   ] },
   { emoji: '📷', title: 'Photo spots', lines: [
     'Tap 📷 Photo on the map. Stand still, point your tablet at a view, and tap Take the picture.',
-    'Scout reads the compass as you tap, so your map shows a photo with a beam pointing the way you looked. Not right? Tap an arrow, or ? if you are not sure.',
+    'Scout reads the compass as you tap, so your map shows a camera dot with a wedge pointing the way you looked. Not right? Tap an arrow, or ? if you are not sure.',
     'Tap a photo spot on the map to see it. Come back another day, in another season, and tap 🔁 Take it again: then and now!',
     'Watch where you step while you aim, and stay where your grown-up can see you.',
   ] },
