@@ -12,6 +12,13 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.8.0', date: '2026-10-29', title: 'Who found what',
+    notes: [
+      "With Everyone's finds on, every pin shows who found it.",
+      'My Finds can show Everyone, or one explorer at a time. Each sticker says who found it.',
+    ],
+  },
+  {
     version: '2.7.0', date: '2026-10-29', title: 'Name anything',
     notes: [
       "Search every species from any kind. Picked one of another kind? Scout asks if you want to change it.",

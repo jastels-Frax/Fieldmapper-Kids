@@ -2,6 +2,7 @@ import { activeGuide } from './guides.ts';
 import type { Find, FindMedia, GroupId, Profile, Settings } from './types.ts';
 import { COLOURS, COUNTS, GROUPS, SIGNS, SIZES, categoryOf, findName, groupOf, oneOf } from './categories.ts';
 import { kindIcon } from './kindIcon.ts';
+import { bookFinds, observerOf } from './findModel.ts';
 import { askYesNo, blobUrl, h, openSheet, whenWords } from './ui.ts';
 import { say } from './speech.ts';
 import { sounds } from './sound.ts';
@@ -38,6 +39,26 @@ export interface ScreenHost {
   openSpots: () => void;
   /** Opens the end-of-adventure tick check. */
   tickCheck: () => void;
+  /** The explorers on this device and their map pictures, the active one first (the book's "Whose finds?"). */
+  explorers: () => { id: string; name: string; face: OwnerFace }[];
+  /** Every explorer's finds on this device (`finds` is the active explorer's). */
+  everyFind: () => Find[];
+  /** The map shows everyone's finds (the Map card), so the book opens on everyone's too. */
+  everyoneOnMap: () => boolean;
+}
+
+/** An explorer's picture as it stands for them on the map: their photo, a storybook portrait (url) or an emoji. */
+export type OwnerFace = { emoji: string; photo?: Blob; art?: string };
+
+/** A small round picture of an explorer, the same one their pins wear on the map. */
+function ownerPic(face: OwnerFace, cls: string): HTMLElement {
+  const pic = h('span', { class: cls, 'aria-hidden': 'true' });
+  if (face.photo || face.art) {
+    const img = h('img', { alt: '' });
+    img.src = face.art ?? blobUrl(face.photo!, img);
+    pic.append(img);
+  } else pic.textContent = face.emoji;
+  return pic;
 }
 
 export interface HuntNews {
@@ -122,49 +143,80 @@ export function celebrate(host: ScreenHost, f: Find, newBadges: BadgeProgress[],
   if (newBadges.length || hunt?.completed) setTimeout(() => sounds.badge(), 700);
 }
 
-/** The sticker book: every find as a sticker, filtered by group (Plant, Animal…) or "not sure". */
+/**
+ * The sticker book: every find as a sticker, filtered by group (Plant, Animal…) or "not sure" and, with more than one
+ * explorer on the device, by who found it ("Whose finds?": everyone, or one explorer). It opens on the explorer's own,
+ * or on everyone's while the map shows everyone's. Another explorer's find opens to look at, as from the map.
+ */
 export function openBook(host: ScreenHost): void {
   const { body, close } = openSheet({ title: 'My Finds', emoji: '📖', className: 'book' });
   void close;
   type Filter = GroupId | 'other' | 'mystery' | 'all' | 'fav';
   let filter: Filter = 'all';
+  const me = host.profile.id;
+  const people = host.explorers();
+  const several = people.length > 1;
+  /** Whose finds: an explorer's id, or 'all'. */
+  let who: string = several && host.everyoneOnMap() ? 'all' : me;
+  const whose = () => (several ? bookFinds(host.everyFind(), me, who) : host.finds());
+  const person = (id: string) => people.find(p => p.id === id);
+  const whoChips = h('div', { class: 'chips who-chips', role: 'group', 'aria-label': 'Whose finds?' });
   const chips = h('div', { class: 'chips' });
   const grid = h('div', { class: 'sticker-grid' });
   /** A find's shelf in the book: its group, else "Other" or "Not sure" (a mystery). */
   const shelfOf = (f: Find): Filter => groupOf(f.category)?.id ?? (f.category === 'other' ? 'other' : 'mystery');
 
   const paint = () => {
+    if (several) {
+      const pick = (id: string, words: string) => { who = id; filter = 'all'; sounds.tap(); say(words); paint(); };
+      whoChips.replaceChildren(
+        h('button', { class: `chip ${who === 'all' ? 'on' : ''}`, 'aria-pressed': String(who === 'all'), onclick: () => pick('all', "Everyone's finds") },
+          `👫 Everyone ${host.everyFind().length}`),
+        ...people.map(p => {
+          const n = bookFinds(host.everyFind(), me, p.id).length;
+          return h('button', { class: `chip who-chip ${who === p.id ? 'on' : ''}`, 'aria-pressed': String(who === p.id), 'aria-label': `${p.name}: ${n}`, onclick: () => pick(p.id, `${p.name}'s finds`) },
+            ownerPic(p.face, 'owner-pic'), ` ${p.name} ${n}`);
+        }),
+      );
+    }
+    const pool = whose();
     const counts = new Map<Filter, number>();
-    for (const f of host.finds()) counts.set(shelfOf(f), (counts.get(shelfOf(f)) ?? 0) + 1);
+    for (const f of pool) counts.set(shelfOf(f), (counts.get(shelfOf(f)) ?? 0) + 1);
     const mystery = categoryOf('mystery');
     const other = categoryOf('other');
     const shelves = [...GROUPS.map(g => ({ id: g.id as Filter, emoji: g.emoji, art: g.art, label: g.label, colour: g.colour })),
       { id: 'other' as Filter, emoji: other.emoji, label: other.label, colour: other.colour },
       { id: 'mystery' as Filter, emoji: mystery.emoji, label: 'Not sure', colour: mystery.colour }];
     chips.replaceChildren(
-      h('button', { class: `chip ${filter === 'all' ? 'on' : ''}`, onclick: () => { filter = 'all'; paint(); } }, `🌍 All ${host.finds().length}`),
+      h('button', { class: `chip ${filter === 'all' ? 'on' : ''}`, onclick: () => { filter = 'all'; paint(); } }, `🌍 All ${pool.length}`),
       h('button', { class: `chip ${filter === 'fav' ? 'on' : ''}`, 'aria-label': 'Favourites', onclick: () => { filter = 'fav'; paint(); } }, '❤️'),
       ...shelves.filter(g => counts.has(g.id)).map(g =>
         h('button', { class: `chip ${filter === g.id ? 'on' : ''}`, style: `--cat:${g.colour}`, 'aria-label': `${g.label}: ${counts.get(g.id)}`, onclick: () => { filter = g.id; say(g.label); paint(); } },
           kindIcon(g, 'chip-ic'), ` ${counts.get(g.id)}`)),
     );
-    const list = host.finds().filter(f => filter === 'all' || (filter === 'fav' ? f.favourite : shelfOf(f) === filter));
+    const list = pool.filter(f => filter === 'all' || (filter === 'fav' ? f.favourite : shelfOf(f) === filter));
     grid.replaceChildren();
     if (!list.length) {
       grid.append(h('div', { class: 'empty' },
-        host.finds().length
+        host.finds().length || who !== me
           ? h('p', {}, 'Nothing here yet.')
           : crewSays('squirrel', { text: 'I am Acorn! Your sticker book is empty. Go find something and I will keep it safe!', pose: 'confused' }),
-        !host.finds().length && h('button', { class: 'big-btn', onclick: () => { close(); host.startCapture(); } }, '✨ I found something!'),
+        !host.finds().length && who === me && h('button', { class: 'big-btn', onclick: () => { close(); host.startCapture(); } }, '✨ I found something!'),
       ));
       return;
     }
     for (const f of list) {
       const cat = categoryOf(f.category);
-      const card = h('button', { class: 'sticker', style: `--cat:${cat.colour}`, onclick: () => openFind(host, f.id, paint) });
+      const by = person(observerOf(f, me));
+      const mine = observerOf(f, me) === me;
+      // Another explorer's find opens to look at, never to change: it is theirs.
+      const open = () => (mine || !by ? openFind(host, f.id, paint) : openFind({ ...host, finds: () => [f] }, f.id, undefined, { name: by.name, face: by.face }));
+      const card = h('button', { class: 'sticker', style: `--cat:${cat.colour}`, onclick: open });
       grid.append(card);
       card.append(pictureOf(f, card, 'sticker-pic'), kindIcon(cat, 'sticker-emoji'),
         h('span', { class: 'sticker-name' }, findName(f)));
+      // Who found it, whenever the book is showing more than one explorer's finds (or someone else's).
+      if (by && (who === 'all' || !mine)) card.append(h('span', { class: 'sticker-who' }, ownerPic(by.face, 'owner-pic'), ` ${by.name}`));
       if (f.favourite) card.append(h('span', { class: 'sticker-fav' }, '❤️'));
     }
   };
@@ -172,7 +224,7 @@ export function openBook(host: ScreenHost): void {
     const n = host.finds().length;
     body.append(crewSays('squirrel', { text: `Acorn here! You have ${n} ${n === 1 ? 'sticker' : 'stickers'}. Tap one to look closer.`, pose: 'excited' }));
   }
-  body.append(chips, grid, h('div', { class: 'ask-row book-more' },
+  body.append(...(several ? [whoChips] : []), chips, grid, h('div', { class: 'ask-row book-more' },
     h('button', { class: 'big-btn soft', onclick: () => host.openWalks() }, '👣 My paths'),
     h('button', { class: 'big-btn soft', onclick: () => host.openSpots() }, '📷 Photo spots')));
   paint();
@@ -189,7 +241,7 @@ export const FINDS_CHANGED = 'scout-finds-changed';
  * (the Map card's "Everyone's finds") to LOOK at: it says whose it is, and offers nothing that changes it — no
  * favourite, no Change it, no throwing away. It is theirs.
  */
-export function openFind(host: ScreenHost, id: string, onChange?: () => void, owner?: { name: string; face: { emoji: string; photo?: Blob; art?: string } }): void {
+export function openFind(host: ScreenHost, id: string, onChange?: () => void, owner?: { name: string; face: OwnerFace }): void {
   const f = host.finds().find(x => x.id === id);
   if (!f) return;
   const together = host.profile.mode === 'together';
@@ -223,16 +275,8 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void, ow
     body.append(pic);
   }
   const facts: HTMLElement[] = [h('li', {}, `🕒 ${whenWords(f.createdAt)}`)];
-  if (owner) {
-    // The same picture their pin wears on the map, so the two are plainly the same explorer.
-    const pic = h('span', { class: 'owner-pic', 'aria-hidden': 'true' });
-    if (owner.face.photo || owner.face.art) {
-      const img = h('img', { alt: '' });
-      img.src = owner.face.art ?? blobUrl(owner.face.photo!, img);
-      pic.append(img);
-    } else pic.textContent = owner.face.emoji;
-    facts.unshift(h('li', {}, pic, ` Found by ${owner.name}`));
-  }
+  // The same picture their pin wears on the map, so the two are plainly the same explorer.
+  if (owner) facts.unshift(h('li', {}, ownerPic(owner.face, 'owner-pic'), ` Found by ${owner.name}`));
   if (f.species) facts.push(h('li', {}, `${f.species.own ? '✏️' : '📚'} ${f.species.name}`, f.species.scientific ? h('span', { class: 'latin' }, ` ${f.species.scientific}`) : null));
   const art = f.species ? artFor(f.species.name) : undefined;
   const sign = SIGNS.find(x => x.id === f.sign);

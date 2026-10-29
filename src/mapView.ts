@@ -407,10 +407,10 @@ export class MapView {
   }
 
   /**
-   * Every find with a place, as a pin. `ownerOf` names the explorer a find belongs to when it is not the one exploring
-   * (the Map card's "Everyone's finds"): their pin wears that explorer's picture and sits under the explorer's own.
+   * Every find with a place, as a pin. `ownerOf` names who found a find (the Map card's "Everyone's finds"): the pin
+   * wears that explorer's picture, and another explorer's (`mine` false) sits under the explorer's own.
    */
-  setFinds(finds: Find[], ownerOf?: (f: Find) => { name: string; face: Face } | undefined): void {
+  setFinds(finds: Find[], ownerOf?: (f: Find) => { name: string; face: Face; mine?: boolean } | undefined): void {
     const seen = new Set<string>();
     for (const f of finds) {
       if (typeof f.lat !== 'number' || typeof f.lon !== 'number') continue;
@@ -441,7 +441,7 @@ export class MapView {
       setKindIcon(badge, cat);
       (f.thumb ? el : face).append(badge);
       if (owner) {
-        el.classList.add('others');
+        if (!owner.mine) el.classList.add('others');
         const who = document.createElement('span');
         who.className = 'find-owner';
         if (owner.face.photo || owner.face.art) {

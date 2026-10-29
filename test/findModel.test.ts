@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mapFinds, normalizeFind, photoCount, drawingCount } from '../src/findModel.ts';
+import { bookFinds, mapFinds, normalizeFind, observerOf, photoCount, drawingCount } from '../src/findModel.ts';
 import type { Find } from '../src/types.ts';
 
 test('a find with no lists gets empty ones', () => {
@@ -25,4 +25,14 @@ test('the map shows my finds, and everyone\'s on this device only when asked', (
   const every = mapFinds(all, 'me', true);
   assert.deepEqual(every.mine.map(f => f.id), ['a', 'c']);
   assert.deepEqual(every.others.map(f => f.id), ['b', 'd']);
+});
+
+test('the book shows one observer\'s finds, or everyone\'s', () => {
+  const all = [{ id: 'a', profileId: 'me' }, { id: 'b', profileId: 'sis' }, { id: 'c' }, { id: 'd', profileId: 'bro' }];
+  assert.equal(observerOf({}, 'me'), 'me', 'a find from before profiles is whoever is exploring');
+  assert.equal(observerOf({ profileId: 'sis' }, 'me'), 'sis');
+  assert.deepEqual(bookFinds(all, 'me', 'me').map(f => f.id), ['a', 'c']);
+  assert.deepEqual(bookFinds(all, 'me', 'sis').map(f => f.id), ['b']);
+  assert.deepEqual(bookFinds(all, 'me', 'all').map(f => f.id), ['a', 'b', 'c', 'd']);
+  assert.deepEqual(bookFinds(all, 'me', 'nobody'), []);
 });

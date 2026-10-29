@@ -21,6 +21,16 @@ export const drawingCount = (f: Pick<Find, 'pictures'>) => f.pictures.filter(p =
  * explorer's on this device. Nothing here leaves the device: these are profiles sharing one tablet.
  */
 export function mapFinds<F extends Pick<Find, 'profileId'>>(all: F[], me: string, everyone: boolean): { mine: F[]; others: F[] } {
-  const isMine = (f: F) => !f.profileId || f.profileId === me;
+  const isMine = (f: F) => observerOf(f, me) === me;
   return { mine: all.filter(isMine), others: everyone ? all.filter(f => !isMine(f)) : [] };
+}
+
+/** Who found a find: its explorer, or — saved before explorers had profiles — whoever is exploring (`me`). */
+export function observerOf(f: Pick<Find, 'profileId'>, me: string): string {
+  return f.profileId || me;
+}
+
+/** The finds the sticker book shows for "Whose finds?": one explorer's (by id), or everyone's on this device ('all'). */
+export function bookFinds<F extends Pick<Find, 'profileId'>>(all: F[], me: string, who: string): F[] {
+  return who === 'all' ? all : all.filter(f => observerOf(f, me) === who);
 }

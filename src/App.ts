@@ -53,7 +53,7 @@ import { closeShapeCard, openShapeCard } from './shapeCard.ts';
 import { SHAPE_TAP_PX, metresPerPixel, pickShape } from './mapShapes.ts';
 import { TOOLS, railFor, type ToolId } from './railTools.ts';
 import { categoryOf } from './categories.ts';
-import { mapFinds } from './findModel.ts';
+import { mapFinds, observerOf } from './findModel.ts';
 import { kindIcon } from './kindIcon.ts';
 import { downscale } from './image.ts';
 import { meetsRule } from './hunts.ts';
@@ -826,11 +826,16 @@ export class App {
     return this.profiles.length > 1 && !!this.profile.mapEveryone;
   }
 
-  /** The finds on the map: the explorer's own and, with "Everyone's finds" on, every other explorer's (findModel.mapFinds). */
+  /**
+   * The finds on the map: the explorer's own and, with "Everyone's finds" on, every other explorer's
+   * (findModel.mapFinds). While everyone's are shown, EVERY pin wears its finder's picture — the explorer's own too —
+   * so who found what can be read off the map; the explorer's own sit on top.
+   */
   private paintFinds(): void {
-    const { mine, others } = mapFinds(this.everyFind, this.profile.id, this.everyoneOnMap());
-    const owners = new Map(this.profiles.map(p => [p.id, { name: p.name || 'Explorer', face: this.faceOf(p) }] as const));
-    this.map.setFinds([...others, ...mine], f => (f.profileId && f.profileId !== this.profile.id ? owners.get(f.profileId) : undefined));
+    const everyone = this.everyoneOnMap();
+    const { mine, others } = mapFinds(this.everyFind, this.profile.id, everyone);
+    const owners = new Map(this.profiles.map(p => [p.id, { name: p.name || 'Explorer', face: this.faceOf(p), mine: p.id === this.profile.id }] as const));
+    this.map.setFinds([...others, ...mine], f => (everyone ? owners.get(observerOf(f, this.profile.id)) : undefined));
   }
 
   /** A pin tapped: the explorer's own find opens as ever; another explorer's opens to look at (openFind's `owner`). */
@@ -1118,6 +1123,11 @@ export class App {
       settings: this.settings,
       profile: this.profile,
       finds: () => this.finds,
+      everyFind: () => this.everyFind,
+      // The explorer exploring now first, then the others in the order they were added.
+      explorers: () => [this.profile, ...this.profiles.filter(p => p.id !== this.profile.id)]
+        .map(p => ({ id: p.id, name: p.name || 'Explorer', face: this.faceOf(p) })),
+      everyoneOnMap: () => this.everyoneOnMap(),
       showOnMap: f => typeof f.lat === 'number' && this.map.flyTo(f.lat, f.lon!),
       remove: async f => {
         await deleteFind(f.id);

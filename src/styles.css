@@ -398,6 +398,11 @@ textarea.text-in { resize: vertical; }
 .emoji-pic { display: grid; place-items: center; font-size: 56px; background: color-mix(in srgb, var(--cat) 25%, var(--card)); }
 .sticker-emoji { position: absolute; top: 4px; left: 6px; font-size: 26px; }
 .sticker-fav { position: absolute; top: 4px; right: 6px; font-size: 22px; }
+/* Who found it, on a sticker when the book shows more than one explorer's finds (the "Whose finds?" chips). */
+.sticker-who { display: flex; align-items: center; gap: 4px; max-width: 100%; font-size: 13px; font-weight: 800; color: var(--soft-ink); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* Every explorer's button in sight (they wrap rather than scroll): a child should not have to find themselves. */
+.chips.who-chips { flex-wrap: wrap; overflow-x: visible; }
+.who-chip { display: inline-flex; align-items: center; gap: 4px; }
 /* A species name can be long ("Eastern Red-backed Salamander"): up to three lines, then … */
 .sticker-name {
   font-weight: 900; font-size: 15px; line-height: 1.2; max-width: 100%; text-align: center; overflow: hidden; overflow-wrap: break-word;

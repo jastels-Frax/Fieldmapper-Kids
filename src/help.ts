@@ -39,7 +39,8 @@ const PARTS: { emoji: string; title: string; lines: string[] }[] = [
     '📖 My Finds is your sticker book. Tap a find to see it, listen to it, or change it.',
     '🏅 Badges are earned by finding things. ⭐ at the top shows today\'s challenges.',
     '🔎 Hunts are scavenger hunts: find everything on the list to win a trophy.',
-    "More than one explorer on this tablet? 🗺️ Map ▸ Everyone's finds puts their finds on your map too. Tap one to look at it; only its finder can change it.",
+    "More than one explorer on this tablet? 🗺️ Map ▸ Everyone's finds puts their finds on your map too, each pin with its finder's picture. Tap one to look at it; only its finder can change it.",
+    'In My Finds, tap 👫 Everyone or an explorer to see whose finds you want.',
   ] },
   { emoji: '🐻', title: 'Staying safe', lines: [
     'Stay where your grown-up can see you, and stay with a grown-up near water.',

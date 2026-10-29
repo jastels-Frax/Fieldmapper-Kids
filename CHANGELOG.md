@@ -5,6 +5,19 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.8.0 — 2026-10-29
+
+- **Who found what, on the map**: while Everyone's finds is on, EVERY pin wears its finder's map picture, the
+  explorer's own too (they were bare, so only the others' were marked); each pin's label says who found it. The
+  explorer's own still sit on top.
+- **"Whose finds?" in My Finds** (`openBook`), with more than one explorer on the device: 👫 Everyone, then each
+  explorer (their picture, name and count), the one exploring first. It opens on the explorer's own finds, or on
+  everyone's while the map shows everyone's. The kind chips and favourites filter within it. A sticker shows who found
+  it whenever the book shows more than one explorer's finds (or someone else's), and another explorer's opens to look
+  at, as from the map: no favourite, change or delete. Badges, hunts and Acorn's sticker count stay the explorer's own.
+- `findModel.observerOf` (a find from before profiles counts as whoever is exploring) and `bookFinds` (tested) decide
+  whose a find is, for the map and the book alike.
+
 ## 2.7.0 — 2026-10-29
 
 - **Any species from any kind** (`species.searchSpecies`): the search reaches the whole list, not only the taxa of the
