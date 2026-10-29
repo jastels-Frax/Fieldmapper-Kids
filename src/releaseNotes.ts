@@ -12,6 +12,10 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.9.0', date: '2026-10-29', title: 'Tidier pins',
+    notes: ["Choose what pins show in 🗺️ Map ▸ On each pin: the picture, the kind, who found it, or any mix."],
+  },
+  {
     version: '2.8.0', date: '2026-10-29', title: 'Who found what',
     notes: [
       "With Everyone's finds on, every pin shows who found it.",

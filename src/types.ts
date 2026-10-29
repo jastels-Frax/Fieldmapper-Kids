@@ -233,6 +233,8 @@ export interface Settings {
   follow: boolean;
   /** The size of pins and photo spots on the map (the Map card); absent = medium. */
   pinSize?: PinSize;
+  /** What each find's pin shows (the Map card's "On each pin", pinFace.ts); a part absent = shown. */
+  pinShow?: { picture?: boolean; kind?: boolean; finder?: boolean };
   /**
    * 'characters': every guide and crew member speaks in a voice of their own (the default).
    * 'one': everyone speaks in one voice, `voiceURI` or the best installed.

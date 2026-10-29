@@ -315,6 +315,8 @@ export async function loadSettings(): Promise<Settings> {
     follow: s?.follow ?? DEFAULT_SETTINGS.follow,
     // Absent (or a size this build does not know) = medium.
     ...(s?.pinSize === 'small' || s?.pinSize === 'large' ? { pinSize: s.pinSize } : {}),
+    // Only the parts switched OFF are kept: a part absent is shown (pinFace.pinParts).
+    ...(s?.pinShow && typeof s.pinShow === 'object' ? { pinShow: Object.fromEntries((['picture', 'kind', 'finder'] as const).filter(k => s.pinShow![k] === false).map(k => [k, false])) } : {}),
     // Absence: a device whose grown-up already picked a voice meant one voice; everyone else gets the characters.
     voiceMode: s?.voiceMode === 'one' || s?.voiceMode === 'characters' ? s.voiceMode : (s?.voiceURI ? 'one' : 'characters'),
     ...(s?.voiceURI ? { voiceURI: s.voiceURI } : {}),

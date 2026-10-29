@@ -5,6 +5,16 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.9.0 — 2026-10-29
+
+- **"On each pin"** (🗺️ Map card; `Settings.pinShow`, device-wide, a part absent = shown, `pinFace.pinParts`): three
+  switches — 🖼️ Picture (the first photo or drawing), 🌿 Kind, 👫 Who found it (with more than one explorer; it shows
+  while Everyone's finds is on). Each part switched on appears ONCE (`pinFace.pinLayout`, tested): the pin holds the
+  first of picture › kind › finder that it has, and the rest stand as small badges. Nothing switched on leaves a plain
+  pin in its kind's colour.
+- **The badges stand in one column down the pin's right side.** In 2.8 a pin with a photo carried its kind in the top
+  right and its finder in the top left, which read as a pair of ears. A finder no longer takes a corner of its own.
+
 ## 2.8.0 — 2026-10-29
 
 - **Who found what, on the map**: while Everyone's finds is on, EVERY pin wears its finder's map picture, the

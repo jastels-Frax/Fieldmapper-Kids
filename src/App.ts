@@ -54,6 +54,7 @@ import { SHAPE_TAP_PX, metresPerPixel, pickShape } from './mapShapes.ts';
 import { TOOLS, railFor, type ToolId } from './railTools.ts';
 import { categoryOf } from './categories.ts';
 import { mapFinds, observerOf } from './findModel.ts';
+import { pinParts, type PinParts } from './pinFace.ts';
 import { kindIcon } from './kindIcon.ts';
 import { downscale } from './image.ts';
 import { meetsRule } from './hunts.ts';
@@ -335,7 +336,16 @@ export class App {
         this.applyPinSize();
         await saveSettings(this.settings);
       },
-    });
+    }, [
+      // What each pin shows (pinFace.ts): any of the three, each once.
+      { emoji: '🖼️', label: 'Picture', text: () => 'The photo or drawing', on: () => pinParts(this.settings.pinShow).picture, toggle: () => this.togglePinPart('picture') },
+      { emoji: '🌿', label: 'Kind', text: () => 'What it is: plant, bird…', on: () => pinParts(this.settings.pinShow).kind, toggle: () => this.togglePinPart('kind') },
+      ...(this.profiles.length > 1 ? [{
+        emoji: '👫', label: 'Who found it',
+        text: () => (this.everyoneOnMap() ? 'Their picture' : "When Everyone's finds is on"),
+        on: () => pinParts(this.settings.pinShow).finder, toggle: () => this.togglePinPart('finder'),
+      }] : []),
+    ]);
   }
 
   private async setFollow(on: boolean): Promise<void> {
@@ -835,7 +845,7 @@ export class App {
     const everyone = this.everyoneOnMap();
     const { mine, others } = mapFinds(this.everyFind, this.profile.id, everyone);
     const owners = new Map(this.profiles.map(p => [p.id, { name: p.name || 'Explorer', face: this.faceOf(p), mine: p.id === this.profile.id }] as const));
-    this.map.setFinds([...others, ...mine], f => (everyone ? owners.get(observerOf(f, this.profile.id)) : undefined));
+    this.map.setFinds([...others, ...mine], f => (everyone ? owners.get(observerOf(f, this.profile.id)) : undefined), pinParts(this.settings.pinShow));
   }
 
   /** A pin tapped: the explorer's own find opens as ever; another explorer's opens to look at (openFind's `owner`). */
@@ -845,6 +855,16 @@ export class App {
     const who = f && this.profiles.find(p => p.id === f.profileId);
     if (!f || !who) return;
     openFind({ ...this.screenHost(), finds: () => [f] }, id, undefined, { name: who.name || 'Explorer', face: this.faceOf(who) });
+  }
+
+  /** Shows or hides one part of every pin (the Map card's "On each pin"), device-wide like the pin size. */
+  private async togglePinPart(part: keyof PinParts): Promise<void> {
+    const now = pinParts(this.settings.pinShow);
+    this.settings = { ...this.settings, pinShow: { ...now, [part]: !now[part] } };
+    await saveSettings(this.settings);
+    sounds.pick();
+    this.map.clearFinds();
+    this.paintFinds();
   }
 
   /** Switches "Everyone's finds" for the explorer exploring now. */

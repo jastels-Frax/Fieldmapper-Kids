@@ -10,6 +10,7 @@ import { newestShot, spotBearing, spotTitle } from './photoSpots.ts';
 import { iconPaths } from './icons.ts';
 import { categoryOf, findName } from './categories.ts';
 import { setKindIcon } from './kindIcon.ts';
+import { pinLayout, pinParts, type PinItem, type PinParts } from './pinFace.ts';
 import type { Fix } from './gps.ts';
 import { blobUrl } from './ui.ts';
 
@@ -407,10 +408,12 @@ export class MapView {
   }
 
   /**
-   * Every find with a place, as a pin. `ownerOf` names who found a find (the Map card's "Everyone's finds"): the pin
-   * wears that explorer's picture, and another explorer's (`mine` false) sits under the explorer's own.
+   * Every find with a place, as a pin. `ownerOf` names who found a find (the Map card's "Everyone's finds"), and
+   * another explorer's (`mine` false) sits under the explorer's own. `parts` is what each pin shows (the Map card's
+   * "On each pin", pinFace.pinLayout): the pin holds the first of its picture, its kind and its finder that is
+   * switched on and that it has; the rest stand as small badges down its right side.
    */
-  setFinds(finds: Find[], ownerOf?: (f: Find) => { name: string; face: Face; mine?: boolean } | undefined): void {
+  setFinds(finds: Find[], ownerOf?: (f: Find) => { name: string; face: Face; mine?: boolean } | undefined, parts: PinParts = pinParts(undefined)): void {
     const seen = new Set<string>();
     for (const f of finds) {
       if (typeof f.lat !== 'number' || typeof f.lon !== 'number') continue;
@@ -422,36 +425,42 @@ export class MapView {
       el.className = 'find-marker';
       el.style.setProperty('--cat', cat.colour);
       const owner = ownerOf?.(f);
+      if (owner && !owner.mine) el.classList.add('others');
       el.setAttribute('aria-label', owner ? `${findName(f)}, found by ${owner.name}` : findName(f));
       const pin = document.createElement('span');
       pin.className = 'find-pin';
       const face = document.createElement('span');
       face.className = 'find-pin-face';
       pin.append(face);
-      if (f.thumb) {
-        const img = document.createElement('img');
-        img.alt = '';
-        face.append(img);
-        el.classList.add('has-photo');
-        // The marker is attached below in this same task, so its URL survives.
-        queueMicrotask(() => { img.src = blobUrl(f.thumb!, el); });
-      }
-      const badge = document.createElement('span');
-      badge.className = 'find-marker-emoji';
-      setKindIcon(badge, cat);
-      (f.thumb ? el : face).append(badge);
-      if (owner) {
-        if (!owner.mine) el.classList.add('others');
-        const who = document.createElement('span');
-        who.className = 'find-owner';
-        if (owner.face.photo || owner.face.art) {
+      /** Puts one part of the find into a slot: the pin's face, or a badge. */
+      const fill = (slot: HTMLElement, item: PinItem) => {
+        if (item === 'kind') return setKindIcon(slot, cat);
+        const blob = item === 'picture' ? f.thumb : owner?.face.photo;
+        const url = item === 'finder' ? owner?.face.art : undefined;
+        if (blob || url) {
           const img = document.createElement('img');
           img.alt = '';
-          who.append(img);
-          if (owner.face.art) img.src = owner.face.art;
-          else queueMicrotask(() => { img.src = blobUrl(owner.face.photo!, el); });
-        } else who.textContent = owner.face.emoji;
-        el.append(who);
+          slot.append(img);
+          if (url) img.src = url;
+          // The marker is attached below in this same task, so its URL survives.
+          else queueMicrotask(() => { img.src = blobUrl(blob!, el); });
+        } else slot.textContent = owner?.face.emoji ?? '';
+      };
+      const { face: faceItem, badges } = pinLayout(parts, { picture: !!f.thumb, finder: !!owner });
+      if (faceItem) {
+        face.classList.add(`shows-${faceItem}`);
+        fill(face, faceItem);
+      }
+      if (badges.length) {
+        const column = document.createElement('span');
+        column.className = 'find-badges';
+        for (const item of badges) {
+          const b = document.createElement('span');
+          b.className = `find-badge badge-${item}`;
+          fill(b, item);
+          column.append(b);
+        }
+        el.append(column);
       }
       el.prepend(pin);
       el.addEventListener('click', e => {

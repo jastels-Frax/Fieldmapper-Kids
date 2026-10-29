@@ -41,6 +41,7 @@ const PARTS: { emoji: string; title: string; lines: string[] }[] = [
     '🔎 Hunts are scavenger hunts: find everything on the list to win a trophy.',
     "More than one explorer on this tablet? 🗺️ Map ▸ Everyone's finds puts their finds on your map too, each pin with its finder's picture. Tap one to look at it; only its finder can change it.",
     'In My Finds, tap 👫 Everyone or an explorer to see whose finds you want.',
+    "Pins too busy? 🗺️ Map ▸ On each pin chooses what they show: the picture, the kind, who found it, or any mix.",
   ] },
   { emoji: '🐻', title: 'Staying safe', lines: [
     'Stay where your grown-up can see you, and stay with a grown-up near water.',

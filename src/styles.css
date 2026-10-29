@@ -216,18 +216,24 @@ html[data-pin-size="large"] { --pin: 62px; --spot: 74px; }
 }
 .find-pin-face { position: absolute; inset: 0; display: grid; place-items: center; transform: rotate(45deg); }
 .find-pin-face img { width: 100%; height: 100%; object-fit: cover; }
-.find-marker-emoji { font-size: calc(var(--pin) * 0.48); }
-/* Another explorer's find (the Map card's "Everyone's finds"): their picture on the pin's top-left, and under the
-   explorer's own pins. */
-.find-marker.others { z-index: 0; }
-.find-owner {
-  position: absolute; left: calc(var(--pin) * -0.22); top: calc(var(--pin) * -0.22); width: calc(var(--pin) * 0.56); height: calc(var(--pin) * 0.56); border-radius: 50%; overflow: hidden;
-  display: grid; place-items: center; font-size: calc(var(--pin) * 0.35); background: var(--card); border: max(1px, calc(var(--bw) - 1px)) solid var(--line);
+/* What a pin shows (the Map card's "On each pin", pinFace.pinLayout): its face holds one part — the picture, the
+   kind or the finder — and the rest stand as badges in ONE column down its right side (a badge in each top corner
+   read as a pair of ears). */
+.find-pin-face.shows-kind, .find-pin-face.shows-finder { font-size: calc(var(--pin) * 0.48); }
+.find-badges {
+  position: absolute; right: calc(var(--pin) * -0.22); top: calc(var(--pin) * -0.22);
+  display: flex; flex-direction: column; gap: 2px; pointer-events: none;
 }
-.find-owner img { width: 100%; height: 100%; object-fit: cover; }
+.find-badge {
+  width: calc(var(--pin) * 0.52); height: calc(var(--pin) * 0.52); border-radius: 50%; overflow: hidden;
+  display: grid; place-items: center; font-size: calc(var(--pin) * 0.33); line-height: 1;
+  background: var(--card); border: max(1px, calc(var(--bw) - 1px)) solid var(--line);
+}
+.find-badge img { width: 100%; height: 100%; object-fit: cover; }
+/* Another explorer's find (the Map card's "Everyone's finds") sits under the explorer's own pins. */
+.find-marker.others { z-index: 0; }
 .owner-pic { display: inline-grid; place-items: center; width: 1.5em; height: 1.5em; border-radius: 50%; overflow: hidden; vertical-align: middle; background: var(--card); border: max(1px, calc(var(--bw) - 1px)) solid var(--line); font-size: 0.9em; }
 .owner-pic img { width: 100%; height: 100%; object-fit: cover; }
-.find-marker.has-photo > .find-marker-emoji { position: absolute; right: calc(var(--pin) * -0.22); top: calc(var(--pin) * -0.22); font-size: calc(var(--pin) * 0.35); background: var(--card); border-radius: 50%; width: calc(var(--pin) * 0.56); height: calc(var(--pin) * 0.56); display: grid; place-items: center; border: max(1px, calc(var(--bw) - 1px)) solid var(--line); }
 
 /* ── Buddy ───────────────────────────────────────────── */
 .buddy-fig { display: inline-block; width: 72px; height: 72px; flex: 0 0 auto; }

@@ -19,8 +19,8 @@ export interface MapSwitch {
 }
 
 /**
- * The 🗺️ Map card: how the map looks (three big cards), how big the pins are, and the map's switches (the facing
- * arrow, keeping the screen on, everyone's finds). Field Mapper keeps these as separate rail buttons beside a Basemaps sheet; a phone held by a child has room
+ * The 🗺️ Map card: how the map looks (three big cards), how big the pins are and what each one shows, and the map's
+ * switches (the facing arrow, keeping the screen on, everyone's finds). Field Mapper keeps these as separate rail buttons beside a Basemaps sheet; a phone held by a child has room
  * for far fewer buttons, so the ones a child sets once and leaves live here.
  */
 /** The three pin sizes, each shown as a pin of that size (a child picks by looking, not by reading). */
@@ -34,12 +34,13 @@ export interface PinSizeChoice {
   pick: (s: PinSize) => Promise<void>;
 }
 
-export function openMapSheet(current: Basemap, pick: (b: Basemap) => void, switches: MapSwitch[] = [], sizes?: PinSizeChoice): void {
+export function openMapSheet(current: Basemap, pick: (b: Basemap) => void, switches: MapSwitch[] = [], sizes?: PinSizeChoice, pinShows: MapSwitch[] = []): void {
   let now = current;
   const done = () => overlay.remove();
   const styles = h('div', { class: 'choice-grid three map-styles' });
   const toggles = h('div', { class: 'map-switches' });
   const sizeRow = h('div', { class: 'choice-grid three pin-sizes' });
+  const showRows = h('div', { class: 'map-switches pin-shows' });
   const paint = () => {
     if (sizes) sizeRow.replaceChildren(...PIN_SIZES.map(z => h('button', {
       class: `choice style-choice ${sizes.now() === z.id ? 'on' : ''}`, 'aria-pressed': String(sizes.now() === z.id), 'aria-label': `${z.label} pins`,
@@ -49,12 +50,14 @@ export function openMapSheet(current: Basemap, pick: (b: Basemap) => void, switc
       class: `choice style-choice ${now === c.id ? 'on' : ''}`, 'aria-pressed': String(now === c.id), 'aria-label': `${c.label}: ${c.text}`,
       onclick: () => { sounds.pick(); say(c.label); now = c.id; pick(c.id); paint(); },
     }, h('span', { class: 'choice-emoji' }, c.emoji), c.label)));
-    toggles.replaceChildren(...switches.map(s => h('button', {
+    const switchRow = (s: MapSwitch) => h('button', {
       class: `edit-row switch-row ${s.on() ? 'on' : ''}`, 'aria-pressed': String(s.on()),
       onclick: async () => { await s.toggle(); paint(); },
     }, h('span', { class: 'switch-emoji' }, s.emoji),
       h('span', { class: 'switch-text' }, h('strong', {}, s.label), h('small', {}, s.text())),
-      h('span', { class: 'switch-word' }, s.on() ? 'On' : 'Off'))));
+      h('span', { class: 'switch-word' }, s.on() ? 'On' : 'Off'));
+    showRows.replaceChildren(...pinShows.map(switchRow));
+    toggles.replaceChildren(...switches.map(switchRow));
   };
   paint();
   const overlay = h('div', { class: 'gate-overlay', role: 'dialog', 'aria-label': 'Map', onclick: (e: Event) => { if (e.target === overlay) done(); } },
@@ -62,6 +65,7 @@ export function openMapSheet(current: Basemap, pick: (b: Basemap) => void, switc
       h('h2', {}, '🗺️ How should the map look?'),
       styles,
       ...(sizes ? [h('h2', {}, '📍 Size of pins'), sizeRow] : []),
+      ...(pinShows.length ? [h('h2', {}, '🏷️ On each pin'), showRows] : []),
       ...(switches.length ? [h('h2', {}, '🔧 Map helpers'), toggles] : []),
       h('button', { class: 'big-btn', onclick: done }, '✅ Done'),
     ),
