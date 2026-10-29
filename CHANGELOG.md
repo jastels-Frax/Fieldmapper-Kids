@@ -5,6 +5,14 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.5.1 — 2026-10-29
+
+- **A find is called by what it is** (`categories.findName`): its own name, else its species (picked from the list or
+  the explorer's own words), else its kind — on the sticker-book stickers, the find's page title, a photo's alt text and
+  the map pin's label. The kind's picture already sits beside it, so the sticker no longer repeats "Plant" under a 🌿.
+- A sticker's name takes up to three lines before it gives way with …, for long species names ("Eastern Red-backed
+  Salamander").
+
 ## 2.5.0 — 2026-10-29
 
 - **"What is it?" is two steps: a GROUP, then a KIND** (`categories.GROUPS`): 🌿 Plant · 🐾 Animal · 🍄 Mushroom ·

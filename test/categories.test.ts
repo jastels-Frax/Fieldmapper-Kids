@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CATEGORIES, GROUPS, categoryOf, groupOf, isKind, kindWords, kindsOf, oneOf } from '../src/categories.ts';
+import { CATEGORIES, GROUPS, categoryOf, findName, groupOf, isKind, kindWords, kindsOf, oneOf } from '../src/categories.ts';
 import { KIND_ART_IDS, kindArt } from '../src/kindArt.ts';
 
 test('every kind is in exactly one group, except "not sure"', () => {
@@ -72,4 +72,12 @@ test('every drawing a kind names exists, and is our own plain markup', () => {
   }
   assert.equal(kindArt(undefined), undefined);
   assert.equal(kindArt('nope'), undefined);
+});
+
+test('a find is called by its own name, then its species, then its kind', () => {
+  assert.equal(findName({ category: 'plant', nickname: 'Sammy', species: { name: 'Red Maple' } }), 'Sammy');
+  assert.equal(findName({ category: 'plant', species: { name: 'Red Maple' } }), 'Red Maple');
+  assert.equal(findName({ category: 'plant', species: { name: 'little plant' } }), 'little plant');
+  assert.equal(findName({ category: 'shelf' }), 'Shelf mushroom');
+  assert.equal(findName({ category: 'plant', nickname: '  ', species: { name: ' ' } }), 'Plant');
 });

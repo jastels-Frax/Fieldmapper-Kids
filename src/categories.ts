@@ -280,6 +280,15 @@ export function fullName(c: Category): string {
   return c.full ?? c.label;
 }
 
+/**
+ * What a find is called on its sticker, its page and its pin: the explorer's name for it, else its species (from the
+ * list, or their own words), else its kind. The kind's picture sits beside the name everywhere, so the kind is the
+ * last resort rather than the label.
+ */
+export function findName(f: { category: CategoryId; nickname?: string; species?: { name: string } }): string {
+  return f.nickname?.trim() || f.species?.name.trim() || fullName(categoryOf(f.category));
+}
+
 /** A kind in words with its group when that adds something: "Shelf · Mushroom", "Plant" (not "Plant · Plant"). */
 export function kindWords(c: Category): string {
   const g = groupOf(c.id);

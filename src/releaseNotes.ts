@@ -12,6 +12,10 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.5.1', date: '2026-10-29', title: 'Finds by name',
+    notes: ['Stickers in My Finds show what you found, like "Red Maple", instead of just "Plant".'],
+  },
+  {
     version: '2.5.0', date: '2026-10-29', title: 'Plants, animals, mushrooms, lichens and places',
     notes: [
       'Pick Plant, Animal, Mushroom, Lichen or Habitat first, then the kind: a fern, a frog, a shelf mushroom, a crusty lichen, a wetland…',

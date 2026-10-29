@@ -1,6 +1,6 @@
 import { activeGuide } from './guides.ts';
 import type { Find, FindMedia, GroupId, Profile, Settings } from './types.ts';
-import { COLOURS, COUNTS, GROUPS, SIGNS, SIZES, categoryOf, fullName, groupOf, oneOf } from './categories.ts';
+import { COLOURS, COUNTS, GROUPS, SIGNS, SIZES, categoryOf, findName, groupOf, oneOf } from './categories.ts';
 import { kindIcon } from './kindIcon.ts';
 import { askYesNo, blobUrl, h, openSheet, whenWords } from './ui.ts';
 import { say } from './speech.ts';
@@ -50,7 +50,7 @@ function pictureOf(f: Find, owner: Element, cls: string): HTMLElement {
   const blob = f.thumb;
   const cat = categoryOf(f.category);
   if (blob) {
-    const img = h('img', { class: cls, alt: f.nickname || fullName(cat) });
+    const img = h('img', { class: cls, alt: findName(f) });
     img.src = blobUrl(blob, owner);
     return img;
   }
@@ -162,7 +162,7 @@ export function openBook(host: ScreenHost): void {
       const card = h('button', { class: 'sticker', style: `--cat:${cat.colour}`, onclick: () => openFind(host, f.id, paint) });
       grid.append(card);
       card.append(pictureOf(f, card, 'sticker-pic'), kindIcon(cat, 'sticker-emoji'),
-        h('span', { class: 'sticker-name' }, f.nickname || fullName(cat)));
+        h('span', { class: 'sticker-name' }, findName(f)));
       if (f.favourite) card.append(h('span', { class: 'sticker-fav' }, '❤️'));
     }
   };
@@ -188,7 +188,7 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void): v
   if (!f) return;
   const together = host.profile.mode === 'together';
   const cat = categoryOf(f.category);
-  const { body, close } = openSheet({ title: f.nickname || fullName(cat), emoji: cat.emoji, className: 'detail' });
+  const { body, close } = openSheet({ title: findName(f), emoji: cat.emoji, className: 'detail' });
   if (f.pictures.length) {
     const strip = h('div', { class: `detail-pics ${f.pictures.length > 1 ? 'many' : ''}` });
     body.append(strip);
@@ -292,7 +292,7 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void): v
     onChange?.();
   });
   body.append(del);
-  say(f.nickname ? `${f.nickname}, ${oneOf(cat)}` : fullName(cat));
+  say(f.nickname ? `${f.nickname}, ${f.species?.name ?? oneOf(cat)}` : findName(f));
 }
 
 export function openBadges(host: ScreenHost): void {

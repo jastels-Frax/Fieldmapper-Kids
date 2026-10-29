@@ -381,7 +381,11 @@ textarea.text-in { resize: vertical; }
 .emoji-pic { display: grid; place-items: center; font-size: 56px; background: color-mix(in srgb, var(--cat) 25%, var(--card)); }
 .sticker-emoji { position: absolute; top: 4px; left: 6px; font-size: 26px; }
 .sticker-fav { position: absolute; top: 4px; right: 6px; font-size: 22px; }
-.sticker-name { font-weight: 900; font-size: 15px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A species name can be long ("Eastern Red-backed Salamander"): up to three lines, then … */
+.sticker-name {
+  font-weight: 900; font-size: 15px; line-height: 1.2; max-width: 100%; text-align: center; overflow: hidden; overflow-wrap: break-word;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3;
+}
 .empty { text-align: center; grid-column: 1 / -1; padding: 10px; font-size: 19px; font-weight: 700; }
 
 /* Detail */
