@@ -5,6 +5,19 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.4.2 — 2026-10-29
+
+- **Photo spots redrawn as ONE icon** (`MapView.spotIcon`): a round photo badge centred on the spot (white ring, orange
+  edge, a small camera mark — our own `camera` icon, not the emoji), over a BEAM that is strongest at the badge and
+  fades to nothing. It was a teardrop pin standing above the point beside a flat see-through wedge from its tip: two
+  markers that scaled two different ways (the wedge halved per zoom level, the pin eased linearly), and the wedge turned
+  to mud over satellite imagery. Now one marker scales as one piece (`photoSpots.spotScale`: full from zoom 18, 0.65 at
+  zoom 14 and out), and the beam fades out between zoom 16 and 15 (`beamOpacity`), leaving the badge alone zoomed far
+  out. The beam turns with `--brg` less the map's own bearing (`--map-brg`), so it stays true if the map is turned.
+- **The explorer's marker lets taps through** (`.me-marker { pointer-events: none }`), so a spot or a find saved right
+  where they stand still opens.
+- A spot with no picture shows the camera in the badge; one with no known way has no beam.
+
 ## 2.4.1 — 2026-10-28
 
 - **Photo spots scale with the map.** The wedge was drawn at one screen size at every zoom, so zoomed out it covered

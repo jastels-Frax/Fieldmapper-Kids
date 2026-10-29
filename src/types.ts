@@ -66,7 +66,7 @@ export interface SpotMedia {
 }
 
 /**
- * A place an explorer took a picture of the view, and which way they looked: a pin with a wedge on the map. They can
+ * A place an explorer took a picture of the view, and which way they looked: a photo badge with a beam on the map. They can
  * come back and take it again on another day ("then and now"). Belongs to a profile. Stored light (the shots and a
  * thumbnail), with the pictures in `spotMedia`, as a find is.
  */

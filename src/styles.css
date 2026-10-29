@@ -192,19 +192,36 @@ body.picking .quick-row { visibility: hidden; }
 .facing-marker { pointer-events: none; line-height: 0; color: var(--green); z-index: 0; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35)); }
 .me-btn.on { background: var(--good-soft); outline: 3px solid var(--green); }
 .find-marker { width: 46px; height: 56px; padding: 0; border: 0; background: none; cursor: pointer; z-index: 1; }
-/* Photo spots (photoSpots.ts): a round pin over a wedge pointing the way the camera looked. The wedges sit under
-   every pin (z-index 0, as the facing arrow), the pins with the find pins, the explorer above them all. Like the find
-   pins, the marker elements are MapLibre's to position: everything is drawn inside them. */
-.spot-cone { z-index: 0; line-height: 0; pointer-events: none; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3)); }
-.spot-cone svg { pointer-events: none; transform: scale(var(--spot-scale, 1)); transform-origin: 50% 50%; }
-#map.spots-far .spot-cone { visibility: hidden; }
-#map.spots-far .spot-cone path { pointer-events: none; }
-/* The pin's drawing (a find pin and its badge) in one box the size of the marker, shrinking towards the tip. */
-.spot-art { position: absolute; inset: 0; transform: scale(var(--spot-pin-scale, 1)); transform-origin: 50% 100%; }
-.spot-cone path { pointer-events: visiblePainted; cursor: pointer; }
-.spot-cone.draft path { fill-opacity: 0.55; stroke-dasharray: 8 6; }
-.spot-marker.draft { pointer-events: none; }
-.spot-marker.draft .find-pin { border-style: dashed; }
+/* Photo spots (photoSpots.ts, mapView.spotIcon): ONE icon per spot — a round photo badge over a beam fanning out the
+   way the camera looked — drawn inside `.spot-art`, which scales as one piece with the zoom (--spot-scale) while the
+   beam fades out zoomed far out (--spot-beam). The marker element is MapLibre's to position and takes no taps; the
+   badge and the beam do. Spots sit under the find pins, and under the explorer, who lets taps through to them. */
+.spot-marker { width: 168px; height: 168px; z-index: 0; pointer-events: none; line-height: 0; }
+.spot-art { position: absolute; inset: 0; transform: scale(var(--spot-scale, 1)); transform-origin: 50% 50%; }
+.spot-beam {
+  position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: var(--spot-beam, 1);
+  transform: rotate(calc(var(--brg, 0deg) - var(--map-brg, 0deg))); filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.35));
+}
+.spot-beam path { pointer-events: visiblePainted; cursor: pointer; }
+#map.spots-far .spot-beam path, body.drawing .spot-beam path { pointer-events: none; }
+.spot-badge {
+  position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; padding: 0;
+  border-radius: 50%; overflow: hidden; display: grid; place-items: center; cursor: pointer; pointer-events: auto;
+  background: var(--spot); border: 3px solid #ffffff; box-shadow: 0 0 0 2px var(--spot), 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+.spot-badge img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.spot-badge.empty { color: #ffffff; }
+.spot-badge.empty svg { width: 24px; height: 24px; }
+.spot-cam {
+  position: absolute; left: calc(50% + 10px); top: calc(50% + 8px); width: 22px; height: 22px; border-radius: 50%;
+  display: grid; place-items: center; pointer-events: none; color: #ffffff; background: var(--spot); border: 2px solid #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.spot-cam svg { width: 14px; height: 14px; }
+.spot-marker.draft .spot-badge { border-style: dashed; pointer-events: none; }
+.spot-marker.draft .spot-beam path { pointer-events: none; }
+/* The explorer lets taps through: a spot (or a find) saved right where they stand is under them, and must still open. */
+.me-marker { pointer-events: none; }
 .find-pin {
   position: absolute; left: 0; top: 0; width: 46px; height: 46px; border-radius: 50% 50% 50% 4px; transform: rotate(-45deg);
   background: var(--cat); border: var(--bw) solid var(--line); box-sizing: border-box; overflow: hidden;
@@ -212,7 +229,7 @@ body.picking .quick-row { visibility: hidden; }
 .find-pin-face { position: absolute; inset: 0; display: grid; place-items: center; transform: rotate(45deg); }
 .find-pin-face img { width: 100%; height: 100%; object-fit: cover; }
 .find-marker-emoji { font-size: 22px; }
-.find-marker.has-photo > .find-marker-emoji, .spot-marker.has-photo .spot-art > .find-marker-emoji { position: absolute; right: -10px; top: -10px; font-size: 16px; background: var(--card); border-radius: 50%; width: 26px; height: 26px; display: grid; place-items: center; border: max(1px, calc(var(--bw) - 1px)) solid var(--line); }
+.find-marker.has-photo > .find-marker-emoji { position: absolute; right: -10px; top: -10px; font-size: 16px; background: var(--card); border-radius: 50%; width: 26px; height: 26px; display: grid; place-items: center; border: max(1px, calc(var(--bw) - 1px)) solid var(--line); }
 
 /* ── Buddy ───────────────────────────────────────────── */
 .buddy-fig { display: inline-block; width: 72px; height: 72px; flex: 0 0 auto; }
@@ -1003,7 +1020,6 @@ html .mini-choices .mini-emoji { font-size: 20px; }
 /* ✏️ Draw / 📏 Measure (drawTool.ts): a short card at the foot of the map; the bottom bar and quick row step aside. */
 body:is(.drawing, .shape-open) :is(.bottom-bar, .quick-row, .buddy-dock, .walk-note) { visibility: hidden; }
 body.drawing .maplibregl-marker:not(.me-marker) { pointer-events: none; }
-body.drawing .spot-cone path { pointer-events: none; }
 .draw-hud {
   position: fixed; left: 8px; right: 8px; bottom: calc(var(--bar-pad-b) + 6px); z-index: 30; max-width: 520px; margin: 0 auto;
   background: var(--card); border: var(--bw) solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-big);

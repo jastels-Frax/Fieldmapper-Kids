@@ -6,7 +6,8 @@ import type { Map as MlMap, Marker, StyleSpecification } from 'maplibre-gl';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 maplibregl.setWorkerUrl(workerUrl);
 import type { Basemap, Find, PhotoSpot, Sketch } from './types.ts';
-import { WEDGE_FULL_ZOOM, WEDGE_MIN_SCALE, newestShot, spotBearing, spotPinScale, spotTitle, wedgeScale } from './photoSpots.ts';
+import { SPOT_FULL_ZOOM, beamOpacity, newestShot, spotBearing, spotScale, spotTitle } from './photoSpots.ts';
+import { iconSvg } from './icons.ts';
 import { categoryOf } from './categories.ts';
 import type { Fix } from './gps.ts';
 import { blobUrl } from './ui.ts';
@@ -48,28 +49,39 @@ const FACING_SVG = `<svg viewBox="0 0 160 160" width="168" height="168" aria-hid
 </svg>`;
 
 /**
- * A photo spot's view wedge: Field Mapper's photo-point cone (`buildPhotoPointCone`, its default orange #f97316 at
- * 0.35 with a white edge). Apex at (150,150), pointing north at 0°, 60° wide, 140 px long at full size. It is scaled
- * with the map (`wedgeScale`, through `--spot-scale`): shrinking with the ground as Field Mapper's metre-sized cone
- * does when zoomed out, but never growing past full size zoomed in, where a cone in metres would cover the screen.
- * Only the wedge itself takes a tap (it is the big half of what a spot looks like, as Field Mapper's cone carries
- * its photo's id for the same reason). Our own constant markup.
+ * A photo spot's beam: Field Mapper's photo-point cone (`buildPhotoPointCone`, its orange #f97316), drawn as a beam
+ * that is strongest at the badge and fades to nothing — a flat see-through wedge turned to mud over satellite imagery.
+ * 70° wide, 80 px from the centre of a 168 px box, pointing north at 0° (turned by `--brg`). Only the beam itself takes
+ * a tap. Each beam carries its own gradients under ids of its own. Our own constant markup.
  */
 const SPOT_COLOUR = '#f97316';
-const SPOT_CONE_SVG = `<svg viewBox="0 0 300 300" width="300" height="300" aria-hidden="true">
-  <path d="M150 150 L80 28.8 A140 140 0 0 1 220 28.8 Z" fill="${SPOT_COLOUR}" fill-opacity="0.38" stroke="#ffffff" stroke-opacity="0.85" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+let beamIds = 0;
+function spotBeamSvg(): string {
+  const n = ++beamIds;
+  return `<svg class="spot-beam" viewBox="0 0 168 168" width="168" height="168" aria-hidden="true">
+  <defs>
+    <radialGradient id="sbf${n}" gradientUnits="userSpaceOnUse" cx="84" cy="84" r="80">
+      <stop offset="0.3" stop-color="${SPOT_COLOUR}" stop-opacity="0.9"/><stop offset="0.65" stop-color="${SPOT_COLOUR}" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="${SPOT_COLOUR}" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sbe${n}" gradientUnits="userSpaceOnUse" cx="84" cy="84" r="80">
+      <stop offset="0.3" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="0.8" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <path d="M84 84 L38.1 18.5 A80 80 0 0 1 129.9 18.5 Z" fill="url(#sbf${n})" stroke="url(#sbe${n})" stroke-width="2" stroke-linejoin="round"/>
 </svg>`;
+}
 
 export class MapView {
   map!: MlMap;
   private me: Marker | null = null;
   private meRing: HTMLElement | null = null;
   private findMarkers = new Map<string, Marker>();
-  private spotMarkers = new Map<string, { key: string; pin: Marker; cone: Marker | null }>();
-  private spotDraft: { pin: Marker; cone: Marker } | null = null;
+  private spotMarkers = new Map<string, { key: string; marker: Marker }>();
+  private spotDraft: Marker | null = null;
   private followed = false;
   onFindTap: (id: string) => void = () => {};
-  /** A tap on a photo spot's pin or its wedge. */
+  /** A tap on a photo spot's badge or its beam. */
   onSpotTap: (id: string) => void = () => {};
   /** A press and hold on the map (or a right-click): where it was. */
   onLongPress: (at: { lat: number; lon: number }) => void = () => {};
@@ -116,17 +128,20 @@ export class MapView {
       this.onMapTap(at);
     });
     this.bindDraftDrag();
-    // Photo spot wedges and pins follow the zoom (photoSpots.wedgeScale / spotPinScale), set once per frame as CSS
-    // variables on the map, which every spot marker reads.
+    // A photo spot follows the zoom as one piece (photoSpots.spotScale; its beam fades out zoomed far out,
+    // beamOpacity), and its beam keeps pointing the real way if the map is ever turned (keyboard Shift+arrows can):
+    // CSS variables on the map, which every spot reads.
     const scaleSpots = () => {
       const z = this.map.getZoom();
       const el = this.map.getContainer();
-      const w = wedgeScale(z);
-      el.style.setProperty('--spot-scale', String(w));
-      el.style.setProperty('--spot-pin-scale', String(spotPinScale(z)));
-      el.classList.toggle('spots-far', w < WEDGE_MIN_SCALE);
+      const beam = beamOpacity(z);
+      el.style.setProperty('--spot-scale', String(spotScale(z)));
+      el.style.setProperty('--spot-beam', String(beam));
+      el.style.setProperty('--map-brg', `${this.map.getBearing()}deg`);
+      el.classList.toggle('spots-far', beam === 0);
     };
     this.map.on('zoom', scaleSpots);
+    this.map.on('rotate', scaleSpots);
     scaleSpots();
     this.map.on('dragstart', e => { if ((e as { originalEvent?: Event }).originalEvent) this.onUserPan(); });
     this.setAvatar(avatar);
@@ -405,8 +420,8 @@ export class MapView {
    */
   showAbove(lat: number, lon: number, coveredPx: number): void {
     const top = document.querySelector('.top-bar')?.getBoundingClientRect().bottom ?? 0;
-    // Close enough that a photo spot's wedge is drawn at full size, so it can be seen turning.
-    this.map.flyTo({ center: [lon, lat], zoom: Math.max(this.map.getZoom(), WEDGE_FULL_ZOOM), offset: [0, (top - coveredPx) / 2], duration: 800 });
+    // Close enough that a photo spot is drawn at full size, so its beam can be seen turning.
+    this.map.flyTo({ center: [lon, lat], zoom: Math.max(this.map.getZoom(), SPOT_FULL_ZOOM), offset: [0, (top - coveredPx) / 2], duration: 800 });
   }
 
   setFinds(finds: Find[]): void {
@@ -454,9 +469,8 @@ export class MapView {
   }
 
   /**
-   * Photo spots: a pin with the newest picture in it, over a wedge pointing the way the camera looked (none
-   * when the way is not known). Field Mapper draws the cones UNDER the icons; here the wedges sit under every pin
-   * (z-index in the CSS). A spot is redrawn when its picture, way or name changes.
+   * Photo spots: each one marker, centred on the spot — a round badge holding the newest picture, over a beam fanning
+   * out the way the camera looked (none when the way is not known). Redrawn when its picture, way or name changes.
    */
   setSpots(spots: PhotoSpot[]): void {
     const seen = new Set<string>();
@@ -467,84 +481,68 @@ export class MapView {
       const key = `${s.shots.length}|${newestShot(s)?.id ?? ''}|${bearing ?? ''}|${s.name ?? ''}|${s.lat},${s.lon}`;
       const had = this.spotMarkers.get(s.id);
       if (had?.key === key) continue;
-      if (had) { had.pin.remove(); had.cone?.remove(); }
-      const at: [number, number] = [s.lon, s.lat];
+      had?.marker.remove();
+      const el = this.spotIcon(s.thumb, bearing, `${spotTitle(s)}: a photo spot`);
       const tap = (e: Event) => { e.stopPropagation(); this.onSpotTap(s.id); };
-      const pin = this.spotPin(s.thumb, `${spotTitle(s)}: a photo spot`);
-      pin.addEventListener('click', tap);
-      const cone = typeof bearing === 'number' ? this.spotCone(bearing, at) : null;
-      cone?.getElement().querySelector('path')?.addEventListener('click', tap);
-      this.spotMarkers.set(s.id, { key, pin: new maplibregl.Marker({ element: pin, anchor: 'bottom' }).setLngLat(at).addTo(this.map), cone });
+      el.querySelector('.spot-badge')?.addEventListener('click', tap);
+      el.querySelector('.spot-beam path')?.addEventListener('click', tap);
+      this.spotMarkers.set(s.id, { key, marker: new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([s.lon, s.lat]).addTo(this.map) });
     }
     for (const [id, m] of this.spotMarkers) {
-      if (!seen.has(id)) { m.pin.remove(); m.cone?.remove(); this.spotMarkers.delete(id); }
+      if (!seen.has(id)) { m.marker.remove(); this.spotMarkers.delete(id); }
     }
   }
 
   /** The spot being saved, before it is: where it will be and which way it will look; null takes it away. */
   setSpotDraft(at: { lat: number; lon: number } | null, bearing?: number, thumb?: Blob): void {
-    this.spotDraft?.pin.remove();
-    this.spotDraft?.cone.remove();
+    this.spotDraft?.remove();
     this.spotDraft = null;
     if (!at || !this.map) return;
-    const lngLat: [number, number] = [at.lon, at.lat];
-    const pin = this.spotPin(thumb, 'The photo spot you are saving');
-    pin.classList.add('draft');
-    pin.tabIndex = -1;
-    const cone = this.spotCone(bearing ?? 0, lngLat);
-    cone.getElement().classList.add('draft');
-    cone.getElement().hidden = typeof bearing !== 'number';
-    this.spotDraft = { pin: new maplibregl.Marker({ element: pin, anchor: 'bottom' }).setLngLat(lngLat).addTo(this.map), cone };
+    const el = this.spotIcon(thumb, bearing, 'The photo spot you are saving');
+    el.classList.add('draft');
+    el.querySelector('.spot-badge')?.setAttribute('tabindex', '-1');
+    this.spotDraft = new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([at.lon, at.lat]).addTo(this.map);
   }
 
   /**
-   * The pin: a find pin (the same teardrop, standing above the point, so the explorer's own marker — on top, and
-   * usually right where the spot was taken — covers only its tip), in the spot colour, with the picture or a camera.
-   * The wedge starts at the point itself. The element MapLibre positions is the button; everything is drawn inside.
+   * One photo spot icon. The element MapLibre positions is a plain box that takes no taps; everything is drawn in
+   * `.spot-art` inside it, which scales as one piece (`--spot-scale`): the beam, turned to the bearing, and the badge
+   * (a button) with the picture, or a camera where there is none, and a small camera mark either way.
    */
-  private spotPin(thumb: Blob | undefined, label: string): HTMLElement {
-    const el = document.createElement('button');
-    el.className = 'find-marker spot-marker';
-    el.style.setProperty('--cat', SPOT_COLOUR);
-    el.setAttribute('aria-label', label);
-    // Everything drawn sits in one box that shrinks towards the pin's tip as the map zooms out (`--spot-pin-scale`).
-    const art = document.createElement('span');
+  private spotIcon(thumb: Blob | undefined, bearing: number | undefined, label: string): HTMLElement {
+    const el = document.createElement('div');
+    el.className = 'spot-marker';
+    el.style.setProperty('--spot', SPOT_COLOUR);
+    const art = document.createElement('div');
     art.className = 'spot-art';
-    const pin = document.createElement('span');
-    pin.className = 'find-pin';
-    const face = document.createElement('span');
-    face.className = 'find-pin-face';
-    pin.append(face);
-    const badge = document.createElement('span');
-    badge.className = 'find-marker-emoji';
-    badge.textContent = '📷';
+    if (typeof bearing === 'number') {
+      art.innerHTML = spotBeamSvg();
+      art.style.setProperty('--brg', `${bearing}deg`);
+    }
+    const badge = document.createElement('button');
+    badge.className = 'spot-badge';
+    badge.setAttribute('aria-label', label);
     if (thumb) {
       const img = document.createElement('img');
       img.alt = '';
-      face.append(img);
-      el.classList.add('has-photo');
+      badge.append(img);
       queueMicrotask(() => { img.src = blobUrl(thumb, el); });
-      art.append(badge);
+      const cam = document.createElement('span');
+      cam.className = 'spot-cam';
+      cam.innerHTML = iconSvg('camera');
+      art.append(badge, cam);
     } else {
-      face.append(badge);
+      badge.classList.add('empty');
+      badge.innerHTML = iconSvg('camera');
+      art.append(badge);
     }
-    art.prepend(pin);
     el.append(art);
     return el;
   }
 
-  /** The wedge, its own marker aligned to the MAP (as the facing arrow is), so it points the real way. */
-  private spotCone(bearing: number, at: [number, number]): Marker {
-    const el = document.createElement('div');
-    el.className = 'spot-cone';
-    el.innerHTML = SPOT_CONE_SVG;
-    return new maplibregl.Marker({ element: el, anchor: 'center', rotationAlignment: 'map', pitchAlignment: 'map' })
-      .setLngLat(at).setRotation(bearing).addTo(this.map);
-  }
-
   /** Forget every spot marker, so the next setSpots redraws them all. */
   clearSpots(): void {
-    this.spotMarkers.forEach(m => { m.pin.remove(); m.cone?.remove(); });
+    this.spotMarkers.forEach(m => m.marker.remove());
     this.spotMarkers.clear();
   }
 

@@ -17,6 +17,8 @@ const PATHS = {
   speaker: '<path d="M4.5 9.6h3.2l4.6-3.9v12.6l-4.6-3.9H4.5z"/><path d="M15.4 9.3c1.3 1.6 1.3 3.8 0 5.4"/><path d="M18.1 6.8c2.7 3 2.7 7.4 0 10.4"/>',
   /** ⬆ a straight arrow, turned by its button to point any way (the photo spot's way picker). */
   arrow: '<path d="M12.2 19.8c-.3-4.9-.4-9.8-.1-15.1"/><path d="M6.3 10.3c2-2 3.8-3.8 5.8-5.7 2 2 3.9 3.8 5.9 5.8"/>',
+  /** 📷 a camera: body, bump and lens (the photo spot badge on the map). */
+  camera: '<path d="M4.4 8.4c0-1 .8-1.8 1.8-1.8h2.3l1.4-2.1h4.3l1.5 2.1h2.2c1 0 1.8.8 1.8 1.8v8.5c0 1-.8 1.8-1.8 1.8H6.2c-1 0-1.8-.8-1.8-1.8z"/><circle cx="12" cy="12.6" r="3.3"/>',
   /** ⌃ a chevron (the rail's fold). */
   up: '<path d="M5.8 15.4c2.1-2.2 4-4.3 6.2-6.4 2 2.1 4 4.2 6.1 6.5"/>',
 } as const;
