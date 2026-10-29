@@ -176,6 +176,8 @@ export interface Profile {
   mapAvatar?: MapAvatar;
   /** Their 📸 quick-find buttons (quickFinds.ts); absent = off. */
   quick?: QuickPref;
+  /** Show every explorer's finds on this device on the map, not just theirs (Map card); absent = just theirs. */
+  mapEveryone?: boolean;
   createdAt: string;
 }
 

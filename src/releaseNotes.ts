@@ -12,6 +12,13 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.6.0', date: '2026-10-29', title: "Everyone's finds",
+    notes: [
+      "More than one explorer on this tablet? Turn on 🗺️ Map ▸ Everyone's finds to see each other's finds on the map.",
+      "Their pins wear their picture. Tap one to look; only its finder can change it.",
+    ],
+  },
+  {
     version: '2.5.1', date: '2026-10-29', title: 'Finds by name',
     notes: ['Stickers in My Finds show what you found, like "Red Maple", instead of just "Plant".'],
   },

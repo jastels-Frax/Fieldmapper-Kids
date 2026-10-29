@@ -5,6 +5,20 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.6.0 — 2026-10-29
+
+- **Everyone's finds** (👫, the 🗺️ Map card): the map shows the finds of every explorer on THIS device, not just the
+  one exploring. Shown only where there is more than one explorer; per explorer (`Profile.mapEveryone`, absent = just
+  theirs), so each child chooses. Nothing leaves the device: these are profiles sharing one tablet, and no account,
+  server or upload is involved. Seeing finds from other phones or tablets would need accounts and a server, which Scout's
+  privacy rule does not allow; it was considered and left out.
+- Another explorer's pin wears their map picture on its top-left and sits under the explorer's own pins; its label says
+  who found it. Tapping it opens the find to LOOK at (`openFind`'s `owner`): "Found by Elliott" with the same picture,
+  the pictures, facts and Show on map — no Favourite, no Change it, no Throw away.
+- Badges, challenges, hunts, the sticker book and the export still count and hold only the explorer's own finds.
+- The split is `findModel.mapFinds` (tested): a find saved before explorers had profiles counts as whoever is exploring,
+  as it does everywhere else, so it is never shown as someone else's.
+
 ## 2.5.1 — 2026-10-29
 
 - **A find is called by what it is** (`categories.findName`): its own name, else its species (picked from the list or

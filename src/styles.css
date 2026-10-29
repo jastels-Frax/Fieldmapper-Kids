@@ -210,6 +210,16 @@ body.picking .quick-row { visibility: hidden; }
 .find-pin-face { position: absolute; inset: 0; display: grid; place-items: center; transform: rotate(45deg); }
 .find-pin-face img { width: 100%; height: 100%; object-fit: cover; }
 .find-marker-emoji { font-size: 22px; }
+/* Another explorer's find (the Map card's "Everyone's finds"): their picture on the pin's top-left, and under the
+   explorer's own pins. */
+.find-marker.others { z-index: 0; }
+.find-owner {
+  position: absolute; left: -10px; top: -10px; width: 26px; height: 26px; border-radius: 50%; overflow: hidden;
+  display: grid; place-items: center; font-size: 16px; background: var(--card); border: max(1px, calc(var(--bw) - 1px)) solid var(--line);
+}
+.find-owner img { width: 100%; height: 100%; object-fit: cover; }
+.owner-pic { display: inline-grid; place-items: center; width: 1.5em; height: 1.5em; border-radius: 50%; overflow: hidden; vertical-align: middle; background: var(--card); border: max(1px, calc(var(--bw) - 1px)) solid var(--line); font-size: 0.9em; }
+.owner-pic img { width: 100%; height: 100%; object-fit: cover; }
 .find-marker.has-photo > .find-marker-emoji { position: absolute; right: -10px; top: -10px; font-size: 16px; background: var(--card); border-radius: 50%; width: 26px; height: 26px; display: grid; place-items: center; border: max(1px, calc(var(--bw) - 1px)) solid var(--line); }
 
 /* ── Buddy ───────────────────────────────────────────── */

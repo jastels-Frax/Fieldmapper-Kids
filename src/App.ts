@@ -53,6 +53,7 @@ import { closeShapeCard, openShapeCard } from './shapeCard.ts';
 import { SHAPE_TAP_PX, metresPerPixel, pickShape } from './mapShapes.ts';
 import { TOOLS, railFor, type ToolId } from './railTools.ts';
 import { categoryOf } from './categories.ts';
+import { mapFinds } from './findModel.ts';
 import { kindIcon } from './kindIcon.ts';
 import { downscale } from './image.ts';
 import { meetsRule } from './hunts.ts';
@@ -121,7 +122,7 @@ export class App {
     this.scopeToProfile();
     this.buildChrome();
     await this.map.mount(document.getElementById('map')!, this.mapFace(), this.settings.basemap);
-    this.map.onFindTap = id => openFind(this.screenHost(), id, () => this.refresh());
+    this.map.onFindTap = id => this.openFindFromMap(id);
     // Press and hold the map: a find already placed on that spot. Not while a spot is being picked for a find.
     this.map.onLongPress = at => {
       if (document.body.classList.contains('picking') || document.querySelector('.sheet') || spotToolOpen()) return;
@@ -133,7 +134,7 @@ export class App {
     // A tap on a drawing or a path opens its card; a tap on empty map closes it.
     this.map.onMapTap = at => this.tapShape(at);
     this.map.onSpotTap = id => { closeShapeCard(); openSpot(this.spotHost(), id); };
-    this.map.setFinds(this.finds);
+    this.paintFinds();
     this.paintSketches();
     this.paintSpots();
     if (!first) {
@@ -311,6 +312,16 @@ export class App {
         text: () => wakeLockSupported() ? 'Uses more battery' : 'This device cannot',
         on: () => this.settings.wakeLock, toggle: () => this.toggleWakeLock(),
       },
+      // Only where there is someone else to see: the explorers on this tablet. Nothing leaves the device.
+      ...(this.profiles.length > 1 ? [{
+        emoji: '👫', label: "Everyone's finds",
+        text: () => {
+          const names = this.profiles.filter(p => p.id !== this.profile.id).map(p => p.name || 'Explorer');
+          const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0];
+          return this.profile.mapEveryone ? `Showing finds by ${list} too` : `Just yours. Turn on to see finds by ${list} too`;
+        },
+        on: () => !!this.profile.mapEveryone, toggle: () => this.toggleEveryone(),
+      }] : []),
     ]);
   }
 
@@ -787,10 +798,45 @@ export class App {
 
   /** The explorer on the map: their own map avatar, else their card picture (avatarArt.mapPicture). */
   private mapFace(): Face {
-    const pic = mapPicture(this.profile);
-    if (pic.kind === 'photo') return { emoji: this.profile.avatar, photo: this.profile.photo };
-    if (pic.kind === 'art') return { emoji: this.profile.avatar, art: artUrl(pic.art) };
+    return this.faceOf(this.profile);
+  }
+
+  private faceOf(p: Profile): Face {
+    const pic = mapPicture(p);
+    if (pic.kind === 'photo') return { emoji: p.avatar, photo: p.photo };
+    if (pic.kind === 'art') return { emoji: p.avatar, art: artUrl(pic.art) };
     return { emoji: pic.emoji };
+  }
+
+  /** "Everyone's finds" counts only on a device with more than one explorer (the switch is shown only then). */
+  private everyoneOnMap(): boolean {
+    return this.profiles.length > 1 && !!this.profile.mapEveryone;
+  }
+
+  /** The finds on the map: the explorer's own and, with "Everyone's finds" on, every other explorer's (findModel.mapFinds). */
+  private paintFinds(): void {
+    const { mine, others } = mapFinds(this.everyFind, this.profile.id, this.everyoneOnMap());
+    const owners = new Map(this.profiles.map(p => [p.id, { name: p.name || 'Explorer', face: this.faceOf(p) }] as const));
+    this.map.setFinds([...others, ...mine], f => (f.profileId && f.profileId !== this.profile.id ? owners.get(f.profileId) : undefined));
+  }
+
+  /** A pin tapped: the explorer's own find opens as ever; another explorer's opens to look at (openFind's `owner`). */
+  private openFindFromMap(id: string): void {
+    if (this.finds.some(f => f.id === id)) return openFind(this.screenHost(), id, () => this.refresh());
+    const f = this.everyFind.find(x => x.id === id);
+    const who = f && this.profiles.find(p => p.id === f.profileId);
+    if (!f || !who) return;
+    openFind({ ...this.screenHost(), finds: () => [f] }, id, undefined, { name: who.name || 'Explorer', face: this.faceOf(who) });
+  }
+
+  /** Switches "Everyone's finds" for the explorer exploring now. */
+  private async toggleEveryone(): Promise<void> {
+    const on = !this.profile.mapEveryone;
+    await this.profileHost().save({ ...this.profile, mapEveryone: on });
+    sounds.pick();
+    say(on ? "Everyone's finds are on the map!" : 'Just your finds now.');
+    this.map.clearFinds();
+    this.paintFinds();
   }
 
   private liveIds(): Set<string> {
@@ -915,7 +961,7 @@ export class App {
     const earned = newlyEarned(before, this.finds.map(toBadgeFind), undefined, { ...this.badgeExtras(), huntsCompleted: huntsBefore }, this.badgeExtras());
     const { list, done } = todaysChallenges(this.finds);
     const newly = list.filter(c => done.has(c.id) && !challengesBefore.has(c.id));
-    this.map.setFinds(this.finds);
+    this.paintFinds();
     this.paintStar();
     this.paintHunt();
     this.paintQuick();
@@ -1046,7 +1092,7 @@ export class App {
     window.dispatchEvent(new Event(FINDS_CHANGED));
     this.paintQuick();
     this.map.clearFinds();
-    this.map.setFinds(this.finds);
+    this.paintFinds();
     this.paintSketches();
     this.paintSpots();
     if (this.recBtn) this.drawWalks();

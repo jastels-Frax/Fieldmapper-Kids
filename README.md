@@ -38,6 +38,8 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
   picture, Explorer or Together mode, their own finds, hunts and badges, and their own guide — any of
   the eight characters, renamed if they like.
 - **Map styles**: streets, satellite or hybrid.
+- **Everyone's finds** (new in 2.6): with more than one explorer on a tablet, each can show the others' finds on
+  their map (🗺️ Map card). Their pins wear their picture and open to look at, not to change. Same tablet only.
 - **Which way am I facing?** (🧭): an arrow on the map turns with the device compass (iPhone/iPad ask permission
   once). It reads the phone's own compass, so no data leaves the device.
 - **Hold a finger on the map** to save a find right at that spot, as well as with "I found something!".

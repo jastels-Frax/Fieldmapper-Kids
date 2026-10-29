@@ -182,8 +182,12 @@ export function openBook(host: ScreenHost): void {
 /** Fired on window whenever the finds on screen change. */
 export const FINDS_CHANGED = 'scout-finds-changed';
 
-/** One find, large: its picture, its sound, and what was noticed. */
-export function openFind(host: ScreenHost, id: string, onChange?: () => void): void {
+/**
+ * One find, large: its picture, its sound, and what was noticed. `owner` opens another explorer's find from the map
+ * (the Map card's "Everyone's finds") to LOOK at: it says whose it is, and offers nothing that changes it — no
+ * favourite, no Change it, no throwing away. It is theirs.
+ */
+export function openFind(host: ScreenHost, id: string, onChange?: () => void, owner?: { name: string; face: { emoji: string; photo?: Blob; art?: string } }): void {
   const f = host.finds().find(x => x.id === id);
   if (!f) return;
   const together = host.profile.mode === 'together';
@@ -217,6 +221,16 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void): v
     body.append(pic);
   }
   const facts: HTMLElement[] = [h('li', {}, `🕒 ${whenWords(f.createdAt)}`)];
+  if (owner) {
+    // The same picture their pin wears on the map, so the two are plainly the same explorer.
+    const pic = h('span', { class: 'owner-pic', 'aria-hidden': 'true' });
+    if (owner.face.photo || owner.face.art) {
+      const img = h('img', { alt: '' });
+      img.src = owner.face.art ?? blobUrl(owner.face.photo!, img);
+      pic.append(img);
+    } else pic.textContent = owner.face.emoji;
+    facts.unshift(h('li', {}, pic, ` Found by ${owner.name}`));
+  }
   if (f.species) facts.push(h('li', {}, `${f.species.own ? '✏️' : '📚'} ${f.species.name}`, f.species.scientific ? h('span', { class: 'latin' }, ` ${f.species.scientific}`) : null));
   const art = f.species ? artFor(f.species.name) : undefined;
   const sign = SIGNS.find(x => x.id === f.sign);
@@ -266,6 +280,13 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void): v
   }
   body.append(crewSays('owl', { text: `Hoo! Did you know? ${cat.facts[0]}`, pose: 'point' }, { quiet: true }));
 
+  if (owner) {
+    if (typeof f.lat === 'number') {
+      body.append(h('button', { class: 'big-btn soft', onclick: () => { document.querySelectorAll('.sheet').forEach(x => x.remove()); host.showOnMap(f); } }, '🗺️ Show on map'));
+    }
+    say(`${owner.name} found ${f.nickname ? `${f.nickname}, ${f.species?.name ?? oneOf(cat)}` : f.species?.name ?? oneOf(cat)}`);
+    return;
+  }
   const fav = h('button', { class: 'big-btn soft' }, f.favourite ? '💔 Not a favourite' : '❤️ Favourite');
   fav.addEventListener('click', async () => {
     f.favourite = !f.favourite;

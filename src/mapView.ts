@@ -406,7 +406,11 @@ export class MapView {
     this.map.flyTo({ center: [lon, lat], zoom: Math.max(this.map.getZoom(), 17), offset: [0, (top - coveredPx) / 2], duration: 800 });
   }
 
-  setFinds(finds: Find[]): void {
+  /**
+   * Every find with a place, as a pin. `ownerOf` names the explorer a find belongs to when it is not the one exploring
+   * (the Map card's "Everyone's finds"): their pin wears that explorer's picture and sits under the explorer's own.
+   */
+  setFinds(finds: Find[], ownerOf?: (f: Find) => { name: string; face: Face } | undefined): void {
     const seen = new Set<string>();
     for (const f of finds) {
       if (typeof f.lat !== 'number' || typeof f.lon !== 'number') continue;
@@ -417,7 +421,8 @@ export class MapView {
       const el = document.createElement('button');
       el.className = 'find-marker';
       el.style.setProperty('--cat', cat.colour);
-      el.setAttribute('aria-label', findName(f));
+      const owner = ownerOf?.(f);
+      el.setAttribute('aria-label', owner ? `${findName(f)}, found by ${owner.name}` : findName(f));
       const pin = document.createElement('span');
       pin.className = 'find-pin';
       const face = document.createElement('span');
@@ -435,6 +440,19 @@ export class MapView {
       badge.className = 'find-marker-emoji';
       setKindIcon(badge, cat);
       (f.thumb ? el : face).append(badge);
+      if (owner) {
+        el.classList.add('others');
+        const who = document.createElement('span');
+        who.className = 'find-owner';
+        if (owner.face.photo || owner.face.art) {
+          const img = document.createElement('img');
+          img.alt = '';
+          who.append(img);
+          if (owner.face.art) img.src = owner.face.art;
+          else queueMicrotask(() => { img.src = blobUrl(owner.face.photo!, el); });
+        } else who.textContent = owner.face.emoji;
+        el.append(who);
+      }
       el.prepend(pin);
       el.addEventListener('click', e => {
         e.stopPropagation();
