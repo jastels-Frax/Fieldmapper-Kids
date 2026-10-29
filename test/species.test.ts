@@ -33,7 +33,6 @@ test('the new kinds put their own kind of living thing first', () => {
   assert.equal(searchSpecies(ns.species, 'crusty', 'map')[0].t, 'Lichen');
   assert.equal(searchSpecies(ns.species, 'shelf', 'turkey')[0].n, 'Turkey Tail');
   assert.equal(searchSpecies(ns.species, 'snail', 'garden')[0].t, 'Mollusc');
-  // A place is not a species.
-  for (const k of ['forest', 'meadow', 'wetland', 'beach', 'habitat', 'rock', 'sky'] as const) assert.equal(hasSpeciesStep(k), false, k);
-  assert.equal(hasSpeciesStep('water'), true);
+  // A place is not a species (it asks "What kind of place?": habitats.ts).
+  for (const k of ['forest', 'meadow', 'wetland', 'water', 'beach', 'habitat', 'rock', 'sky'] as const) assert.equal(hasSpeciesStep(k), false, k);
 });

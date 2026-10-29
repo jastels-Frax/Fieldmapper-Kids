@@ -9,8 +9,9 @@ const PARTS: { emoji: string; title: string; lines: string[] }[] = [
   { emoji: '✨', title: 'Saving a find', lines: [
     'Tap "I found something!" at the bottom of the map.',
     'Take a photo, pick one from your photos, or draw it.',
-    'Then say what it is: a plant, an animal, a mushroom, a lichen or a habitat (a place). Each one opens its kinds: a fern, a frog, a shelf mushroom, a crusty lichen, a wetland… Something else? Tap 🧩 Other. Not sure? Tap ❓ Not sure.',
-    'Type its name to search every species. If it turns out to be a different kind (you picked Plant and it is a Turkey Tail), Scout asks if you want to change it.',
+    'Then say what it is: a plant, an animal, a mushroom, a lichen or a habitat (a place). Each one opens its kinds: a fern, a frog, a shelf mushroom, a crusty lichen, a wetland… Something else, or not sure what it is? Tap 🧩 Other.',
+    'Type its name to search every species. If it turns out to be a different kind (you picked Plant and it is a Turkey Tail), Scout asks if you want to change it. Do not know its name? Tap 🤷 Not sure and go on.',
+    'A habitat asks what kind of place it is instead: type it, or pick one like Softwood forest, Bog or Salt marsh.',
     'Tap ✨ Save now any time, or keep going: give it a name, its colours and size, and record voice notes.',
     'Hold your finger on the map to save a find right at that spot.',
   ] },
@@ -37,9 +38,10 @@ const PARTS: { emoji: string; title: string; lines: string[] }[] = [
   ] },
   { emoji: '📖', title: 'My finds, badges and hunts', lines: [
     '📖 My Finds is your sticker book. Tap a find to see it, listen to it, or change it.',
+    'Tap ❤️ Favourite on any find, yours or another explorer\'s on this tablet. Your favourites show on your card in "Who\'s exploring?", and ❤️ in My Finds shows just them.',
     '🏅 Badges are earned by finding things. ⭐ at the top shows today\'s challenges.',
     '🔎 Hunts are scavenger hunts: find everything on the list to win a trophy.',
-    "More than one explorer on this tablet? 🗺️ Map ▸ Everyone's finds puts their finds on your map too, each pin with its finder's picture. Tap one to look at it; only its finder can change it.",
+    "More than one explorer on this tablet? Their finds are on your map too, each pin with its finder's picture. Tap one to look at it; only its finder can change it. Just want yours? Turn off 🗺️ Map ▸ Everyone's finds.",
     'In My Finds, tap 👫 Everyone or an explorer to see whose finds you want.',
     "Pins too busy? 🗺️ Map ▸ On each pin chooses what they show: the picture, the kind, who found it, or any mix.",
   ] },

@@ -18,6 +18,7 @@ import type { Expression } from './buddies.ts';
 import { meetsRule, type HuntItem } from './hunts.ts';
 import { toBadgeFind } from './badges.ts';
 import { hasSpeciesStep, searchSpecies, type Species } from './species.ts';
+import { habitatKindToOffer, habitatNamed, habitatsFor, hasPlaceStep, searchHabitats, type HabitatType } from './habitats.ts';
 import { FAMILIAR } from './familiar.ts';
 import { loadSpecies } from './speciesStore.ts';
 import { artFor } from './sproutArt.ts';
@@ -34,7 +35,7 @@ export interface CaptureHost {
   pickOnMap: (start?: { lat: number; lon: number }) => Promise<{ lat: number; lon: number } | null>;
 }
 
-type Step = 'picture' | 'category' | 'sign' | 'species' | 'describe' | 'where' | 'tell';
+type Step = 'picture' | 'category' | 'sign' | 'species' | 'place' | 'describe' | 'where' | 'tell';
 
 export const MAX_PICTURES = 12;
 
@@ -80,7 +81,9 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
     const s: Step[] = ['picture', 'category'];
     if (sprout) return [...s, 'tell'];
     if (draft.category === 'sign') s.push('sign');
-    if (draft.category && hasSpeciesStep(draft.category)) s.push('species');
+    // A habitat is a place, not a species: it asks "What kind of place?" (habitats.ts) instead.
+    if (draft.category && hasPlaceStep(draft.category)) s.push('place');
+    else if (draft.category && hasSpeciesStep(draft.category)) s.push('species');
     s.push('describe');
     if (askWhere) s.push('where');
     s.push('tell');
@@ -198,6 +201,12 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
     if (saved || alwaysAsk) return askYesNo(`Remove this ${what}?`, '🗑️ Remove', 'Keep it');
     return true;
   };
+  /**
+   * The name box of the species and place steps, with 🤷 Not sure beside it: one tap clears the answer and goes on,
+   * for an explorer who does not know (it is never a wrong answer).
+   */
+  const typeRow = (input: HTMLInputElement, clear: () => void) => h('div', { class: 'type-row' }, input,
+    h('button', { class: 'big-btn soft not-sure', onclick: () => { clear(); commit = null; say('Not sure. That is okay!'); next(); } }, '🤷 Not sure'));
   /** ✨ Save now: on every new find's step after the kind, so the rest is optional on a trail. */
   const saveNow = () => (editing || detour || !draft.category ? null
     : h('button', { class: 'big-btn soft save-now', onclick: () => void finish() }, '✨ Save now'));
@@ -300,16 +309,18 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
     },
 
     category() {
-      // Two levels: the five groups (and "Other" and "Not sure"), then the kinds in the one tapped. A Sprout stops at the group.
+      // Two levels: the five groups (and "Other"), then the kinds in the one tapped. A Sprout stops at the group. There is
+      // no "Not sure" kind to pick any more: "Other" covers it (a find saved as a mystery before 2.10 stays one).
       // Coming back to this step opens the group of the kind already picked, with it lit.
       const pickKind = (c: Category) => {
         const changedKind = draft.category !== c.id;
-        if (changedKind) { draft.species = undefined; draft.sign = undefined; }
+        if (changedKind) { draft.species = undefined; draft.sign = undefined; draft.habitat = undefined; }
         draft.category = c.id;
         if (editing && changedKind) {
           followUps = [];
           if (c.id === 'sign') followUps.push('sign');
-          if (hasSpeciesStep(c.id)) followUps.push('species');
+          if (hasPlaceStep(c.id)) followUps.push('place');
+          else if (hasSpeciesStep(c.id)) followUps.push('species');
         }
         sounds.pick();
         say(c.cheer);
@@ -322,7 +333,6 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
         catBack = null;
         body.replaceChildren();
         const picked = draft.category ? groupOf(draft.category)?.id : undefined;
-        const mystery = categoryOf('mystery');
         const other = categoryOf('other');
         put(
           title(),
@@ -332,8 +342,7 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
               sounds.tap();
               showKinds(g);
             })),
-            choice(other, other.label, draft.category === 'other', () => pickKind(other), 'Something else'),
-            choice(mystery, 'Not sure', draft.category === 'mystery', () => pickKind(mystery)),
+            choice(other, other.label, draft.category === 'other' || draft.category === 'mystery', () => pickKind(other), 'Something else or not sure'),
           ),
         );
         paintNav();
@@ -378,7 +387,7 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
       const cat = draft.category!;
       const chosen = h('div', { class: 'species-chosen' });
       const search = h('input', {
-        class: 'text-in species-type', type: 'search', placeholder: 'Type what it is called…', 'aria-label': 'What is it called?',
+        class: 'text-in species-type', type: 'search', placeholder: 'Type its name…', 'aria-label': 'What is it called?',
         autocomplete: 'off', enterkeyhint: 'done', maxlength: 60,
       }) as HTMLInputElement;
       search.value = draft.species?.name ?? '';
@@ -468,15 +477,89 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
       });
       put(
         title(),
-        search,
+        typeRow(search, () => { search.value = ''; draft.species = undefined; }),
         chosen,
         h('div', { class: 'species-box' }, familiar, results, status),
         h('button', { class: 'big-btn', onclick: next }, nextLabel()),
-        h('button', { class: 'big-btn soft', onclick: () => { search.value = ''; draft.species = undefined; next(); } }, "🤷 I don't know yet"),
         saveNow(),
       );
       paintChosen();
       paintResults();
+    },
+
+    place() {
+      // A habitat find: "What kind of place?", asked the way a species is — the explorer's own words first, then the
+      // places of Nova Scotia this kind holds as chips, and a search over every kind of place as they type.
+      const cat = draft.category!;
+      const search = h('input', {
+        class: 'text-in species-type', type: 'search', placeholder: 'Type the place…', 'aria-label': 'What kind of place?',
+        autocomplete: 'off', enterkeyhint: 'done', maxlength: 60,
+      }) as HTMLInputElement;
+      search.value = draft.habitat?.name ?? '';
+      const suggestions = h('div', { class: 'place-grid' });
+      const results = h('div', { class: 'species-results' });
+      const choose = async (t: HabitatType) => {
+        draft.habitat = { name: t.name };
+        search.value = t.name;
+        sounds.pick();
+        say(`${t.name}!`);
+        paint();
+        // Like a species of another kind: "Bog is a kind of wetland. Make this find Wetland?" No keeps both.
+        const offer = habitatKindToOffer(draft.category!, t);
+        if (offer) {
+          const was = categoryOf(draft.category!), now = categoryOf(offer);
+          const yes = await askYesNo(`${t.name} is a kind of ${fullName(now).toLowerCase()}. Make this find ${fullName(now)}?`,
+            `✅ Yes, ${fullName(now)}`, `No, keep ${fullName(was)}`, 'go');
+          if (yes) {
+            draft.category = offer;
+            say(now.cheer);
+            if (!editing) dots.replaceChildren(...steps().map((_, j) => h('span', { class: j <= stepIdx ? 'on' : '' })));
+          }
+        }
+        setTimeout(next, 600);
+      };
+      // What the box says is the kind of place: a listed one when it names one (any capitals), else their own words.
+      commit = () => {
+        const typed = search.value.trim();
+        const listed = habitatNamed(typed);
+        draft.habitat = !typed ? undefined : listed ? { name: listed.name } : { name: typed, own: true };
+      };
+      const paint = () => {
+        const q = search.value.trim();
+        const listed = habitatNamed(q);
+        // The place already picked (its name is in the box): the chips stay, with it lit.
+        const picked = !!listed && draft.habitat?.name === listed.name && !draft.habitat.own;
+        suggestions.hidden = !!q && !picked;
+        suggestions.replaceChildren(...habitatsFor(draft.category!).map(t => {
+          const on = draft.habitat?.name === t.name;
+          return h('button', { class: `species-row place-pick ${on ? 'on' : ''}`, 'aria-pressed': String(on), onclick: () => void choose(t) },
+            h('strong', {}, t.name), h('span', { class: 'species-taxon' }, t.hint));
+        }));
+        results.replaceChildren();
+        if (!q || picked) return;
+        // Typed words that name a listed place are that place (tapped below, so another kind is offered); others can
+        // be kept as the explorer's own.
+        if (!listed) {
+          results.append(h('button', { class: 'species-row own-name', onclick: () => { commit?.(); sounds.pick(); say(`${q}!`); next(); } },
+            h('strong', {}, `✏️ Call it “${q}”`), h('span', { class: 'species-taxon' }, 'my own words')));
+        }
+        for (const t of searchHabitats(q, draft.category!)) {
+          results.append(h('button', { class: 'species-row', onclick: () => void choose(t) },
+            h('strong', {}, t.name), h('span', { class: 'species-taxon' }, `${categoryOf(t.kind).emoji} ${t.hint}`)));
+        }
+      };
+      search.addEventListener('input', paint);
+      search.addEventListener('keydown', e => { if (e.key === 'Enter') { search.blur(); next(); } });
+      const wet = cat === 'water' || cat === 'wetland' || cat === 'beach';
+      put(
+        title(),
+        typeRow(search, () => { search.value = ''; draft.habitat = undefined; }),
+        h('div', { class: 'species-box' }, suggestions, results),
+        wet ? h('p', { class: 'safety-note' }, '🐻 Ranger Bramble says: stay with a grown-up near water, and keep back from the edge.') : null,
+        h('button', { class: 'big-btn', onclick: next }, nextLabel()),
+        saveNow(),
+      );
+      paint();
     },
 
     describe() {
@@ -627,6 +710,7 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
       category: draft.category!,
       ...(draft.category === 'sign' && draft.sign ? { sign: draft.sign } : {}),
       ...(draft.species ? { species: draft.species } : {}),
+      ...(draft.habitat && hasPlaceStep(draft.category!) ? { habitat: draft.habitat } : {}),
       colours: draft.colours,
       size: draft.size,
       count: draft.count,
@@ -635,7 +719,6 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
       pictures: draft.pictures,
       thumb,
       voices: draft.voices,
-      favourite: existing?.favourite,
       ...where,
     };
     try {
@@ -695,7 +778,8 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
         row('picture', '📷', 'Pictures', thumbs),
         row('category', cat ? kindIcon(cat, 'edit-emoji') : '❓', 'What it is', cat ? kindWords(cat) : '—'),
         draft.category === 'sign' ? row('sign', sign?.emoji ?? '🐾', 'The clue', sign?.label ?? 'Not picked') : null,
-        draft.category && hasSpeciesStep(draft.category) ? row('species', '📚', 'Its name', draft.species?.name ?? 'Not named yet') : null,
+        draft.category && hasPlaceStep(draft.category) ? row('place', '🏞️', 'What kind of place', draft.habitat?.name ?? 'Not said yet') : null,
+        draft.category && (hasSpeciesStep(draft.category) || draft.species) ? row('species', '📚', 'Its name', draft.species?.name ?? 'Not named yet') : null,
         row('describe', '🎨', 'Colours, size and count', h('span', {}, colourDots, ` ${size ? `${size.emoji} ${size.label}` : ''} ${cnt ? `${cnt.emoji} ${cnt.label}` : ''}`)),
         row('where', '📍', 'Where', where),
         row('tell', '💬', together ? 'Voice notes, name and note' : 'Voice notes and name', story),

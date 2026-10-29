@@ -36,6 +36,11 @@ test('a challenge for an older kind is met by the kinds that refine it', () => {
       if (c.id === 'animal') assert.equal(c.test({ createdAt: '', category: 'reptile', colours: [] }), true);
       if (c.id === 'mushroom') assert.equal(c.test({ createdAt: '', category: 'puffball', colours: [] }), true);
       if (c.id === 'lichen') assert.equal(c.test({ createdAt: '', category: 'leafy', colours: [] }), true);
+      if (c.id === 'mystery') {
+        assert.equal(c.test({ createdAt: '', category: 'other', colours: [] }), true);
+        assert.equal(c.test({ createdAt: '', category: 'mystery', colours: [] }), true, 'a mystery from before still counts');
+        assert.equal(c.test({ createdAt: '', category: 'bird', colours: [] }), false);
+      }
     }
   }
 });

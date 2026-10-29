@@ -17,8 +17,8 @@ export interface Species {
 }
 
 /**
- * Which taxa answer "what is it?" for each kind of find. Absent = no species step: a habitat is a place, not a species
- * (water keeps its own, from before the groups: what lives in it).
+ * Which taxa answer "what is it?" for each kind of find. Absent = no species step: a habitat is a place, not a species,
+ * and asks "What kind of place?" instead (habitats.ts) — water too, since 2.10 (a fish or a frog is an animal find).
  */
 export const CATEGORY_TAXA: Partial<Record<CategoryId, string[]>> = {
   bird: ['Bird'],
@@ -45,7 +45,6 @@ export const CATEGORY_TAXA: Partial<Record<CategoryId, string[]>> = {
   crusty: ['Lichen'],
   leafy: ['Lichen'],
   bushy: ['Lichen'],
-  water: ['Fish', 'Amphibian', 'Reptile', 'Bird', 'Insect', 'Mollusc', 'Crustacean'],
   mystery: [],
 };
 

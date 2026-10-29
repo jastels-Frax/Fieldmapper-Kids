@@ -54,6 +54,7 @@ import { SHAPE_TAP_PX, metresPerPixel, pickShape } from './mapShapes.ts';
 import { TOOLS, railFor, type ToolId } from './railTools.ts';
 import { categoryOf } from './categories.ts';
 import { mapFinds, observerOf } from './findModel.ts';
+import { favouriteFinds, isFavourite, lovedBy, migrateFavourites, toggleFavourite } from './favourites.ts';
 import { pinParts, type PinParts } from './pinFace.ts';
 import { kindIcon } from './kindIcon.ts';
 import { downscale } from './image.ts';
@@ -106,6 +107,7 @@ export class App {
     // Re-read: the migration rewrote the settings record.
     this.settings = await loadSettings();
     this.everyFind = await allFinds();
+    await this.moveOldFavourites();
     this.everyRun = await allHuntRuns();
     this.custom = await allCustomHunts();
     // A path that was recording when the app closed ends at its last point.
@@ -170,6 +172,24 @@ export class App {
     this.drawWalks();
     const hi = greet(this.profile.guide);
     this.dock.speak({ ...hi, text: this.profile.name ? `Hi ${this.profile.name}! ${hi.text}` : hi.text });
+  }
+
+  /**
+   * Favourites became each explorer's own (favourites.ts): a find's old favourite flag moves onto its finder's list,
+   * once. Nothing to move on every launch after.
+   */
+  private async moveOldFavourites(): Promise<void> {
+    const fallback = this.settings.activeProfileId ?? this.profiles[0]?.id;
+    if (!fallback) return;
+    const moved = migrateFavourites(this.everyFind, this.profiles, fallback);
+    for (const p of moved.profiles) {
+      const saved = await saveProfile(p);
+      this.profiles = this.profiles.map(x => (x.id === saved.id ? saved : x));
+    }
+    for (const f of moved.finds) {
+      const saved = await saveFindInfo(f);
+      this.everyFind = this.everyFind.map(x => (x.id === saved.id ? saved : x));
+    }
   }
 
   /** The finds and hunts on screen are the active explorer's (old records with no owner count as theirs). */
@@ -325,9 +345,9 @@ export class App {
         text: () => {
           const names = this.profiles.filter(p => p.id !== this.profile.id).map(p => p.name || 'Explorer');
           const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0];
-          return this.profile.mapEveryone ? `Showing finds by ${list} too` : `Just yours. Turn on to see finds by ${list} too`;
+          return this.everyoneOnMap() ? `Showing finds by ${list} too` : `Just yours. Turn on to see finds by ${list} too`;
         },
-        on: () => !!this.profile.mapEveryone, toggle: () => this.toggleEveryone(),
+        on: () => this.everyoneOnMap(), toggle: () => this.toggleEveryone(),
       }] : []),
     ], {
       now: () => this.settings.pinSize ?? 'medium',
@@ -833,7 +853,7 @@ export class App {
 
   /** "Everyone's finds" counts only on a device with more than one explorer (the switch is shown only then). */
   private everyoneOnMap(): boolean {
-    return this.profiles.length > 1 && !!this.profile.mapEveryone;
+    return this.profiles.length > 1 && this.profile.mapEveryone !== false;
   }
 
   /**
@@ -869,7 +889,7 @@ export class App {
 
   /** Switches "Everyone's finds" for the explorer exploring now. */
   private async toggleEveryone(): Promise<void> {
-    const on = !this.profile.mapEveryone;
+    const on = !this.everyoneOnMap();
     await this.profileHost().save({ ...this.profile, mapEveryone: on });
     sounds.pick();
     say(on ? "Everyone's finds are on the map!" : 'Just your finds now.');
@@ -1010,10 +1030,6 @@ export class App {
     this.replaceFind(await saveFind(full));
   }
 
-  /** A change to a find's details only (the favourite star): its pictures stay as they are. */
-  private async updateFindInfo(f: Find): Promise<void> {
-    this.replaceFind(await saveFindInfo(f));
-  }
 
   private replaceFind(f: Find): void {
     this.everyFind = this.everyFind.map(x => (x.id === f.id ? f : x));
@@ -1155,7 +1171,12 @@ export class App {
         this.scopeToProfile();
         this.refresh();
       },
-      update: f => this.updateFindInfo(f),
+      favourites: () => this.profile.favourites ?? [],
+      lovedBy: id => lovedBy(this.profiles, id).map(p => ({ id: p.id, name: p.name || 'Explorer', face: this.faceOf(p) })),
+      toggleFavourite: async id => {
+        const p = await this.profileHost().save(toggleFavourite(this.profile, id));
+        return isFavourite(p, id);
+      },
       media: id => getFindMedia(id),
       editFind: f => void this.capture(f),
       startCapture: () => void this.capture(),
@@ -1174,6 +1195,7 @@ export class App {
       profiles: () => this.profiles,
       active: () => this.profile,
       findCount: id => this.everyFind.filter(f => (f.profileId ?? this.profiles[0]?.id) === id).length,
+      favourites: p => favouriteFinds(p, this.everyFind),
       switchTo: id => this.switchTo(id),
       save: async p => {
         p = await saveProfile(p);

@@ -27,9 +27,10 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
   what changed — then and now.
 - **"I found something!"**: add as many photos and drawings as you like, pick what it is — a plant, an animal, a
   mushroom, a lichen or a habitat (new in 2.5), then its kind (a fern, a frog, a shelf mushroom, a crusty lichen, a
-  wetland…), or 🧩 other, or ❓ not sure — and ✨ Save now — or go on: name it (any species can be searched from any
-  kind; one of another kind asks before changing the find to match)
-  (type your own words, like "little plant", or pick a species), tap its colours, size and how many on one screen,
+  wetland…), or 🧩 other (something else, or not sure) — and ✨ Save now — or go on: name it (any species can be
+  searched from any kind; one of another kind asks before changing the find to match; 🤷 Not sure skips it)
+  (type your own words, like "little plant", or pick a species) — or, for a habitat, say what kind of place it is
+  (new in 2.10: a softwood forest, a bog, a salt marsh… Nova Scotia's habitats to pick from) — tap its colours, size and how many on one screen,
   and record as many voice notes as you like. It goes where you stood by GPS; you are only asked where when the
   GPS is unsure. Sprouts get three screens: picture, group, save. The celebration goes back to the map by itself.
   Every find can be changed later.
@@ -40,9 +41,12 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
   the eight characters, renamed if they like.
 - **Map styles**: streets, satellite or hybrid; small, medium or big pins; and what each pin shows (its picture, its
   kind, who found it, or any mix).
-- **Everyone's finds** (new in 2.6): with more than one explorer on a tablet, each can show the others' finds on
-  their map (🗺️ Map card), every pin wearing its finder's picture, and My Finds can show everyone's or one
-  explorer's (new in 2.8). Others' finds open to look at, not to change. Same tablet only.
+- **Everyone's finds** (new in 2.6): with more than one explorer on a tablet, each sees the others' finds on
+  their map (on from the start since 2.10; off in the 🗺️ Map card), every pin wearing its finder's picture, and My
+  Finds can show everyone's or one explorer's (new in 2.8). Others' finds open to look at, not to change. Same tablet
+  only.
+- **Favourites** (each explorer's own since 2.10): ❤️ any find, yours or another explorer's on the tablet. Your
+  favourites show on your card in "Who's exploring?" and under ❤️ in My Finds, and a find says who loves it.
 - **Which way am I facing?** (🧭): an arrow on the map turns with the device compass (iPhone/iPad ask permission
   once). It reads the phone's own compass, so no data leaves the device.
 - **Hold a finger on the map** to save a find right at that spot, as well as with "I found something!".

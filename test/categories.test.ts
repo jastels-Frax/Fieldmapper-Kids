@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { CATEGORIES, GROUPS, categoryOf, findName, groupOf, isKind, kindWords, kindsOf, oneOf } from '../src/categories.ts';
 import { KIND_ART_IDS, kindArt } from '../src/kindArt.ts';
 
-test('every kind is in exactly one group, except "Other" and "Not sure"', () => {
+test('every kind is in exactly one group, except "Other" and the old mystery', () => {
   assert.equal(new Set(CATEGORIES.map(c => c.id)).size, CATEGORIES.length);
   const listed = GROUPS.flatMap(g => g.kinds);
   assert.equal(new Set(listed).size, listed.length, 'a kind listed twice');
@@ -22,6 +22,8 @@ test('a group\'s own kind ("Just a plant") is in it, and offered last', () => {
     assert.equal(categoryOf(g.generic).group, g.id, g.id);
     assert.equal(kindsOf(g).at(-1)!.id, g.generic, g.id);
     assert.ok(categoryOf(g.generic).pick, `${g.generic} needs its button words`);
+    // "Not sure" left "What is it?" in 2.10: "Other" covers it, so no button says it.
+    assert.notEqual(categoryOf(g.generic).pick, 'Not sure', g.id);
   }
 });
 
@@ -80,5 +82,7 @@ test('a find is called by its own name, then its species, then its kind', () => 
   assert.equal(findName({ category: 'plant', species: { name: 'Red Maple' } }), 'Red Maple');
   assert.equal(findName({ category: 'plant', species: { name: 'little plant' } }), 'little plant');
   assert.equal(findName({ category: 'shelf' }), 'Shelf mushroom');
+  assert.equal(findName({ category: 'forest', habitat: { name: 'Softwood forest' } }), 'Softwood forest');
+  assert.equal(findName({ category: 'forest', nickname: 'Fort woods', habitat: { name: 'Softwood forest' } }), 'Fort woods');
   assert.equal(findName({ category: 'plant', nickname: '  ', species: { name: ' ' } }), 'Plant');
 });

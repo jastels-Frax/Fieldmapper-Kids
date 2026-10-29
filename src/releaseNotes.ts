@@ -12,6 +12,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.10.0', date: '2026-10-29', title: 'Favourites and places',
+    notes: [
+      "❤️ Favourite anyone's finds. Your favourites show on your card in Who's exploring?",
+      "Everyone's finds are on the map from the start. Turn them off in 🗺️ Map.",
+      'Not sure what it is? Pick 🧩 Other. Not sure of its name? Tap 🤷 Not sure.',
+      'Found a habitat? Say what kind of place: a softwood forest, a bog, a salt marsh…',
+    ],
+  },
+  {
     version: '2.9.0', date: '2026-10-29', title: 'Tidier pins',
     notes: ["Choose what pins show in 🗺️ Map ▸ On each pin: the picture, the kind, who found it, or any mix."],
   },

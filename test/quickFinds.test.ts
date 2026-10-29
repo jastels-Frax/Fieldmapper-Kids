@@ -6,15 +6,15 @@ import type { CategoryId } from '../src/types.ts';
 
 const finds = (...c: CategoryId[]) => c.map(category => ({ category }));
 
-test('the choices are the top of "What is it?": the groups, Other and Not sure', () => {
-  assert.deepEqual(QUICK_CHOICES, [...GROUPS.map(g => g.generic), 'other', 'mystery']);
+test('the choices are the top of "What is it?": the groups and Other', () => {
+  assert.deepEqual(QUICK_CHOICES, [...GROUPS.map(g => g.generic), 'other']);
   assert.equal(quickChoiceOf('bird'), 'animal');
   assert.equal(quickChoiceOf('shelf'), 'mushroom');
   assert.equal(quickChoiceOf('water'), 'habitat');
   assert.equal(quickChoiceOf('other'), 'other');
   assert.equal(quickFace('plant').label, 'Plant');
   assert.equal(quickFace('lichen').art, 'lichen');
-  assert.equal(quickFace('mystery').label, 'Not sure');
+  assert.equal(quickFace('other').label, 'Other');
 });
 
 test('no finds yet: the defaults', () => {
@@ -28,8 +28,9 @@ test('most found GROUP first, ties to the most recent, topped up from the defaul
   assert.deepEqual(quickKinds(finds('bird', 'mammal')), ['animal', 'plant', 'mushroom']);
 });
 
-test('a mystery is not a choice worth a button by itself', () => {
+test('an old mystery find is not a choice any more, nor a stored pick of one', () => {
   assert.deepEqual(quickKinds(finds('mystery', 'mystery', 'tree')), ['plant', 'animal', 'mushroom']);
+  assert.deepEqual(pickedKinds(['mystery', 'bird']), ['animal']);
 });
 
 test('quick finds are off until an explorer turns them on', () => {

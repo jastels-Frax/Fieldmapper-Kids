@@ -13,7 +13,7 @@ export interface Category {
   talk: string[];
   /** Short true facts to wonder at. */
   facts: string[];
-  /** Its group (absent only for the mystery, which is "not sure" of everything). */
+  /** Its group (absent for "Other" and the mystery, which is "not sure" of everything). */
   group?: GroupId;
   /**
    * The older kind it is a kind of: a fern is a plant, a mammal an animal, a shelf a mushroom. Anything counting the
@@ -162,7 +162,7 @@ export const CATEGORIES: Category[] = [
     facts: ['When raindrops hit a ripe puffball, a cloud of spores puffs out.', 'Some poison mushrooms look like puffballs when they are young. Never eat one.', 'A giant puffball can grow as big as a soccer ball.'],
   },
   {
-    id: 'lichen', group: 'lichens', emoji: '🍃', art: 'lichen', label: 'Lichen', pick: 'Not sure', colour: '#7c9a5a',
+    id: 'lichen', group: 'lichens', emoji: '🍃', art: 'lichen', label: 'Lichen', pick: 'Just a lichen', colour: '#7c9a5a',
     cheer: 'A lichen! A fungus and tiny green partners, living together.',
     talk: ['Is it on a rock, a tree or the ground?', 'What colour is it?', 'Is it flat, leafy or bushy?'],
     facts: ['A lichen is a fungus and tiny green partners living together as a team.', 'Lichens grow very slowly. Some grow only a few millimetres a year.', 'Many lichens only grow where the air is clean.'],
@@ -223,6 +223,7 @@ export const CATEGORIES: Category[] = [
     facts: ['Shells, feathers and bones are clues about animals that were nearby.', 'Some things outside were made by people, like trash. Ask a grown-up before you pick anything up.', 'Explorers write down what they notice, even when it does not fit a group.'],
   },
   {
+    // "Not sure" of everything. No longer offered (2.10: "Other" covers it); finds saved as one before stay one.
     id: 'mystery', emoji: '❓', label: 'Mystery', colour: '#9775fa', cheer: 'A mystery! Ooooh!',
     talk: ['What do you think it is?', 'Who could we ask?', 'What clues can you see?'],
     facts: ['Scientists find new living things every year.', 'Asking questions is what explorers do.', 'Every mystery is a chance to learn.'],
@@ -234,7 +235,7 @@ export function categoryOf(id: CategoryId): Category {
 }
 
 /**
- * The first screen of "What is it?": five groups, each opening its own kinds, plus "not sure" (the mystery). A Sprout
+ * The first screen of "What is it?": five groups, each opening its own kinds, plus "Other". A Sprout
  * picks a group and stops there (its `generic` kind); everyone else picks a kind within it, the generic one last, as
  * the "anything else" answer ("Just a plant", "Another shape").
  */
@@ -289,11 +290,11 @@ export function fullName(c: Category): string {
 
 /**
  * What a find is called on its sticker, its page and its pin: the explorer's name for it, else its species (from the
- * list, or their own words), else its kind. The kind's picture sits beside the name everywhere, so the kind is the
- * last resort rather than the label.
+ * list, or their own words), else the kind of place a habitat is ("Softwood forest"), else its kind. The kind's
+ * picture sits beside the name everywhere, so the kind is the last resort rather than the label.
  */
-export function findName(f: { category: CategoryId; nickname?: string; species?: { name: string } }): string {
-  return f.nickname?.trim() || f.species?.name.trim() || fullName(categoryOf(f.category));
+export function findName(f: { category: CategoryId; nickname?: string; species?: { name: string }; habitat?: { name: string } }): string {
+  return f.nickname?.trim() || f.species?.name.trim() || f.habitat?.name.trim() || fullName(categoryOf(f.category));
 }
 
 /** A kind in words with its group when that adds something: "Shelf · Mushroom", "Plant" (not "Plant · Plant"). */

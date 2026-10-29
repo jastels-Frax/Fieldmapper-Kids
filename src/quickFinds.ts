@@ -3,12 +3,13 @@ import { GROUPS, categoryOf, groupOf } from './categories.ts';
 
 /**
  * A quick-find button stands for the TOP of "What is it?": a group (saved as its own kind — plant, animal, mushroom,
- * lichen, habitat), "Other" or "Not sure", never a kind within a group. One tap, one photo, saved as the group; the
- * explorer makes it a fern or a frog later, from the sticker book (Change it). Seven choices, not thirty-odd.
+ * lichen, habitat) or "Other", never a kind within a group. One tap, one photo, saved as the group; the explorer makes
+ * it a fern or a frog later, from the sticker book (Change it). Six choices, not thirty-odd. The mystery ("Not sure")
+ * left "What is it?" in 2.10, when "Other" took its place, so it is not a choice here either.
  */
-export const QUICK_CHOICES: CategoryId[] = [...GROUPS.map(g => g.generic), 'other', 'mystery'];
+export const QUICK_CHOICES: CategoryId[] = [...GROUPS.map(g => g.generic), 'other'];
 
-/** The quick choice a kind folds to: a kind within a group is its group's own kind; "Other" and the mystery stay. */
+/** The quick choice a kind folds to: a kind within a group is its group's own kind; "Other" stays. */
 export function quickChoiceOf(kind: CategoryId): CategoryId {
   return groupOf(kind)?.generic ?? kind;
 }
@@ -18,8 +19,7 @@ export function quickFace(id: CategoryId): { emoji: string; art?: string; label:
   const g = GROUPS.find(x => x.generic === id);
   if (g) return { emoji: g.emoji, art: g.art, label: g.label, colour: g.colour };
   const c = categoryOf(id);
-  // The mystery is "Not sure" wherever it is offered, as on the first screen of "What is it?".
-  return { emoji: c.emoji, art: c.art, label: id === 'mystery' ? 'Not sure' : c.short ?? c.label, colour: c.colour };
+  return { emoji: c.emoji, art: c.art, label: c.short ?? c.label, colour: c.colour };
 }
 
 /** The choices offered when an explorer has few finds of their own yet. */
@@ -39,7 +39,7 @@ export function quickKinds(finds: Pick<Find, 'category'>[], n = 3): CategoryId[]
     else tally.set(c, { count: 1, newest: i });
   });
   const mine = [...tally.entries()]
-    .filter(([c]) => c !== 'mystery')
+    .filter(([c]) => QUICK_CHOICES.includes(c)) // an old mystery find is not a choice any more
     .sort((a, b) => b[1].count - a[1].count || a[1].newest - b[1].newest)
     .map(([c]) => c);
   const out = mine.slice(0, n);

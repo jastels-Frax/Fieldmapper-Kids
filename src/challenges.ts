@@ -28,7 +28,8 @@ const POOL: Challenge[] = [
   { id: 'lots', emoji: '💯', text: 'Find lots of something', test: f => f.count === 'lots' },
   { id: 'draw', emoji: '🎨', text: 'Draw a picture of a find', test: f => !!f.hasDrawing },
   { id: 'voice', emoji: '🎤', text: 'Tell a story about a find', test: f => !!f.hasVoice },
-  { id: 'mystery', emoji: '❓', text: 'Find a mystery', test: f => isKind(f.category, 'mystery') },
+  // "Not sure" left "What is it?" in 2.10 ("Other" covers it), so this asks for an Other; a mystery saved before still counts.
+  { id: 'mystery', emoji: '🧩', text: 'Find something odd and save it as Other', test: f => isKind(f.category, 'other') || isKind(f.category, 'mystery') },
   { id: 'mushroom', emoji: '🍄', text: 'Find a mushroom (look, never eat!)', test: f => isKind(f.category, 'mushroom') },
   { id: 'sign', emoji: '🐾', text: 'Find an animal track or clue', test: f => isKind(f.category, 'sign') },
   { id: 'lichen', emoji: '🍃', text: 'Find a lichen on a rock or a tree', test: f => isKind(f.category, 'lichen') },

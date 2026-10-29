@@ -146,7 +146,10 @@ export interface Find {
   hasVoice?: boolean;
   /** How many voice notes; absent on a find from before there could be several, which has one if `hasVoice`. */
   voiceCount?: number;
+  /** From before favourites were each explorer's own: moved onto its finder's `Profile.favourites` at launch. */
   favourite?: boolean;
+  /** For a place (the Habitat group): what kind of place, from Scout's list (habitats.ts) or the explorer's own words. */
+  habitat?: { name: string; own?: boolean };
 }
 
 /** One explorer on this device. */
@@ -175,9 +178,11 @@ export interface Profile {
   art?: string;
   /** Their marker on the map; absent = the same picture as their card. */
   mapAvatar?: MapAvatar;
+  /** Finds this explorer loves (find ids, anyone's on this device: favourites.ts); absent = none. */
+  favourites?: string[];
   /** Their 📸 quick-find buttons (quickFinds.ts); absent = off. */
   quick?: QuickPref;
-  /** Show every explorer's finds on this device on the map, not just theirs (Map card); absent = just theirs. */
+  /** Show every explorer's finds on this device on the map, not just theirs (Map card); absent = shown (2.10), false = just theirs. */
   mapEveryone?: boolean;
   createdAt: string;
 }

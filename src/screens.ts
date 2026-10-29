@@ -2,6 +2,9 @@ import { activeGuide } from './guides.ts';
 import type { Find, FindMedia, GroupId, Profile, Settings } from './types.ts';
 import { COLOURS, COUNTS, GROUPS, SIGNS, SIZES, categoryOf, findName, groupOf, oneOf } from './categories.ts';
 import { kindIcon } from './kindIcon.ts';
+import { pictureOf } from './findPicture.ts';
+import { habitatNamed } from './habitats.ts';
+import { isFavourite } from './favourites.ts';
 import { bookFinds, observerOf } from './findModel.ts';
 import { askYesNo, blobUrl, h, openSheet, whenWords } from './ui.ts';
 import { say } from './speech.ts';
@@ -26,7 +29,12 @@ export interface ScreenHost {
   finds: () => Find[];
   showOnMap: (f: Find) => void;
   remove: (f: Find) => Promise<void>;
-  update: (f: Find) => Promise<void>;
+  /** The active explorer's favourites (find ids, anyone's: favourites.ts). */
+  favourites: () => string[];
+  /** Adds a find to the active explorer's favourites or takes it off; resolves to whether it is one now. */
+  toggleFavourite: (findId: string) => Promise<boolean>;
+  /** The explorers on this device who love a find, with their map pictures (the find page's "Loved by"). */
+  lovedBy: (findId: string) => { id: string; name: string; face: OwnerFace }[];
   /** A find's pictures and voice, read on demand (finds in memory carry picture info only). */
   media: (id: string) => Promise<FindMedia>;
   startCapture: () => void;
@@ -67,25 +75,6 @@ export interface HuntNews {
   completed: boolean;
 }
 
-function pictureOf(f: Find, owner: Element, cls: string): HTMLElement {
-  const blob = f.thumb;
-  const cat = categoryOf(f.category);
-  if (blob) {
-    const img = h('img', { class: cls, alt: findName(f) });
-    img.src = blobUrl(blob, owner);
-    return img;
-  }
-  const art = f.species ? artFor(f.species.name) : undefined;
-  if (art) {
-    const el = h('span', { class: `${cls} emoji-pic art-pic`, style: `--cat:${cat.colour}`, 'aria-label': art.label });
-    el.innerHTML = art.svg();
-    return el;
-  }
-  const el = kindIcon(cat, `${cls} emoji-pic`);
-  el.style.setProperty('--cat', cat.colour);
-  return el;
-}
-
 /** After a save: a sticker, a cheer, a fact, and anything newly earned. */
 export function celebrate(host: ScreenHost, f: Find, newBadges: BadgeProgress[], newChallenges: Challenge[], locatedOk: boolean, hunt: HuntNews | null): void {
   const cat = categoryOf(f.category);
@@ -98,6 +87,7 @@ export function celebrate(host: ScreenHost, f: Find, newBadges: BadgeProgress[],
   const what = f.nickname ? `You found ${f.nickname}!`
     : f.category === 'sign' ? (f.species ? `You found ${f.species.name} clues!` : 'You found animal clues!')
     : f.species ? `You found ${an(f.species.name)} ${f.species.name}!`
+    : f.habitat ? `You found ${oneOf(cat)}: ${f.habitat.name}!`
     : `You found ${oneOf(cat)}!`;
   const buddy = host.profile.guide;
   const hooray = cheer(buddy);
@@ -144,8 +134,9 @@ export function celebrate(host: ScreenHost, f: Find, newBadges: BadgeProgress[],
 }
 
 /**
- * The sticker book: every find as a sticker, filtered by group (Plant, Animal…) or "not sure" and, with more than one
- * explorer on the device, by who found it ("Whose finds?": everyone, or one explorer). It opens on the explorer's own,
+ * The sticker book: every find as a sticker, filtered by group (Plant, Animal…), Other, Mystery (finds saved as one
+ * before 2.10) or ❤️ (the explorer's favourites) and, with more than one explorer on the device, by who found it
+ * ("Whose finds?": everyone, or one explorer). It opens on the explorer's own,
  * or on everyone's while the map shows everyone's. Another explorer's find opens to look at, as from the map.
  */
 export function openBook(host: ScreenHost): void {
@@ -163,7 +154,7 @@ export function openBook(host: ScreenHost): void {
   const whoChips = h('div', { class: 'chips who-chips', role: 'group', 'aria-label': 'Whose finds?' });
   const chips = h('div', { class: 'chips' });
   const grid = h('div', { class: 'sticker-grid' });
-  /** A find's shelf in the book: its group, else "Other" or "Not sure" (a mystery). */
+  /** A find's shelf in the book: its group, else "Other" or, for a find saved before 2.10, "Mystery". */
   const shelfOf = (f: Find): Filter => groupOf(f.category)?.id ?? (f.category === 'other' ? 'other' : 'mystery');
 
   const paint = () => {
@@ -186,22 +177,25 @@ export function openBook(host: ScreenHost): void {
     const other = categoryOf('other');
     const shelves = [...GROUPS.map(g => ({ id: g.id as Filter, emoji: g.emoji, art: g.art, label: g.label, colour: g.colour })),
       { id: 'other' as Filter, emoji: other.emoji, label: other.label, colour: other.colour },
-      { id: 'mystery' as Filter, emoji: mystery.emoji, label: 'Not sure', colour: mystery.colour }];
+      { id: 'mystery' as Filter, emoji: mystery.emoji, label: mystery.label, colour: mystery.colour }];
     chips.replaceChildren(
       h('button', { class: `chip ${filter === 'all' ? 'on' : ''}`, onclick: () => { filter = 'all'; paint(); } }, `🌍 All ${pool.length}`),
-      h('button', { class: `chip ${filter === 'fav' ? 'on' : ''}`, 'aria-label': 'Favourites', onclick: () => { filter = 'fav'; paint(); } }, '❤️'),
+      h('button', { class: `chip ${filter === 'fav' ? 'on' : ''}`, 'aria-label': 'My favourites', onclick: () => { filter = 'fav'; say('My favourites'); paint(); } }, '❤️'),
       ...shelves.filter(g => counts.has(g.id)).map(g =>
         h('button', { class: `chip ${filter === g.id ? 'on' : ''}`, style: `--cat:${g.colour}`, 'aria-label': `${g.label}: ${counts.get(g.id)}`, onclick: () => { filter = g.id; say(g.label); paint(); } },
           kindIcon(g, 'chip-ic'), ` ${counts.get(g.id)}`)),
     );
-    const list = pool.filter(f => filter === 'all' || (filter === 'fav' ? f.favourite : shelfOf(f) === filter));
+    const loved = new Set(host.favourites());
+    const list = pool.filter(f => filter === 'all' || (filter === 'fav' ? loved.has(f.id) : shelfOf(f) === filter));
     grid.replaceChildren();
     if (!list.length) {
       grid.append(h('div', { class: 'empty' },
-        host.finds().length || who !== me
+        filter === 'fav'
+          ? h('p', {}, 'No favourites here yet. Open a find and tap ❤️ Favourite.')
+          : host.finds().length || who !== me
           ? h('p', {}, 'Nothing here yet.')
           : crewSays('squirrel', { text: 'I am Acorn! Your sticker book is empty. Go find something and I will keep it safe!', pose: 'confused' }),
-        !host.finds().length && who === me && h('button', { class: 'big-btn', onclick: () => { close(); host.startCapture(); } }, '✨ I found something!'),
+        !host.finds().length && who === me && filter !== 'fav' && h('button', { class: 'big-btn', onclick: () => { close(); host.startCapture(); } }, '✨ I found something!'),
       ));
       return;
     }
@@ -217,7 +211,7 @@ export function openBook(host: ScreenHost): void {
         h('span', { class: 'sticker-name' }, findName(f)));
       // Who found it, whenever the book is showing more than one explorer's finds (or someone else's).
       if (by && (who === 'all' || !mine)) card.append(h('span', { class: 'sticker-who' }, ownerPic(by.face, 'owner-pic'), ` ${by.name}`));
-      if (f.favourite) card.append(h('span', { class: 'sticker-fav' }, '❤️'));
+      if (loved.has(f.id)) card.append(h('span', { class: 'sticker-fav' }, '❤️'));
     }
   };
   if (host.finds().length) {
@@ -237,9 +231,10 @@ export function openBook(host: ScreenHost): void {
 export const FINDS_CHANGED = 'scout-finds-changed';
 
 /**
- * One find, large: its picture, its sound, and what was noticed. `owner` opens another explorer's find from the map
- * (the Map card's "Everyone's finds") to LOOK at: it says whose it is, and offers nothing that changes it — no
- * favourite, no Change it, no throwing away. It is theirs.
+ * One find, large: its picture, its sound, and what was noticed. `owner` opens another explorer's find (from the map
+ * with "Everyone's finds" on, or from the book) to LOOK at: it says whose it is, and offers nothing that changes it —
+ * no Change it, no throwing away. It is theirs. A favourite is the explorer's own, not the find's, so anyone's find
+ * can be one of theirs.
  */
 export function openFind(host: ScreenHost, id: string, onChange?: () => void, owner?: { name: string; face: OwnerFace }): void {
   const f = host.finds().find(x => x.id === id);
@@ -277,7 +272,19 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void, ow
   const facts: HTMLElement[] = [h('li', {}, `🕒 ${whenWords(f.createdAt)}`)];
   // The same picture their pin wears on the map, so the two are plainly the same explorer.
   if (owner) facts.unshift(h('li', {}, ownerPic(owner.face, 'owner-pic'), ` Found by ${owner.name}`));
+  // Who loves it, repainted when the button below changes it.
+  const loved = h('li', { class: 'loved-by' });
+  const paintLoved = () => {
+    const by = host.lovedBy(f.id);
+    loved.hidden = !by.length;
+    loved.replaceChildren('❤️ Loved by', ...by.flatMap((p, i) => [i ? (i === by.length - 1 ? ' and' : ',') : '', ' ', ownerPic(p.face, 'owner-pic'), ` ${p.name}`]));
+  };
+  paintLoved();
   if (f.species) facts.push(h('li', {}, `${f.species.own ? '✏️' : '📚'} ${f.species.name}`, f.species.scientific ? h('span', { class: 'latin' }, ` ${f.species.scientific}`) : null));
+  if (f.habitat) {
+    const listed = habitatNamed(f.habitat.name);
+    facts.push(h('li', {}, `${f.habitat.own ? '✏️' : '🏞️'} ${f.habitat.name}`, listed && !f.habitat.own ? h('span', { class: 'latin' }, ` ${listed.hint}`) : null));
+  }
   const art = f.species ? artFor(f.species.name) : undefined;
   const sign = SIGNS.find(x => x.id === f.sign);
   if (sign) facts.push(h('li', {}, `${sign.emoji} ${sign.label}`));
@@ -291,7 +298,7 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void, ow
   if (size) facts.push(h('li', {}, `${size.emoji} ${size.label}`));
   const cnt = COUNTS.find(s => s.id === f.count);
   if (cnt) facts.push(h('li', {}, `${cnt.emoji} ${cnt.label}`));
-  body.append(h('ul', { class: 'detail-facts' }, ...facts));
+  body.append(h('ul', { class: 'detail-facts' }, ...facts, loved));
   if (art) {
     const fig = h('span', { class: 'art-fig', 'aria-hidden': 'true' });
     fig.innerHTML = art.svg();
@@ -326,21 +333,26 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void, ow
   }
   body.append(crewSays('owl', { text: `Hoo! Did you know? ${cat.facts[0]}`, pose: 'point' }, { quiet: true }));
 
+  const favWords = (on: boolean) => (on ? '💔 Not a favourite' : '❤️ Favourite');
+  const fav = h('button', { class: 'big-btn soft', 'aria-pressed': String(isFavourite({ favourites: host.favourites() }, f.id)) },
+    favWords(isFavourite({ favourites: host.favourites() }, f.id)));
+  fav.addEventListener('click', async () => {
+    const on = await host.toggleFavourite(f.id);
+    fav.textContent = favWords(on);
+    fav.setAttribute('aria-pressed', String(on));
+    paintLoved();
+    if (on) { sounds.pick(); say('One of my favourites!'); }
+    // The book behind redraws its hearts; nothing on the map shows a favourite.
+    window.dispatchEvent(new Event(FINDS_CHANGED));
+  });
   if (owner) {
+    body.append(fav);
     if (typeof f.lat === 'number') {
       body.append(h('button', { class: 'big-btn soft', onclick: () => { document.querySelectorAll('.sheet').forEach(x => x.remove()); host.showOnMap(f); } }, '🗺️ Show on map'));
     }
-    say(`${owner.name} found ${f.nickname ? `${f.nickname}, ${f.species?.name ?? oneOf(cat)}` : f.species?.name ?? oneOf(cat)}`);
+    say(`${owner.name} found ${f.nickname ? `${f.nickname}, ${f.species?.name ?? f.habitat?.name ?? oneOf(cat)}` : f.species?.name ?? f.habitat?.name ?? oneOf(cat)}`);
     return;
   }
-  const fav = h('button', { class: 'big-btn soft' }, f.favourite ? '💔 Not a favourite' : '❤️ Favourite');
-  fav.addEventListener('click', async () => {
-    f.favourite = !f.favourite;
-    await host.update(f);
-    fav.textContent = f.favourite ? '💔 Not a favourite' : '❤️ Favourite';
-    if (f.favourite) { sounds.pick(); say('One of my favourites!'); }
-    onChange?.();
-  });
   const row = h('div', { class: 'ask-row' }, fav,
     h('button', { class: 'big-btn soft', onclick: () => { close(); host.editFind(f); } }, '✏️ Change it'));
   body.append(row);
@@ -359,7 +371,7 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void, ow
     onChange?.();
   });
   body.append(del);
-  say(f.nickname ? `${f.nickname}, ${f.species?.name ?? oneOf(cat)}` : findName(f));
+  say(f.nickname ? `${f.nickname}, ${f.species?.name ?? f.habitat?.name ?? oneOf(cat)}` : findName(f));
 }
 
 export function openBadges(host: ScreenHost): void {

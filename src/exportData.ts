@@ -2,6 +2,7 @@ import { zipSync, strToU8 } from 'fflate';
 import type { Find, FindMedia, PhotoSpot, Profile, Sketch, SpotMedia } from './types.ts';
 import { spotBearing, viewWedge } from './photoSpots.ts';
 import { categoryOf, fullName, groupOf } from './categories.ts';
+import { lovedBy } from './favourites.ts';
 import { csvCell } from './csv.ts';
 import { walkGeoJSON, type Walk } from './walk.ts';
 
@@ -43,8 +44,8 @@ export async function buildExport(finds: Find[], profiles: Profile[], walks: Wal
   const files: Record<string, Uint8Array> = {};
   const features = [];
   const who = new Map(profiles.map(p => [p.id, p.name || 'Explorer'] as const));
-  const rows = [['id', 'explorer', 'when', 'changed', 'group', 'kind', 'sign', 'species', 'species_own_name', 'scientific_name', 'name', 'colours', 'size', 'count',
-    'latitude', 'longitude', 'accuracy_m', 'note', 'pictures', 'voice']];
+  const rows = [['id', 'explorer', 'when', 'changed', 'group', 'kind', 'sign', 'species', 'species_own_name', 'scientific_name', 'habitat', 'habitat_own_name',
+    'name', 'colours', 'size', 'count', 'latitude', 'longitude', 'accuracy_m', 'note', 'loved_by', 'pictures', 'voice']];
   for (const [i, f] of finds.slice().reverse().entries()) {
     const n = String(i + 1).padStart(3, '0');
     const kind = fullName(categoryOf(f.category)).toLowerCase().replace(/[^a-z]+/g, '-');
@@ -65,17 +66,21 @@ export async function buildExport(finds: Find[], profiles: Profile[], walks: Wal
     const props = {
       id: f.id, explorer: (f.profileId && who.get(f.profileId)) || '', when: f.createdAt, changed: f.editedAt ?? '',
       group: groupOf(f.category)?.label ?? '', kind: fullName(categoryOf(f.category)), sign: f.sign ?? '', species: f.species?.name ?? '', species_own_name: !!f.species?.own, scientific_name: f.species?.scientific ?? '',
+      habitat: f.habitat?.name ?? '', habitat_own_name: !!f.habitat?.own,
       name: f.nickname ?? '', colours: f.colours.join(';'), size: f.size ?? '', count: f.count ?? '',
-      accuracy_m: f.accuracy ?? null, note: f.note ?? '', favourite: !!f.favourite, pictures: pictures.join(';'), voice,
+      accuracy_m: f.accuracy ?? null, note: f.note ?? '',
+      // Favourites are each explorer's own (favourites.ts): the explorers who love this find.
+      loved_by: lovedBy(profiles, f.id).map(p => p.name || 'Explorer').join(';'), pictures: pictures.join(';'), voice,
     };
     features.push({
       type: 'Feature',
       geometry: typeof f.lat === 'number' && typeof f.lon === 'number' ? { type: 'Point', coordinates: [place(f.lon), place(f.lat)] } : null,
       properties: props,
     });
-    rows.push([f.id, props.explorer, f.createdAt, props.changed, props.group, props.kind, props.sign, props.species, props.species_own_name ? 'yes' : '', props.scientific_name, props.name,
+    rows.push([f.id, props.explorer, f.createdAt, props.changed, props.group, props.kind, props.sign, props.species, props.species_own_name ? 'yes' : '', props.scientific_name,
+      props.habitat, props.habitat_own_name ? 'yes' : '', props.name,
       props.colours, props.size, props.count, placeText(f.lat), placeText(f.lon), String(f.accuracy ?? ''),
-      props.note, props.pictures, voice]);
+      props.note, props.loved_by, props.pictures, voice]);
   }
   files['finds.geojson'] = strToU8(JSON.stringify({ type: 'FeatureCollection', features }, null, 1));
   if (walks.length && !opts.rough) {

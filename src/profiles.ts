@@ -1,4 +1,5 @@
-import type { GuideId, Mode, Profile } from './types.ts';
+import type { Find, GuideId, Mode, Profile } from './types.ts';
+import { pictureOf } from './findPicture.ts';
 import { AVATARS } from './categories.ts';
 import { blobUrl, h, openSheet, toast, uid, askYesNo } from './ui.ts';
 import { say } from './speech.ts';
@@ -219,6 +220,8 @@ export interface ProfileHost {
   profiles: () => Profile[];
   active: () => Profile | undefined;
   findCount: (profileId: string) => number;
+  /** An explorer's favourite finds still on this device, the last one loved first (favourites.ts). */
+  favourites: (p: Profile) => Find[];
   switchTo: (id: string) => Promise<void>;
   /** Resolves to the copy stored, which a caller that saves again must use (see storage.saveFind). */
   save: (p: Profile) => Promise<Profile>;
@@ -245,7 +248,8 @@ export function openProfiles(host: ProfileHost): void {
     for (const p of host.profiles()) {
       const on = me?.id === p.id;
       const n = host.findCount(p.id);
-      grid.append(h('button', { class: `profile-card ${on ? 'on' : ''}`, onclick: async () => {
+      const loved = host.favourites(p);
+      const card = h('button', { class: `profile-card ${on ? 'on' : ''}`, onclick: async () => {
         if (on) return;
         await host.switchTo(p.id);
         sounds.badge();
@@ -253,8 +257,15 @@ export function openProfiles(host: ProfileHost): void {
         close();
       } }, profileFace(p, 'face card-face'), h('strong', {}, p.name || 'Explorer'),
         p.about ? h('span', { class: 'profile-about' }, p.about) : null,
-        h('span', { class: 'profile-meta' }, `${tierOf(p.tier).emoji} ${tierOf(p.tier).label} · ${n} ${n === 1 ? 'find' : 'finds'} · ${guideName(p.guide, p.guideName)}`),
-        on ? h('span', { class: 'crew-yours' }, '⭐ Exploring now') : null));
+        h('span', { class: 'profile-meta' }, `${tierOf(p.tier).emoji} ${tierOf(p.tier).label} · ${n} ${n === 1 ? 'find' : 'finds'} · ${guideName(p.guide, p.guideName)}`));
+      // Their favourites, anyone's finds: the last few they loved, and how many.
+      if (loved.length) {
+        card.append(h('span', { class: 'profile-favs', 'aria-label': `${loved.length} ${loved.length === 1 ? 'favourite' : 'favourites'}` },
+          h('span', { class: 'profile-fav-count', 'aria-hidden': 'true' }, `❤️ ${loved.length}`),
+          ...loved.slice(0, 4).map(f => pictureOf(f, card, 'profile-fav-pic'))));
+      }
+      if (on) card.append(h('span', { class: 'crew-yours' }, '⭐ Exploring now'));
+      grid.append(card);
     }
     body.append(grid);
     if (me) {

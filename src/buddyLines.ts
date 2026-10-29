@@ -49,6 +49,7 @@ const STEP: Record<string, string> = {
   category: 'Ooh! What did you find?',
   sign: 'What clue did the animal leave?',
   species: 'What is it called? Type it your way, or pick one below.',
+  place: 'What kind of place is it? Type it your way, or pick one below.',
   colours: 'What colours is it? Tap all the colours you see.',
   size: 'How big is it?',
   count: 'How many did you see?',
@@ -58,7 +59,7 @@ const STEP: Record<string, string> = {
 };
 
 const STEP_POSES: Record<string, Expression> = {
-  picture: 'hello', category: 'think', sign: 'think', species: 'think', describe: 'point', colours: 'point', size: 'excited', count: 'think', where: 'point', tell: 'listen',
+  picture: 'hello', category: 'think', sign: 'think', species: 'think', place: 'think', describe: 'point', colours: 'point', size: 'excited', count: 'think', where: 'point', tell: 'listen',
 };
 
 export const STEP_LINES = STEP;

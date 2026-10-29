@@ -5,6 +5,35 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.10.0 — 2026-10-29
+
+- **Favourites are each explorer's own** (`favourites.ts`, tested; `Profile.favourites`, find ids, absent = none): any
+  find on the device can be a favourite, another explorer's too — ❤️ Favourite is now on the look-only page of
+  someone else's find. A find's old `favourite` flag is moved once, at launch, onto its finder's list
+  (`migrateFavourites`; a find from before profiles goes to the explorer exploring) and the flag is removed. The find
+  page says who loves it ("❤️ Loved by", with their pictures); the sticker book's ❤️ shows the active explorer's
+  favourites within whose finds are shown; **profile cards** ("Who's exploring?") show each explorer's ❤️ count and the
+  last four finds they loved (`favouriteFinds`). The export's `favourite` column is `loved_by` (explorer names).
+  `pictureOf` moved to `findPicture.ts` so the book and the cards draw a find alike.
+- **Everyone's finds is on by default** (`Profile.mapEveryone`: absent now = shown, `false` = just theirs). An explorer
+  who turned it off keeps it off.
+- **"Not sure" left the first screen of "What is it?"**: 🧩 Other ("Something else or not sure") covers it, and it left
+  the quick-find choices too. Finds saved as a mystery stay one (their book shelf is now called Mystery, and an edit
+  lights Other). Bandit's "Find a mystery" challenge asks for an Other instead (an old mystery still counts). The lichen
+  group's own kind is "Just a lichen" (it said "Not sure").
+- **🤷 Not sure beside the species name box**: one tap goes on without a name. It replaces "I don't know yet" at the foot
+  of the step.
+- **Habitats ask "What kind of place?" instead of a species** (`habitats.ts`, tested; `Find.habitat`, `{ name, own? }`,
+  absent = not said): every kind in the Habitat group — water too, whose species step (what lives in it) is gone; a fish
+  or a frog is an animal find. The step mirrors the species step: the explorer's own words in the box, the places of
+  Nova Scotia for that kind as picks, each with a line that tells it apart (Softwood forest · Hardwood forest ·
+  Mixedwood forest · Bog · Fen · Marsh · Swamp · Salt marsh · Barrens · Blueberry field · Mudflat · Puffy clouds…, 63 in
+  all), and a search over every kind of place by name or line ("cumulus" finds Puffy clouds). Picking one of another kind
+  asks to change the find's kind ("Salt marsh is a kind of wetland. Make this find Wetland?"); everyday places
+  (backyard, schoolyard, park) never ask. Water, wetland and beach finds carry Ranger Bramble's water safety line. The
+  kind of place names the find (`findName`: name › species › place › kind), shows on its page with its line, is a row
+  of Change it, and is exported (`habitat`, `habitat_own_name`).
+
 ## 2.9.0 — 2026-10-29
 
 - **"On each pin"** (🗺️ Map card; `Settings.pinShow`, device-wide, a part absent = shown, `pinFace.pinParts`): three

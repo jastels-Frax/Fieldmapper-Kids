@@ -71,5 +71,4 @@ export const FAMILIAR: Partial<Record<CategoryId, string[]>> = {
   crusty: CRUSTY,
   leafy: LEAFY,
   bushy: BUSHY,
-  water: ['Green Frog', 'Spring Peeper', 'Painted Turtle', 'Snapping Turtle', 'Mallard', 'Common Loon', 'Great Blue Heron', 'Common Green Darner'],
 };
