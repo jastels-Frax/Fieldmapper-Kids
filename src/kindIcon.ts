@@ -3,7 +3,7 @@ import { h } from './ui.ts';
 
 /**
  * A kind's (or a group's) picture: its drawing where it has one (kindArt.ts: the lichens, moss, a shelf mushroom, a
- * puffball, a wetland), else its emoji. The drawing is sized in em, so it stands exactly where the emoji stood and
+ * puffball, a coral fungus, a wetland), else its emoji. The drawing is sized in em, so it stands exactly where the emoji stood and
  * every rule that sizes an emoji by its font-size sizes the drawing too. The words beside it name it, so it is hidden
  * from screen readers.
  */
