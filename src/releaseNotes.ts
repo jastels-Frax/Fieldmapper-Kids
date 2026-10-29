@@ -12,6 +12,10 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.11.0', date: '2026-10-29', title: 'Rare finds',
+    notes: ['Found a rare species? The crew throws a party and Hoot tells you why it is rare.'],
+  },
+  {
     version: '2.10.0', date: '2026-10-29', title: 'Favourites and places',
     notes: [
       "❤️ Favourite anyone's finds. Your favourites show on your card in Who's exploring?",

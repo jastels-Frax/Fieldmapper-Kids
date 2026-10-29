@@ -5,6 +5,32 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.11.0 — 2026-10-29
+
+- **A rare find gets the crew's party** (`rarity.ts`, tested). A species picked from the list counts as rare when it is a
+  species of conservation interest by Field Mapper's own rule (`inventorySurvey.isSoCI`, ported unchanged: an S-rank of
+  S3 or rarer by the first part of the rank — S1, S2, S3, S3S4, S2?B, S1B,S4N — or a listing under the province's
+  Endangered Species Act) or is listed under Canada's Species at Risk Act (endangered, threatened, special concern,
+  extirpated). 1180 of the 6362 species in the Nova Scotia list qualify. The celebration then: a gold ring round the
+  sticker; Fern, Maple, Bandit and Acorn hopping under "🌟 You found a rare species!" (less the explorer's guide if it is
+  one of them); Hoot saying why it is rare in place of the usual fact; Bramble's "Leave it just as you found it, and tell
+  a grown-up about it."; a second burst of confetti and a longer fanfare (`sounds.rare`); six seconds more before it
+  goes back to the map. A calm look keeps it still.
+- **The words come from the lists and claim nothing more** (`rareLines`): how rare by the rarest digit ("One of the
+  rarest living things in Nova Scotia" · "Rare in Nova Scotia: only a few places have it" · "Uncommon in Nova Scotia: not
+  many places have it"), the season when only one is rare ("Very few of these breed in Nova Scotia" for S1B,S4N), and
+  "Nova Scotia's list of species at risk says it is vulnerable" / "Canada's list of species at risk says it is of
+  special concern". No "protected by law": what a listing protects depends on the species and the land. A list a
+  grown-up imported says "this province".
+- **The statuses ride on the find** (`SpeciesPick.status`: rank, provincial and SARA status, and the province), kept by
+  value when the species is picked, as Field Mapper keeps a species record on an observation. Finds named before 2.11
+  carry none and are not marked. The species step's chosen card says "🌟 A rare one!", and the find's page gives the
+  first reason.
+- **The species list carries the two statuses**: `scripts/import-fieldmapper-species.mjs` now writes `p` (Field Mapper's
+  `sprot`, the provincial Act) and `f` (`nprotSar`, SARA) beside the rank; `public/species/ns.json` regenerated from the
+  same Field Mapper commit, with the same 6362 species. An imported Field Mapper list keeps them too
+  (`parseFieldMapperList`). The loaded list knows its province (`Species.w`, set on load from the file's region).
+
 ## 2.10.0 — 2026-10-29
 
 - **Favourites are each explorer's own** (`favourites.ts`, tested; `Profile.favourites`, find ids, absent = none): any

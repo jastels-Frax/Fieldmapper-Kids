@@ -1,5 +1,5 @@
 import { activeGuide } from './guides.ts';
-import type { Find, FindMedia, GroupId, Profile, Settings } from './types.ts';
+import type { Find, FindMedia, GroupId, GuideId, Profile, Settings } from './types.ts';
 import { COLOURS, COUNTS, GROUPS, SIGNS, SIZES, categoryOf, findName, groupOf, oneOf } from './categories.ts';
 import { kindIcon } from './kindIcon.ts';
 import { pictureOf } from './findPicture.ts';
@@ -15,7 +15,8 @@ import { challengesFor, completedChallenges, type Challenge } from './challenges
 import { localDay } from './geo.ts';
 import { askGrownUp } from './gateView.ts';
 import { buddySays, crewSays, critterFigure, nameOf } from './buddyView.ts';
-import { CRITTERS, critterSvg } from './critters.ts';
+import { RARE_CARE, isRare, rareLines } from './rarity.ts';
+import { CRITTERS, critterSvg, type Critter } from './critters.ts';
 import { CAST } from './cast.ts';
 import { artFor } from './sproutArt.ts';
 import { cheer } from './buddyLines.ts';
@@ -75,14 +76,36 @@ export interface HuntNews {
   completed: boolean;
 }
 
-/** After a save: a sticker, a cheer, a fact, and anything newly earned. */
+/**
+ * The crew's party for a rare find: the crew who are not speaking (Fern, Maple, Bandit and Acorn, less the explorer's
+ * guide if it is one of them) hopping under "You found a rare species!". The guide, Hoot and Bramble speak below it —
+ * the cheer, why it is rare, and what to do — so none of them is drawn twice.
+ */
+function rareParty(guide: GuideId): HTMLElement {
+  const g = activeGuide(guide);
+  const row = (['fox', 'moose', 'raccoon', 'squirrel'] as Critter[]).filter(c => c !== g).map((c, i) => {
+    const fig = critterFigure(c, i % 2 ? 'success' : 'excited', 'buddy-fig rare-fig');
+    fig.style.setProperty('--i', String(i));
+    return fig;
+  });
+  return h('div', { class: 'rare-party' },
+    h('div', { class: 'rare-crew', 'aria-hidden': 'true' }, ...row),
+    h('h2', { class: 'rare-shout' }, '🌟 You found a rare species!'));
+}
+
+/** After a save: a sticker, a cheer, a fact, and anything newly earned. A rare species gets the crew's party. */
 export function celebrate(host: ScreenHost, f: Find, newBadges: BadgeProgress[], newChallenges: Challenge[], locatedOk: boolean, hunt: HuntNews | null): void {
   const cat = categoryOf(f.category);
   const fact = cat.facts[Math.floor(Math.random() * cat.facts.length)];
-  const { body, close } = openSheet({ title: 'Hooray!', emoji: '🎉', className: 'celebrate' });
+  // A species picked from the list as one of conservation interest or at risk (rarity.ts); never the explorer's own words.
+  const rare = !f.species?.own && isRare(f.species?.status);
+  const why = rare ? rareLines(f.species!.status!) : [];
+  const { body, close, sheet } = openSheet({ title: rare ? 'A rare find!' : 'Hooray!', emoji: rare ? '🌟' : '🎉', className: 'celebrate' });
+  if (rare) sheet.classList.add('rare-find');
   const sticker = h('div', { class: 'big-sticker', style: `--cat:${cat.colour}` });
   body.append(sticker);
   sticker.append(pictureOf(f, sticker, 'big-sticker-pic'), kindIcon(cat, 'big-sticker-emoji'));
+  if (rare) body.append(rareParty(host.profile.guide));
   const an = (w: string) => (/^[aeiou]/i.test(w) ? 'an' : 'a');
   const what = f.nickname ? `You found ${f.nickname}!`
     : f.category === 'sign' ? (f.species ? `You found ${f.species.name} clues!` : 'You found animal clues!')
@@ -92,8 +115,11 @@ export function celebrate(host: ScreenHost, f: Find, newBadges: BadgeProgress[],
   const buddy = host.profile.guide;
   const hooray = cheer(buddy);
   body.append(
-    buddySays(buddy, { text: `${hooray.text} ${what}`, pose: hooray.pose }, { quiet: true, big: true }),
-    crewSays('owl', { text: `Hoo! Did you know? ${fact}`, pose: 'point' }, { quiet: true }),
+    buddySays(buddy, { text: `${hooray.text} ${what}`, pose: rare ? 'excited' : hooray.pose }, { quiet: true, big: true }),
+    // Hoot tells why it is rare in place of the usual fact, and Bramble (safety) what to do now.
+    rare ? crewSays('owl', { text: `Hoo! ${why.join(' ')}`, pose: 'point' }, { quiet: true })
+      : crewSays('owl', { text: `Hoo! Did you know? ${fact}`, pose: 'point' }, { quiet: true }),
+    ...(rare ? [crewSays('bear', { text: RARE_CARE, pose: 'point' }, { quiet: true })] : []),
   );
   if (!locatedOk) body.append(h('p', { class: 'hint' }, '📖 This one is in your sticker book, but not on the map.'));
   if (hunt) {
@@ -117,7 +143,8 @@ export function celebrate(host: ScreenHost, f: Find, newBadges: BadgeProgress[],
   // Back to the map by itself, where "I found something!" is one tap away: a few seconds to enjoy it, longer for
   // each win to read, and a tap anywhere but a button goes back at once.
   const wins = newBadges.length + newChallenges.length + (hunt ? hunt.ticked.length + (hunt.completed ? 2 : 0) : 0);
-  const ms = Math.min(10000, 4000 + wins * 1500);
+  // A rare find has the most to read: the party, why it is rare and what to do, so it stays six seconds longer.
+  const ms = Math.min(rare ? 16000 : 10000, 4000 + wins * 1500 + (rare ? 6000 : 0));
   const bar = h('div', { class: 'auto-back', 'aria-hidden': 'true' }, h('span', { style: `animation-duration:${ms}ms` }));
   body.append(bar, h('p', { class: 'hint center' }, '🗺️ Back to the map in a moment. Tap to go now.'));
   let done = false;
@@ -126,11 +153,18 @@ export function celebrate(host: ScreenHost, f: Find, newBadges: BadgeProgress[],
   body.addEventListener('click', e => { if (!(e.target as HTMLElement).closest('button')) back(); });
   body.closest('.sheet')?.querySelector('.close-btn')?.addEventListener('click', () => { done = true; clearTimeout(timer); });
   sounds.save();
-  confetti([cat.emoji, ...newBadges.map(b => b.emoji), ...(hunt?.completed ? ['🏆'] : [])]);
+  confetti([cat.emoji, ...(rare ? ['🌟', '✨'] : []), ...newBadges.map(b => b.emoji), ...(hunt?.completed ? ['🏆'] : [])]);
+  // A rare find: a second burst and the fanfare (confetti itself stays still for a calm look).
+  if (rare) {
+    setTimeout(() => confetti(['🌟', '✨', '💫', cat.emoji]), 900);
+    setTimeout(() => sounds.rare(), 450);
+  }
   const huntWords = hunt ? [...hunt.ticked.map(i => `${i.text}, found it!`), hunt.completed ? `You finished the ${hunt.run.hunt.title}! A trophy for you!` : ''] : [];
-  const words = [hooray.text, what, ...huntWords, ...newChallenges.map(c => `Challenge done! ${c.text}.`), ...newBadges.map(b => `You earned the ${b.title} badge!`), `Hoot says: did you know? ${fact}`];
+  const words = [hooray.text, what, ...(rare ? ['You found a rare species!', ...why, RARE_CARE] : []),
+    ...huntWords, ...newChallenges.map(c => `Challenge done! ${c.text}.`), ...newBadges.map(b => `You earned the ${b.title} badge!`),
+    ...(rare ? [] : [`Hoot says: did you know? ${fact}`])];
   say(words.join(' '));
-  if (newBadges.length || hunt?.completed) setTimeout(() => sounds.badge(), 700);
+  if (newBadges.length || hunt?.completed) setTimeout(() => sounds.badge(), rare ? 2200 : 700);
 }
 
 /**
@@ -281,6 +315,7 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void, ow
   };
   paintLoved();
   if (f.species) facts.push(h('li', {}, `${f.species.own ? '✏️' : '📚'} ${f.species.name}`, f.species.scientific ? h('span', { class: 'latin' }, ` ${f.species.scientific}`) : null));
+  if (f.species && !f.species.own && isRare(f.species.status)) facts.push(h('li', { class: 'rare-fact' }, `🌟 ${rareLines(f.species.status!)[0]}`));
   if (f.habitat) {
     const listed = habitatNamed(f.habitat.name);
     facts.push(h('li', {}, `${f.habitat.own ? '✏️' : '🏞️'} ${f.habitat.name}`, listed && !f.habitat.own ? h('span', { class: 'latin' }, ` ${listed.hint}`) : null));

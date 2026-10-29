@@ -426,6 +426,18 @@ textarea.text-in { resize: vertical; }
 .big-sticker { position: relative; width: 200px; height: 200px; margin: 6px auto 10px; animation: spin-in 0.6s cubic-bezier(.2,1.6,.4,1); }
 .big-sticker-pic { width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 6px solid var(--cat); box-shadow: var(--shadow-big); font-size: 110px; }
 .big-sticker-emoji { position: absolute; right: -4px; bottom: 0; font-size: 58px; }
+/* A rare find (rarity.ts): a gold ring round the sticker, and the crew's party under a banner. */
+.celebrate.rare-find .big-sticker-pic { border-color: var(--yellow); box-shadow: 0 0 0 6px var(--card), 0 0 0 12px var(--yellow), var(--shadow-big); }
+.rare-party { text-align: center; margin: 4px 0 14px; }
+.rare-crew { display: flex; justify-content: center; align-items: flex-end; gap: 4px; }
+.rare-crew .rare-fig { flex: 0 1 76px; width: 76px; height: 76px; min-width: 0; animation: hop 0.8s ease-in-out infinite; animation-delay: calc(var(--i, 0) * 0.13s); }
+.rare-shout {
+  display: inline-block; margin: 8px 0 0; padding: 8px 14px; font-size: 24px; font-weight: 900; line-height: 1.2;
+  background: var(--card); color: var(--ink); border: 4px solid var(--yellow); border-radius: var(--radius); box-shadow: var(--shadow);
+  overflow-wrap: break-word; animation: pop 0.4s ease-out;
+}
+.rare-hint { margin: 2px 0 0; font-weight: 900; }
+@media (prefers-reduced-motion: reduce) { .rare-crew .rare-fig, .rare-shout { animation: none; } }
 @keyframes spin-in { from { transform: scale(0.2) rotate(-200deg); } to { transform: none; } }
 
 /* Badges */

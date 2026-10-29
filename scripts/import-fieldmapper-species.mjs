@@ -12,6 +12,8 @@
  *   - not accidental, doubtful, unconfirmed, false reports, absent or hybrid records;
  *   - invertebrates only where ACCDC has ranked them (not SU), or there are thousands;
  *   - one record per common name and taxon (subspecies fold into the species).
+ * Each record keeps the provincial rank (r), the province's Endangered Species Act status (p, Field Mapper's sprot)
+ * and the federal Species at Risk Act status (f, Field Mapper's nprotSar), which decide a rare find (src/rarity.ts).
  * Re-run it to refresh; never hand-edit the output.
  */
 import { readFileSync, writeFileSync, existsSync } from 'fs';
@@ -42,7 +44,8 @@ for (const g of groups) {
     const key = `${n.toLowerCase()}|${r.taxon}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push({ n, s: r.scientificName, t: r.taxon, ...(r.elcode ? { c: r.elcode } : {}), ...(r.srank ? { r: r.srank } : {}), ...(words.includes('Exotic') ? { x: true } : {}) });
+    out.push({ n, s: r.scientificName, t: r.taxon, ...(r.elcode ? { c: r.elcode } : {}), ...(r.srank ? { r: r.srank } : {}),
+      ...(r.sprot ? { p: r.sprot } : {}), ...(r.nprotSar ? { f: r.nprotSar } : {}), ...(words.includes('Exotic') ? { x: true } : {}) });
     kept++;
   }
   sources.push(`${g}: ${kept} of ${rows.length}`);

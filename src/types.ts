@@ -110,6 +110,20 @@ export interface SpeciesPick {
   list?: string;
   /** The explorer's own words ("little plant"), typed rather than picked from a list: never counted as a species. */
   own?: boolean;
+  /** Its statuses on the list it was picked from, kept by value (rarity.ts); absent = none known. */
+  status?: SpeciesStatus;
+}
+
+/** A species' standing when it was picked, from ACCDC through Field Mapper's lists (rarity.ts decides "rare"). */
+export interface SpeciesStatus {
+  /** Provincial S-rank: S1 (rarest) to S5 (common), with ranges and seasons (S3S4, S1B,S4N). */
+  rank?: string;
+  /** Status under the province's Endangered Species Act: Endangered, Threatened, Vulnerable, Extirpated. */
+  prov?: string;
+  /** Status under Canada's Species at Risk Act: E, T, SC, X. */
+  sara?: string;
+  /** The province the rank is for ("Nova Scotia"); absent for a list a grown-up imported. */
+  where?: string;
 }
 
 /** One thing a child found. Everything is optional except what makes it a find. */

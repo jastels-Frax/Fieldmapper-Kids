@@ -18,6 +18,7 @@ import type { Expression } from './buddies.ts';
 import { meetsRule, type HuntItem } from './hunts.ts';
 import { toBadgeFind } from './badges.ts';
 import { hasSpeciesStep, searchSpecies, type Species } from './species.ts';
+import { isRare, statusOf } from './rarity.ts';
 import { habitatKindToOffer, habitatNamed, habitatsFor, hasPlaceStep, searchHabitats, type HabitatType } from './habitats.ts';
 import { FAMILIAR } from './familiar.ts';
 import { loadSpecies } from './speciesStore.ts';
@@ -395,12 +396,15 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
         chosen.replaceChildren();
         if (draft.species && !draft.species.own) {
           chosen.append(h('div', { class: 'win-card' }, h('span', { class: 'win-emoji' }, '📚'),
-            h('div', {}, h('strong', {}, draft.species.name), draft.species.scientific ? h('p', { class: 'latin' }, draft.species.scientific) : null),
+            h('div', {}, h('strong', {}, draft.species.name), draft.species.scientific ? h('p', { class: 'latin' }, draft.species.scientific) : null,
+              isRare(draft.species.status) ? h('p', { class: 'rare-hint' }, '🌟 A rare one!') : null),
             h('button', { class: 'round-btn small', 'aria-label': 'Not this one', onclick: () => { draft.species = undefined; search.value = ''; paintChosen(); paintResults(); } }, icon('close'))));
         }
       };
       const choose = async (sp: Species, andGo = false) => {
-        draft.species = { name: sp.n, ...(sp.s ? { scientific: sp.s } : {}), taxon: sp.t, ...(sp.c ? { code: sp.c } : {}) } satisfies SpeciesPick;
+        // Its statuses ride along by value (rarity.ts): a rare one gets the big celebration when the find is saved.
+        const status = statusOf(sp);
+        draft.species = { name: sp.n, ...(sp.s ? { scientific: sp.s } : {}), taxon: sp.t, ...(sp.c ? { code: sp.c } : {}), ...(status ? { status } : {}) } satisfies SpeciesPick;
         search.value = sp.n;
         sounds.pick();
         say(`${sp.n}!`);

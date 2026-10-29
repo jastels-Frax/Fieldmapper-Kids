@@ -45,6 +45,9 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
   their map (on from the start since 2.10; off in the 🗺️ Map card), every pin wearing its finder's picture, and My
   Finds can show everyone's or one explorer's (new in 2.8). Others' finds open to look at, not to change. Same tablet
   only.
+- **Rare finds** (new in 2.11): name a species that is rare in Nova Scotia (ranked S1 to S3, or listed under Nova
+  Scotia's Endangered Species Act or Canada's Species at Risk Act) and the crew throws a party, Hoot says why it is
+  rare, and Bramble reminds you to leave it as you found it and tell a grown-up.
 - **Favourites** (each explorer's own since 2.10): ❤️ any find, yours or another explorer's on the tablet. Your
   favourites show on your card in "Who's exploring?" and under ❤️ in My Finds, and a find says who loves it.
 - **Which way am I facing?** (🧭): an arrow on the map turns with the device compass (iPhone/iPad ask permission

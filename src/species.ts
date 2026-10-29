@@ -12,8 +12,14 @@ export interface Species {
   c?: string;
   /** Subnational (provincial) rank, e.g. S5. */
   r?: string;
+  /** Status under the province's Endangered Species Act (Field Mapper's `sprot`): Endangered, Threatened… */
+  p?: string;
+  /** Status under Canada's Species at Risk Act (Field Mapper's `nprotSar`): E, T, SC. */
+  f?: string;
   /** Not native here. */
   x?: boolean;
+  /** The province its ranks are for, set when the list is loaded (speciesStore.ts); never stored in a list file. */
+  w?: string;
 }
 
 /**
@@ -110,8 +116,11 @@ export function parseFieldMapperList(json: unknown): Species[] | string {
     const s = typeof rec.scientificName === 'string' ? rec.scientificName : typeof rec.s === 'string' ? rec.s : undefined;
     const c = typeof rec.elcode === 'string' ? rec.elcode : typeof rec.c === 'string' ? rec.c : undefined;
     const rank = typeof rec.srank === 'string' ? rec.srank : typeof rec.r === 'string' ? rec.r : undefined;
+    const prov = typeof rec.sprot === 'string' ? rec.sprot : typeof rec.p === 'string' ? rec.p : undefined;
+    const sara = typeof rec.nprotSar === 'string' ? rec.nprotSar : typeof rec.f === 'string' ? rec.f : undefined;
     const x = rec.noteRank === 'Exotic' || rec.x === true;
-    out.push({ n: n.slice(0, 120), t: t.slice(0, 40), ...(s ? { s: s.slice(0, 120) } : {}), ...(c ? { c } : {}), ...(rank ? { r: rank } : {}), ...(x ? { x: true } : {}) });
+    out.push({ n: n.slice(0, 120), t: t.slice(0, 40), ...(s ? { s: s.slice(0, 120) } : {}), ...(c ? { c } : {}), ...(rank ? { r: rank.slice(0, 40) } : {}),
+      ...(prov ? { p: prov.slice(0, 40) } : {}), ...(sara ? { f: sara.slice(0, 10) } : {}), ...(x ? { x: true } : {}) });
   }
   return out.length ? out : 'No species with a name and a taxon were found in that file.';
 }

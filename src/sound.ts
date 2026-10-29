@@ -39,5 +39,7 @@ export const sounds = {
   pick: () => notes([523, 784], 0.07),
   save: () => notes([523, 659, 784, 1047], 0.1),
   badge: () => notes([784, 988, 1175, 1568, 1175, 1568], 0.08),
+  /** A rare find (rarity.ts): a longer fanfare that climbs an octave. */
+  rare: () => notes([523, 659, 784, 1047, 784, 1047, 1319, 1568, 2093], 0.09),
   oops: () => notes([330, 262], 0.12, 'sine'),
 };

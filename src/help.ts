@@ -12,6 +12,7 @@ const PARTS: { emoji: string; title: string; lines: string[] }[] = [
     'Then say what it is: a plant, an animal, a mushroom, a lichen or a habitat (a place). Each one opens its kinds: a fern, a frog, a shelf mushroom, a crusty lichen, a wetland… Something else, or not sure what it is? Tap 🧩 Other.',
     'Type its name to search every species. If it turns out to be a different kind (you picked Plant and it is a Turkey Tail), Scout asks if you want to change it. Do not know its name? Tap 🤷 Not sure and go on.',
     'A habitat asks what kind of place it is instead: type it, or pick one like Softwood forest, Bog or Salt marsh.',
+    'Named a rare species? The crew throws a party! Rare means S1 to S3 on the provincial list, or on a list of species at risk. Leave it just as you found it, and tell a grown-up.',
     'Tap ✨ Save now any time, or keep going: give it a name, its colours and size, and record voice notes.',
     'Hold your finger on the map to save a find right at that spot.',
   ] },
