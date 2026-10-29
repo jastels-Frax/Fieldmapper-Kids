@@ -53,6 +53,7 @@ import { closeShapeCard, openShapeCard } from './shapeCard.ts';
 import { SHAPE_TAP_PX, metresPerPixel, pickShape } from './mapShapes.ts';
 import { TOOLS, railFor, type ToolId } from './railTools.ts';
 import { categoryOf } from './categories.ts';
+import { kindIcon } from './kindIcon.ts';
 import { downscale } from './image.ts';
 import { meetsRule } from './hunts.ts';
 
@@ -1000,7 +1001,7 @@ export class App {
       ...kinds.map(id => {
         const c = categoryOf(id);
         return h('button', { class: 'quick-chip', style: `--cat:${c.colour}`, 'aria-label': `Quick find: take a photo of a ${c.label.toLowerCase()}`, onclick: () => this.quickFind(id) },
-          h('span', { class: 'quick-emoji', 'aria-hidden': 'true' }, c.emoji), h('span', { class: 'quick-word' }, c.short ?? c.label));
+          kindIcon(c, 'quick-emoji'), h('span', { class: 'quick-word' }, c.short ?? c.label));
       }),
     );
     requestAnimationFrame(() => fitQuickWords(this.quickRow));

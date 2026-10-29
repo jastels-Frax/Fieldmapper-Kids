@@ -28,3 +28,14 @@ test('a matching find completes a challenge', () => {
   }
   assert.equal(completedChallenges(ch, []).size, 0);
 });
+
+test('a challenge for an older kind is met by the kinds that refine it', () => {
+  // Any day whose challenges include "Find an animal" or "Find a mushroom".
+  for (let d = 1; d <= 28; d++) {
+    for (const c of challengesFor(`2026-02-${String(d).padStart(2, '0')}`)) {
+      if (c.id === 'animal') assert.equal(c.test({ createdAt: '', category: 'reptile', colours: [] }), true);
+      if (c.id === 'mushroom') assert.equal(c.test({ createdAt: '', category: 'puffball', colours: [] }), true);
+      if (c.id === 'lichen') assert.equal(c.test({ createdAt: '', category: 'leafy', colours: [] }), true);
+    }
+  }
+});

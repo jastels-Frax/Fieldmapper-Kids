@@ -1,4 +1,5 @@
 import type { BadgeFind } from './badges.ts';
+import { isKind } from './categories.ts';
 
 export interface Challenge {
   id: string;
@@ -8,14 +9,14 @@ export interface Challenge {
 }
 
 const POOL: Challenge[] = [
-  { id: 'bird', emoji: '🐦', text: 'Find a bird', test: f => f.category === 'bird' },
-  { id: 'bug', emoji: '🐛', text: 'Find a bug', test: f => f.category === 'bug' },
-  { id: 'tree', emoji: '🌳', text: 'Find a tree', test: f => f.category === 'tree' },
-  { id: 'flower', emoji: '🌸', text: 'Find a flower', test: f => f.category === 'flower' },
-  { id: 'rock', emoji: '🪨', text: 'Find a cool rock', test: f => f.category === 'rock' },
-  { id: 'water', emoji: '💧', text: 'Find some water', test: f => f.category === 'water' },
-  { id: 'sky', emoji: '☁️', text: 'Look up at the sky', test: f => f.category === 'sky' },
-  { id: 'animal', emoji: '🐿️', text: 'Find an animal', test: f => f.category === 'animal' },
+  { id: 'bird', emoji: '🐦', text: 'Find a bird', test: f => isKind(f.category, 'bird') },
+  { id: 'bug', emoji: '🐛', text: 'Find a bug', test: f => isKind(f.category, 'bug') },
+  { id: 'tree', emoji: '🌳', text: 'Find a tree', test: f => isKind(f.category, 'tree') },
+  { id: 'flower', emoji: '🌸', text: 'Find a flower', test: f => isKind(f.category, 'flower') },
+  { id: 'rock', emoji: '🪨', text: 'Find a cool rock', test: f => isKind(f.category, 'rock') },
+  { id: 'water', emoji: '💧', text: 'Find some water', test: f => isKind(f.category, 'water') },
+  { id: 'sky', emoji: '☁️', text: 'Look up at the sky', test: f => isKind(f.category, 'sky') },
+  { id: 'animal', emoji: '🐿️', text: 'Find an animal', test: f => isKind(f.category, 'animal') },
   { id: 'red', emoji: '🔴', text: 'Find something red', test: f => f.colours.includes('red') },
   { id: 'yellow', emoji: '🟡', text: 'Find something yellow', test: f => f.colours.includes('yellow') },
   { id: 'blue', emoji: '🔵', text: 'Find something blue', test: f => f.colours.includes('blue') },
@@ -27,9 +28,11 @@ const POOL: Challenge[] = [
   { id: 'lots', emoji: '💯', text: 'Find lots of something', test: f => f.count === 'lots' },
   { id: 'draw', emoji: '🎨', text: 'Draw a picture of a find', test: f => !!f.hasDrawing },
   { id: 'voice', emoji: '🎤', text: 'Tell a story about a find', test: f => !!f.hasVoice },
-  { id: 'mystery', emoji: '❓', text: 'Find a mystery', test: f => f.category === 'mystery' },
-  { id: 'mushroom', emoji: '🍄', text: 'Find a mushroom (look, never eat!)', test: f => f.category === 'mushroom' },
-  { id: 'sign', emoji: '🐾', text: 'Find an animal track or clue', test: f => f.category === 'sign' },
+  { id: 'mystery', emoji: '❓', text: 'Find a mystery', test: f => isKind(f.category, 'mystery') },
+  { id: 'mushroom', emoji: '🍄', text: 'Find a mushroom (look, never eat!)', test: f => isKind(f.category, 'mushroom') },
+  { id: 'sign', emoji: '🐾', text: 'Find an animal track or clue', test: f => isKind(f.category, 'sign') },
+  { id: 'lichen', emoji: '🍃', text: 'Find a lichen on a rock or a tree', test: f => isKind(f.category, 'lichen') },
+  { id: 'fern', emoji: '🌿', text: 'Find a fern', test: f => isKind(f.category, 'fern') },
   { id: 'species', emoji: '📚', text: 'Find out what something is called', test: f => !!f.species },
 ];
 

@@ -272,8 +272,8 @@ body.picking .quick-row { visibility: hidden; }
 .round-btn.step-nav[disabled] { opacity: 0.3; }
 .sheet-body { flex: 1; overflow-y: auto; background-image: var(--pattern, none); background-size: var(--pattern-size, auto); background-attachment: local; padding: 18px 16px calc(28px + var(--safe-b)); -webkit-overflow-scrolling: touch; }
 .sheet-body > * { max-width: 720px; margin-left: auto; margin-right: auto; }
-.step-dots { display: flex; gap: 6px; width: 100%; justify-content: center; }
-.step-dots span { width: 34px; height: 8px; border-radius: 4px; background: rgba(255,255,255,0.4); }
+.step-dots { display: flex; gap: 6px; width: 100%; min-width: 0; justify-content: center; }
+.step-dots span { flex: 0 1 34px; min-width: 8px; height: 8px; border-radius: 4px; background: rgba(255,255,255,0.4); }
 .step-dots span.on { background: var(--yellow); }
 
 .step-title { font-size: 26px; font-weight: 900; text-align: center; margin: 6px 0 18px; }
@@ -304,6 +304,11 @@ body.picking .quick-row { visibility: hidden; }
 .choice.on { background: var(--pick-soft); outline: 4px solid var(--orange); }
 .choice-emoji { font-size: 52px; line-height: 1; }
 .choice.wide .choice-emoji { font-size: 40px; }
+/* A kind's drawing (kindIcon.ts) stands where its emoji would: sized in em, so every font-size rule sizes it too. */
+.kind-ic.has-art { line-height: 0; }
+.kind-ic.has-art > svg { display: inline-block; width: 1.25em; height: 1.25em; margin: -0.125em 0; vertical-align: middle; }
+.detail-emoji.kind-ic { display: block; }
+.choice-hint { font-size: 14px; font-weight: 700; color: var(--soft-ink); line-height: 1.2; }
 
 .colour-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 12px; margin-bottom: 8px; }
 .colour {

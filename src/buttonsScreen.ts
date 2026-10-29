@@ -4,7 +4,8 @@ import { say } from './speech.ts';
 import { sounds } from './sound.ts';
 import { buddySays } from './buddyView.ts';
 import { tierOf } from './tiers.ts';
-import { CATEGORIES, categoryOf } from './categories.ts';
+import { GROUPS, categoryOf, kindsOf } from './categories.ts';
+import { kindIcon } from './kindIcon.ts';
 import { MAX_QUICK, pickedKinds, toggleQuickKind } from './quickFinds.ts';
 import { TIER_TOOLS, TOOLS, moveTool, railFor, toggleTool, toolOf, type ToolId } from './railTools.ts';
 
@@ -64,17 +65,21 @@ export function openMyButtons(profile: Profile, save: (p: Profile) => Promise<Pr
       const full = picked.length >= MAX_QUICK;
       part.append(
         h('p', { class: 'hint' }, `Pick up to ${MAX_QUICK}: ${picked.map(k => categoryOf(k).label).join(', ')}.`),
-        h('div', { class: 'mini-choices' }, ...CATEGORIES.map(c => {
-          const isOn = picked.includes(c.id);
-          return h('button', {
-            class: `mini-choice ${isOn ? 'on' : ''}`, 'aria-pressed': String(isOn), disabled: !isOn && full,
-            onclick: () => {
-              const kinds = toggleQuickKind(picked, c.id);
-              // Taking the last one off goes back to "the things I find most", which is what an empty pick means.
-              void commitQuick(kinds.length ? { on: true, kinds } : { on: true }, isOn ? `${c.label} off` : `${c.label} on`);
-            },
-          }, h('span', { 'aria-hidden': 'true' }, c.emoji), c.label);
-        })),
+        // Every kind, under its group, as the "What is it?" screen sorts them.
+        ...[...GROUPS.map(g => ({ head: g.label, kinds: kindsOf(g) })), { head: 'Not sure', kinds: [categoryOf('mystery')] }].flatMap(({ head, kinds }) => [
+          h('h3', { class: 'describe-head' }, head),
+          h('div', { class: 'mini-choices' }, ...kinds.map(c => {
+            const isOn = picked.includes(c.id);
+            return h('button', {
+              class: `mini-choice ${isOn ? 'on' : ''}`, 'aria-pressed': String(isOn), disabled: !isOn && full,
+              onclick: () => {
+                const kinds = toggleQuickKind(picked, c.id);
+                // Taking the last one off goes back to "the things I find most", which is what an empty pick means.
+                void commitQuick(kinds.length ? { on: true, kinds } : { on: true }, isOn ? `${c.label} off` : `${c.label} on`);
+              },
+            }, kindIcon(c, 'mini-emoji'), c.label);
+          })),
+        ]),
       );
     }
     return part;

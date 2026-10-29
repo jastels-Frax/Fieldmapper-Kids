@@ -12,6 +12,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.5.0', date: '2026-10-29', title: 'Plants, animals, mushrooms, lichens and places',
+    notes: [
+      'Pick Plant, Animal, Mushroom, Lichen or Habitat first, then the kind: a fern, a frog, a shelf mushroom, a crusty lichen, a wetland…',
+      'Sprouts just pick the group.',
+      'Two new badges, Lichen Looker and Habitat Explorer, and lichens and ferns in the Forest Hunt.',
+    ],
+  },
+  {
     version: '2.4.3', date: '2026-10-29', title: 'Photo spots, mapper style',
     notes: ['A photo spot is a camera dot with a wedge, so it never looks like a find.'],
   },

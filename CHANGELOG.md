@@ -5,6 +5,37 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.5.0 — 2026-10-29
+
+- **"What is it?" is two steps: a GROUP, then a KIND** (`categories.GROUPS`): 🌿 Plant · 🐾 Animal · 🍄 Mushroom ·
+  Lichen · 🏞️ Habitat, plus ❓ Not sure (the mystery). Each group opens its kinds, then the species screen:
+  - Plant: tree, shrub, flower, fern, moss, grass, "just a plant";
+  - Animal: bird, mammal, bug, frog or salamander, snake or turtle, fish, snail or slug, tracks & scat, "just an animal";
+  - Mushroom (a SHAPE step): cap and stem, shelf, puffball, "another shape";
+  - Lichen (a shape step): crusty, leafy, bushy, "not sure";
+  - Habitat (places, and rock, water and sky): forest, meadow, wetland, water, beach, rock, sky, "another place".
+  A short hint under a kind helps a child choose ("Flat like paint"). Going back to the step opens the group of the kind
+  already picked; ⬅️ in the header and "Not a lichen?" go back to the groups. **A Sprout picks the group and stops
+  there** (its own kind, e.g. `lichen`): three screens, as before.
+- **The twelve kinds keep their ids and meaning**; each new kind names the older kind it is a kind of (`refines`: a fern
+  is a `plant`, a shelf a `mushroom`, a mammal an `animal`) and everything that counts kinds asks `isKind`, so badges,
+  daily challenges and hunt items written for the older kind still tick. No find is changed or migrated. A tree and a
+  bird still do not count as "a plant" or "an animal", as before. "One of Everything" is unchanged.
+- **Drawings for kinds no emoji says** (`kindArt.ts`, in the crew's sticker style): lichen, crusty, leafy and bushy
+  lichens, moss, a shelf mushroom, a puffball and a wetland — on the choice buttons, map pins, stickers, the find page,
+  quick-find chips and the My buttons picker (`kindIcon.ts`, sized in em so they stand where an emoji would).
+- **Species narrowed by kind** (`CATEGORY_TAXA`): a fern searches ferns, moss mosses and liverworts, a snail molluscs, a
+  shelf fungi, a crusty lichen lichens. Lichens left the plant search (they have their own group); molluscs left the bug
+  search (snails and slugs have their own kind). Water now also searches birds and reptiles, which its own quick picks
+  (ducks, turtles) already were. Familiar species for every new kind, each held by a test to be in its kind's taxa.
+- **Two badges**: Lichen Looker (3 lichens) and Habitat Explorer (3 different kinds of place: forest, meadow, wetland,
+  water, beach, or another place). **Two daily challenges** (find a lichen, find a fern): the pool is longer, so the
+  challenges shown on the day of the update may change once. **Hunt items** for a lichen and a fern; the Forest Hunt has
+  them (a hunt already started keeps its own list).
+- The sticker book's chips are the groups. A find's page, sticker and pin name a kind in full ("Shelf mushroom",
+  "Bushy lichen"); "You found…" reads "some water", "the sky" rather than "a water". The export has a `group` column.
+- Fixed: the step dots in the find screens could push the ➡️ button off a 320 px screen; they now shrink to fit.
+
 ## 2.4.3 — 2026-10-29
 
 - **Photo spots are Field Mapper's photo-point symbol** (`MapManager.drawPhotoPointIcon`, ported to `MapView.spotIcon`):

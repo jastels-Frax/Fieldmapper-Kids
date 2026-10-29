@@ -92,3 +92,19 @@ test('photo spot badges count spots, and spots taken again on another day', () =
   assert.equal(at({ spotsRetaken: 0 }).thenNow.earned, false);
   assert.equal(at({ spotsRetaken: 1 }).thenNow.earned, true);
 });
+
+test('kinds added with the groups count as the older kind they refine', () => {
+  const b = byId([find({ category: 'shelf' }), find({ category: 'puffball' }), find({ category: 'capstem' })]);
+  assert.equal(b.mushrooms.earned, true);
+  assert.equal(byId([find({ category: 'mammal' }), find({ category: 'fish' })]).animals.value, 2);
+  // "One of everything" takes a fern as its plant: the badge is not made harder by the new kinds.
+  assert.equal(byId([find({ category: 'fern' })]).everything.value, 1);
+  assert.equal(byId([find({ category: 'plant' }), find({ category: 'fern' })]).everything.value, 1);
+});
+
+test('lichens and places', () => {
+  assert.equal(byId([find({ category: 'crusty' }), find({ category: 'leafy' }), find({ category: 'lichen' })]).lichens.earned, true);
+  const places = byId([find({ category: 'forest' }), find({ category: 'forest' }), find({ category: 'water' }), find({ category: 'rock' }), find({ category: 'sky' })]);
+  assert.equal(places.places.value, 2, 'two kinds of place; rock and sky are things, not places');
+  assert.equal(byId([find({ category: 'forest' }), find({ category: 'wetland' }), find({ category: 'beach' })]).places.earned, true);
+});

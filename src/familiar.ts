@@ -21,7 +21,23 @@ const FLOWERS = ['Common Dandelion', 'White Clover', 'Red Clover', 'Oxeye Daisy'
   'Purple Loosestrife', 'Common Milkweed', 'Canada Goldenrod', 'Bunchberry', 'Wild Strawberry', 'Coltsfoot',
   "Queen Anne's Lace", 'Rugosa Rose', 'Sheep Laurel', 'Wild Lily-of-The-Valley', 'Painted Trillium'];
 const PLANTS = ['Cinnamon Fern', 'Eastern Bracken Fern', 'Broad-leaved Cattail', 'Common Juniper', 'Common Labrador Tea',
-  'Partridgeberry', 'British Soldiers Lichen', 'Reindeer Lichen'];
+  'Partridgeberry'];
+const SHRUBS = ['Late Lowbush Blueberry', 'Red Raspberry', 'Common Juniper', 'Sheep Laurel', 'Common Labrador Tea', 'Rugosa Rose',
+  'Speckled Alder', 'Rhodora', 'Northern Bayberry', 'Common Winterberry'];
+const FERNS = ['Cinnamon Fern', 'Eastern Bracken Fern', 'Sensitive Fern', 'Ostrich Fern', 'Interrupted Fern', 'Royal Fern',
+  'Eastern Hay-Scented Fern', 'Christmas Fern', 'Field Horsetail'];
+const MOSSES = ['Common Haircap Moss', 'Stairstep Moss', 'Red-stemmed Feather Moss'];
+const GRASSES = ['Broad-leaved Cattail', 'Reed Canary Grass', 'Common Reed', 'Soft Rush', 'Tussock Sedge'];
+const FISH = ['Brook Trout', 'Atlantic Salmon', 'Threespine Stickleback', 'Yellow Perch', 'American Eel', 'Mummichog',
+  'Golden Shiner', 'White Sucker', 'Smallmouth Bass', 'Rainbow Smelt'];
+const SNAILS = ['Grovesnail', 'White-lip Gardensnail', 'Garlic Glass-snail', 'Giant Gardenslug', 'Grey Fieldslug', 'Black Arion Slug'];
+const CAP_STEM = ['Fly Amanita', 'Shaggy Mane', 'Honey Fungus', 'Fairy Ring Mushroom', 'Slippery Jack', 'Common Morel'];
+const SHELVES = ['Turkey Tail', 'Chicken of the Woods', "Artist's Bracket", 'Tinder Conk', 'Birch Polypore', 'Oyster Mushroom'];
+const PUFFBALLS = ['Giant Puffball', 'Pear-shaped Puffball', 'Common Earthball'];
+const CRUSTY = ['Map Lichen', 'Boulder Lichen'];
+const LEAFY = ['Lungwort Lichen', 'Hammered Shield Lichen', 'Powdered Ruffle Lichen', 'Granulated Greenshield Lichen', 'Freckled Tube Lichen'];
+const BUSHY = ['Bushy Beard Lichen', "Methuselah's Beard Lichen", "Common Witch's Hair Lichen", 'Reindeer Lichen', 'Gray Reindeer Lichen',
+  'British Soldiers Lichen', 'Mealy Pixie-cup Lichen'];
 const MUSHROOMS = ['Fly Amanita', 'Turkey Tail', 'Chicken of the Woods', "Artist's Bracket", 'Tinder Conk', 'Birch Polypore',
   'Giant Puffball', 'Pear-shaped Puffball', 'Shaggy Mane', 'Honey Fungus', 'Oyster Mushroom', "Witch's Butter",
   'Orange Peel Fungus', "Dead Man's Fingers", 'Common Morel', 'Lobster Mushroom', 'Fairy Ring Mushroom', 'Slippery Jack',
@@ -33,11 +49,27 @@ const BUGS = ['Monarch', 'Mourning Cloak', 'Cabbage White', 'Canadian Tiger Swal
 export const FAMILIAR: Partial<Record<CategoryId, string[]>> = {
   bird: BIRDS,
   animal: [...MAMMALS, ...HERPS],
+  mammal: MAMMALS,
+  amphibian: HERPS.slice(0, 8),
+  reptile: HERPS.slice(8),
+  fish: FISH,
+  snail: SNAILS,
   sign: [...MAMMALS, ...BIRDS.slice(0, 8)],
   tree: TREES,
   flower: FLOWERS,
   plant: [...PLANTS, ...TREES.slice(0, 4), ...FLOWERS.slice(0, 4)],
+  shrub: SHRUBS,
+  fern: FERNS,
+  moss: MOSSES,
+  grass: GRASSES,
   bug: BUGS,
   mushroom: MUSHROOMS,
+  capstem: CAP_STEM,
+  shelf: SHELVES,
+  puffball: PUFFBALLS,
+  lichen: [...BUSHY.slice(3, 6), ...CRUSTY, ...LEAFY.slice(0, 2), ...BUSHY.slice(0, 2)],
+  crusty: CRUSTY,
+  leafy: LEAFY,
+  bushy: BUSHY,
   water: ['Green Frog', 'Spring Peeper', 'Painted Turtle', 'Snapping Turtle', 'Mallard', 'Common Loon', 'Great Blue Heron', 'Common Green Darner'],
 };

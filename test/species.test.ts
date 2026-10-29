@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { searchSpecies, parseFieldMapperList, parseSpeciesCsv, mergeLists, hasSpeciesStep, type Species } from '../src/species.ts';
+import { searchSpecies, parseFieldMapperList, parseSpeciesCsv, mergeLists, hasSpeciesStep, taxaFor, type Species } from '../src/species.ts';
+import type { CategoryId } from '../src/types.ts';
 import { FAMILIAR } from '../src/familiar.ts';
 
 const ns = JSON.parse(readFileSync(new URL('../public/species/ns.json', import.meta.url), 'utf8')) as { species: Species[] };
@@ -18,6 +19,26 @@ test('every familiar species is a real list entry', () => {
   for (const [cat, list] of Object.entries(FAMILIAR)) {
     for (const n of list!) assert.ok(names.has(n), `${cat}: ${n}`);
   }
+});
+
+test('a familiar species is one its kind can name (search finds it under that kind)', () => {
+  const taxon = new Map(ns.species.map(s => [s.n, s.t] as const));
+  for (const [cat, list] of Object.entries(FAMILIAR)) {
+    const taxa = taxaFor(cat as CategoryId);
+    for (const n of list!) assert.ok(!taxa || taxa.includes(taxon.get(n)!), `${cat}: ${n} is ${taxon.get(n)}`);
+  }
+});
+
+test('the new kinds name only their own kind of living thing', () => {
+  assert.ok(searchSpecies(ns.species, 'crusty', 'map').every(s => s.t === 'Lichen'));
+  assert.ok(searchSpecies(ns.species, 'shelf', 'turkey').some(s => s.n === 'Turkey Tail'));
+  assert.ok(searchSpecies(ns.species, 'fern', '').every(s => s.t === 'Fern / Fern Ally'));
+  assert.ok(searchSpecies(ns.species, 'snail', '').every(s => s.t === 'Mollusc'));
+  // A lichen is not a plant: it has a group of its own now.
+  assert.ok(searchSpecies(ns.species, 'plant', 'reindeer lichen').every(s => s.t !== 'Lichen'));
+  // A place is not a species.
+  for (const k of ['forest', 'meadow', 'wetland', 'beach', 'habitat', 'rock', 'sky'] as const) assert.equal(hasSpeciesStep(k), false, k);
+  assert.equal(hasSpeciesStep('water'), true);
 });
 
 test('search is limited to the find\'s kind and puts name starts first', () => {

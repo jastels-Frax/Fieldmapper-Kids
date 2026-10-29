@@ -8,7 +8,8 @@ import { TOOLS } from './railTools.ts';
 const PARTS: { emoji: string; title: string; lines: string[] }[] = [
   { emoji: '✨', title: 'Saving a find', lines: [
     'Tap "I found something!" at the bottom of the map.',
-    'Take a photo, pick one from your photos, or draw it. Then say what it is.',
+    'Take a photo, pick one from your photos, or draw it.',
+    'Then say what it is: a plant, an animal, a mushroom, a lichen or a habitat (a place). Each one opens its kinds: a fern, a frog, a shelf mushroom, a crusty lichen, a wetland… Not sure? Tap ❓ Not sure.',
     'Tap ✨ Save now any time, or keep going: give it a name, its colours and size, and record voice notes.',
     'Hold your finger on the map to save a find right at that spot.',
   ] },

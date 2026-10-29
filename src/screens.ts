@@ -1,6 +1,7 @@
 import { activeGuide } from './guides.ts';
-import type { CategoryId, Find, FindMedia, Profile, Settings } from './types.ts';
-import { CATEGORIES, COLOURS, COUNTS, SIGNS, SIZES, categoryOf } from './categories.ts';
+import type { Find, FindMedia, GroupId, Profile, Settings } from './types.ts';
+import { COLOURS, COUNTS, GROUPS, SIGNS, SIZES, categoryOf, fullName, groupOf, oneOf } from './categories.ts';
+import { kindIcon } from './kindIcon.ts';
 import { askYesNo, blobUrl, h, openSheet, whenWords } from './ui.ts';
 import { say } from './speech.ts';
 import { sounds } from './sound.ts';
@@ -49,7 +50,7 @@ function pictureOf(f: Find, owner: Element, cls: string): HTMLElement {
   const blob = f.thumb;
   const cat = categoryOf(f.category);
   if (blob) {
-    const img = h('img', { class: cls, alt: f.nickname || cat.label });
+    const img = h('img', { class: cls, alt: f.nickname || fullName(cat) });
     img.src = blobUrl(blob, owner);
     return img;
   }
@@ -59,7 +60,9 @@ function pictureOf(f: Find, owner: Element, cls: string): HTMLElement {
     el.innerHTML = art.svg();
     return el;
   }
-  return h('span', { class: `${cls} emoji-pic`, style: `--cat:${cat.colour}`, 'aria-label': cat.label }, cat.emoji);
+  const el = kindIcon(cat, `${cls} emoji-pic`);
+  el.style.setProperty('--cat', cat.colour);
+  return el;
 }
 
 /** After a save: a sticker, a cheer, a fact, and anything newly earned. */
@@ -69,12 +72,12 @@ export function celebrate(host: ScreenHost, f: Find, newBadges: BadgeProgress[],
   const { body, close } = openSheet({ title: 'Hooray!', emoji: '🎉', className: 'celebrate' });
   const sticker = h('div', { class: 'big-sticker', style: `--cat:${cat.colour}` });
   body.append(sticker);
-  sticker.append(pictureOf(f, sticker, 'big-sticker-pic'), h('span', { class: 'big-sticker-emoji' }, cat.emoji));
+  sticker.append(pictureOf(f, sticker, 'big-sticker-pic'), kindIcon(cat, 'big-sticker-emoji'));
   const an = (w: string) => (/^[aeiou]/i.test(w) ? 'an' : 'a');
   const what = f.nickname ? `You found ${f.nickname}!`
     : f.category === 'sign' ? (f.species ? `You found ${f.species.name} clues!` : 'You found animal clues!')
     : f.species ? `You found ${an(f.species.name)} ${f.species.name}!`
-    : `You found ${an(cat.label)} ${cat.label.toLowerCase()}!`;
+    : `You found ${oneOf(cat)}!`;
   const buddy = host.profile.guide;
   const hooray = cheer(buddy);
   body.append(
@@ -119,25 +122,31 @@ export function celebrate(host: ScreenHost, f: Find, newBadges: BadgeProgress[],
   if (newBadges.length || hunt?.completed) setTimeout(() => sounds.badge(), 700);
 }
 
-/** The sticker book: every find as a sticker, filtered by kind. */
-export function openBook(host: ScreenHost, start?: CategoryId): void {
+/** The sticker book: every find as a sticker, filtered by group (Plant, Animal…) or "not sure". */
+export function openBook(host: ScreenHost): void {
   const { body, close } = openSheet({ title: 'My Finds', emoji: '📖', className: 'book' });
   void close;
-  let filter: CategoryId | 'all' | 'fav' = start ?? 'all';
+  type Filter = GroupId | 'mystery' | 'all' | 'fav';
+  let filter: Filter = 'all';
   const chips = h('div', { class: 'chips' });
   const grid = h('div', { class: 'sticker-grid' });
-  const counts = new Map<string, number>();
+  /** A find's shelf in the book: its group, or "not sure" for a mystery. */
+  const shelfOf = (f: Find): Filter => groupOf(f.category)?.id ?? 'mystery';
 
   const paint = () => {
-    counts.clear();
-    for (const f of host.finds()) counts.set(f.category, (counts.get(f.category) ?? 0) + 1);
+    const counts = new Map<Filter, number>();
+    for (const f of host.finds()) counts.set(shelfOf(f), (counts.get(shelfOf(f)) ?? 0) + 1);
+    const mystery = categoryOf('mystery');
+    const shelves = [...GROUPS.map(g => ({ id: g.id as Filter, emoji: g.emoji, art: g.art, label: g.label, colour: g.colour })),
+      { id: 'mystery' as Filter, emoji: mystery.emoji, label: 'Not sure', colour: mystery.colour }];
     chips.replaceChildren(
       h('button', { class: `chip ${filter === 'all' ? 'on' : ''}`, onclick: () => { filter = 'all'; paint(); } }, `🌍 All ${host.finds().length}`),
-      h('button', { class: `chip ${filter === 'fav' ? 'on' : ''}`, onclick: () => { filter = 'fav'; paint(); } }, '❤️'),
-      ...CATEGORIES.filter(c => counts.has(c.id)).map(c =>
-        h('button', { class: `chip ${filter === c.id ? 'on' : ''}`, style: `--cat:${c.colour}`, onclick: () => { filter = c.id; say(c.label); paint(); } }, `${c.emoji} ${counts.get(c.id)}`)),
+      h('button', { class: `chip ${filter === 'fav' ? 'on' : ''}`, 'aria-label': 'Favourites', onclick: () => { filter = 'fav'; paint(); } }, '❤️'),
+      ...shelves.filter(g => counts.has(g.id)).map(g =>
+        h('button', { class: `chip ${filter === g.id ? 'on' : ''}`, style: `--cat:${g.colour}`, 'aria-label': `${g.label}: ${counts.get(g.id)}`, onclick: () => { filter = g.id; say(g.label); paint(); } },
+          kindIcon(g, 'chip-ic'), ` ${counts.get(g.id)}`)),
     );
-    const list = host.finds().filter(f => filter === 'all' || (filter === 'fav' ? f.favourite : f.category === filter));
+    const list = host.finds().filter(f => filter === 'all' || (filter === 'fav' ? f.favourite : shelfOf(f) === filter));
     grid.replaceChildren();
     if (!list.length) {
       grid.append(h('div', { class: 'empty' },
@@ -152,8 +161,8 @@ export function openBook(host: ScreenHost, start?: CategoryId): void {
       const cat = categoryOf(f.category);
       const card = h('button', { class: 'sticker', style: `--cat:${cat.colour}`, onclick: () => openFind(host, f.id, paint) });
       grid.append(card);
-      card.append(pictureOf(f, card, 'sticker-pic'), h('span', { class: 'sticker-emoji' }, cat.emoji),
-        h('span', { class: 'sticker-name' }, f.nickname || cat.label));
+      card.append(pictureOf(f, card, 'sticker-pic'), kindIcon(cat, 'sticker-emoji'),
+        h('span', { class: 'sticker-name' }, f.nickname || fullName(cat)));
       if (f.favourite) card.append(h('span', { class: 'sticker-fav' }, '❤️'));
     }
   };
@@ -179,7 +188,7 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void): v
   if (!f) return;
   const together = host.profile.mode === 'together';
   const cat = categoryOf(f.category);
-  const { body, close } = openSheet({ title: f.nickname || cat.label, emoji: cat.emoji, className: 'detail' });
+  const { body, close } = openSheet({ title: f.nickname || fullName(cat), emoji: cat.emoji, className: 'detail' });
   if (f.pictures.length) {
     const strip = h('div', { class: `detail-pics ${f.pictures.length > 1 ? 'many' : ''}` });
     body.append(strip);
@@ -203,7 +212,9 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void): v
     pic.innerHTML = artFor(f.species.name)!.svg();
     body.append(pic);
   } else {
-    body.append(h('div', { class: 'detail-emoji', style: `--cat:${cat.colour}` }, cat.emoji));
+    const pic = kindIcon(cat, 'detail-emoji');
+    pic.style.setProperty('--cat', cat.colour);
+    body.append(pic);
   }
   const facts: HTMLElement[] = [h('li', {}, `🕒 ${whenWords(f.createdAt)}`)];
   if (f.species) facts.push(h('li', {}, `${f.species.own ? '✏️' : '📚'} ${f.species.name}`, f.species.scientific ? h('span', { class: 'latin' }, ` ${f.species.scientific}`) : null));
@@ -281,7 +292,7 @@ export function openFind(host: ScreenHost, id: string, onChange?: () => void): v
     onChange?.();
   });
   body.append(del);
-  say(f.nickname ? `${f.nickname}, a ${cat.label.toLowerCase()}` : cat.label);
+  say(f.nickname ? `${f.nickname}, ${oneOf(cat)}` : fullName(cat));
 }
 
 export function openBadges(host: ScreenHost): void {

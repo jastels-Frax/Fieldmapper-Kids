@@ -8,7 +8,8 @@ maplibregl.setWorkerUrl(workerUrl);
 import type { Basemap, Find, PhotoSpot, Sketch } from './types.ts';
 import { newestShot, spotBearing, spotTitle } from './photoSpots.ts';
 import { iconPaths } from './icons.ts';
-import { categoryOf } from './categories.ts';
+import { categoryOf, fullName } from './categories.ts';
+import { setKindIcon } from './kindIcon.ts';
 import type { Fix } from './gps.ts';
 import { blobUrl } from './ui.ts';
 
@@ -416,7 +417,7 @@ export class MapView {
       const el = document.createElement('button');
       el.className = 'find-marker';
       el.style.setProperty('--cat', cat.colour);
-      el.setAttribute('aria-label', f.nickname || f.species?.name || cat.label);
+      el.setAttribute('aria-label', f.nickname || f.species?.name || fullName(cat));
       const pin = document.createElement('span');
       pin.className = 'find-pin';
       const face = document.createElement('span');
@@ -432,7 +433,7 @@ export class MapView {
       }
       const badge = document.createElement('span');
       badge.className = 'find-marker-emoji';
-      badge.textContent = cat.emoji;
+      setKindIcon(badge, cat);
       (f.thumb ? el : face).append(badge);
       el.prepend(pin);
       el.addEventListener('click', e => {

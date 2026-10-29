@@ -1,6 +1,7 @@
 import { icon, labelled } from './icons.ts';
-import type { CategoryId, ColourId, Find, FullFind, Picture, Profile, Settings, SpeciesPick } from './types.ts';
-import { CATEGORIES, COLOURS, COUNTS, SIGNS, SIZES, categoryOf } from './categories.ts';
+import type { ColourId, Find, FullFind, Picture, Profile, Settings, SpeciesPick } from './types.ts';
+import { COLOURS, COUNTS, GROUPS, SIGNS, SIZES, categoryOf, groupOf, kindWords, kindsOf, type Category, type Group } from './categories.ts';
+import { kindIcon } from './kindIcon.ts';
 import { askYesNo, blobUrl, h, openSheet, toast, uid } from './ui.ts';
 import { say } from './speech.ts';
 import { sounds } from './sound.ts';
@@ -40,7 +41,7 @@ export const MAX_PICTURES = 12;
  * "I found something!" — one step per screen, big buttons, everything skippable
  * but the kind of thing, and kept short for a trail: once the kind is picked, ✨ Save now is on every step; colours,
  * size and count share one "Describe it" screen; the Where question is asked only when the GPS cannot answer it;
- * and the last screen is the save screen itself (voice notes, a name). A Sprout gets three screens: picture, kind,
+ * and the last screen is the save screen itself (voice notes, a name). A Sprout gets three screens: picture, group,
  * save (docs/AGE_TIERS.md). Passing `existing` edits a saved find instead: same id, same place and time, with every
  * answer pre-filled.
  */
@@ -113,6 +114,8 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
   let navForward: (() => void) | null = null;
   /** The drawing pad is open over the picture step: back closes it, forward waits for Done drawing. */
   let padOpen = false;
+  /** A group's kinds are on screen (the category step's second level): ⬅️ goes back to the groups. */
+  let catBack: (() => void) | null = null;
 
   // Editing opens on a summary of the find; each row opens ONE question and comes
   // back. Changing the kind of thing also asks the questions that depend on it.
@@ -143,7 +146,7 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
     } else {
       const list = steps();
       const st = list[stepIdx];
-      navBack = stepIdx > 0 ? () => go(stepIdx - 1) : null;
+      navBack = st === 'category' && catBack ? catBack : stepIdx > 0 ? () => go(stepIdx - 1) : null;
       navForward = stepIdx < list.length - 1 && !(st === 'category' && !draft.category) ? next : null;
     }
     set(prevNav, navBack);
@@ -155,6 +158,7 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
     leave();
     detour = false;
     padOpen = false;
+    catBack = null;
     onOverview = false;
     const list = steps();
     stepIdx = Math.max(0, Math.min(list.length - 1, i));
@@ -295,27 +299,59 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
     },
 
     category() {
-      put(
-        title(),
-        h('div', { class: 'choice-grid' }, ...CATEGORIES.map(c =>
-          h('button', {
-            class: `choice ${draft.category === c.id ? 'on' : ''}`, style: `--cat:${c.colour}`,
-            onclick: () => {
-              const changedKind = draft.category !== c.id;
-              if (changedKind) { draft.species = undefined; draft.sign = undefined; }
-              draft.category = c.id as CategoryId;
-              if (editing && changedKind) {
-                followUps = [];
-                if (c.id === 'sign') followUps.push('sign');
-                if (hasSpeciesStep(c.id as CategoryId)) followUps.push('species');
-              }
-              sounds.pick();
-              say(c.cheer);
-              setTimeout(next, 700);
-            },
-          }, h('span', { class: 'choice-emoji' }, c.emoji), c.label),
-        )),
-      );
+      // Two levels: the five groups (and "not sure"), then the kinds in the one tapped. A Sprout stops at the group.
+      // Coming back to this step opens the group of the kind already picked, with it lit.
+      const pickKind = (c: Category) => {
+        const changedKind = draft.category !== c.id;
+        if (changedKind) { draft.species = undefined; draft.sign = undefined; }
+        draft.category = c.id;
+        if (editing && changedKind) {
+          followUps = [];
+          if (c.id === 'sign') followUps.push('sign');
+          if (hasSpeciesStep(c.id)) followUps.push('species');
+        }
+        sounds.pick();
+        say(c.cheer);
+        setTimeout(next, 700);
+      };
+      const choice = (k: { id: string; emoji: string; art?: string; colour: string }, words: string, on: boolean, onclick: () => void, hint?: string) =>
+        h('button', { class: `choice ${on ? 'on' : ''}`, style: `--cat:${k.colour}`, 'aria-pressed': String(on), onclick },
+          kindIcon(k, 'choice-emoji'), h('span', {}, words), hint ? h('span', { class: 'choice-hint' }, hint) : null);
+      const showGroups = () => {
+        catBack = null;
+        body.replaceChildren();
+        const picked = draft.category ? groupOf(draft.category)?.id : undefined;
+        const mystery = categoryOf('mystery');
+        put(
+          title(),
+          h('div', { class: 'choice-grid' },
+            ...GROUPS.map(g => choice(g, g.label, picked === g.id, () => {
+              if (sprout) return pickKind(categoryOf(g.generic));
+              sounds.tap();
+              showKinds(g);
+            })),
+            choice(mystery, 'Not sure', draft.category === 'mystery', () => pickKind(mystery)),
+          ),
+        );
+        paintNav();
+      };
+      const showKinds = (g: Group) => {
+        catBack = showGroups;
+        body.replaceChildren();
+        body.scrollTop = 0;
+        say(g.ask);
+        put(
+          title(g.ask, 'think'),
+          h('div', { class: 'choice-grid kinds' }, ...kindsOf(g).map(c =>
+            choice(c, c.pick ?? c.label, draft.category === c.id, () => pickKind(c), c.hint))),
+          h('button', { class: 'text-btn', onclick: () => { sounds.tap(); showGroups(); } },
+            labelled(`Not ${/^[aeiou]/i.test(g.label) ? 'an' : 'a'} ${g.label.toLowerCase()}?`, 'back', 'before')),
+        );
+        paintNav();
+      };
+      const open = !sprout && draft.category ? groupOf(draft.category) : undefined;
+      if (open) showKinds(open);
+      else showGroups();
     },
 
     sign() {
@@ -602,9 +638,9 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
     body.replaceChildren();
     body.scrollTop = 0;
     const cat = draft.category ? categoryOf(draft.category) : null;
-    const row = (st: Step, emoji: string, label: string, value: Node | string) =>
+    const row = (st: Step, emoji: string | Node, label: string, value: Node | string) =>
       h('button', { class: 'edit-row', onclick: () => { sounds.tap(); followUps = []; goStep(st); } },
-        h('span', { class: 'edit-emoji' }, emoji),
+        typeof emoji === 'string' ? h('span', { class: 'edit-emoji' }, emoji) : emoji,
         h('span', { class: 'edit-text' }, h('strong', {}, label), typeof value === 'string' ? h('span', {}, value) : value),
         h('span', { class: 'edit-pen', 'aria-hidden': 'true' }, '✏️'));
     const thumbs = h('span', { class: 'edit-thumbs' });
@@ -632,7 +668,7 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
       buddySays(guide, { text: 'Tap the part you want to change!', pose: 'point' }),
       h('div', { class: 'edit-list' },
         row('picture', '📷', 'Pictures', thumbs),
-        row('category', cat?.emoji ?? '❓', 'What it is', cat?.label ?? '—'),
+        row('category', cat ? kindIcon(cat, 'edit-emoji') : '❓', 'What it is', cat ? kindWords(cat) : '—'),
         draft.category === 'sign' ? row('sign', sign?.emoji ?? '🐾', 'The clue', sign?.label ?? 'Not picked') : null,
         draft.category && hasSpeciesStep(draft.category) ? row('species', '📚', 'Its name', draft.species?.name ?? 'Not named yet') : null,
         row('describe', '🎨', 'Colours, size and count', h('span', {}, colourDots, ` ${size ? `${size.emoji} ${size.label}` : ''} ${cnt ? `${cnt.emoji} ${cnt.label}` : ''}`)),

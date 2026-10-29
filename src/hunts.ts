@@ -1,5 +1,6 @@
 import type { CategoryId, ColourId, CountId, SizeId } from './types.ts';
 import type { BadgeFind } from './badges.ts';
+import { isKind } from './categories.ts';
 
 /**
  * Scavenger hunts: a themed list of things to find. An item with a RULE is
@@ -88,6 +89,8 @@ export const ITEM_LIBRARY: HuntItem[] = [
   item('web', '🕸️', 'A spider web'),
   item('shell', '🐚', 'A shell'),
   item('mushroom', '🍄', 'A mushroom (look, don\'t touch!)', { category: 'mushroom' }),
+  item('lichen', '🪨', 'A lichen on a rock or a tree', { category: 'lichen' }),
+  item('fern', '🌿', 'A fern', { category: 'fern' }),
   item('sound', '👂', 'Something that makes a sound'),
   item('seed', '🌱', 'A seed'),
   item('stick', '🥢', 'A stick longer than your arm'),
@@ -102,7 +105,7 @@ const lib = (...ids: string[]): HuntItem[] => ids.map(id => {
 export const HUNTS: Hunt[] = [
   { id: 'backyard', emoji: '🏡', title: 'Backyard Hunt', where: 'A yard, a garden or a playground.', items: lib('bird', 'bug', 'flower', 'tree', 'rock', 'leaf', 'round', 'soft') },
   { id: 'rainbow', emoji: '🌈', title: 'Rainbow Hunt', where: 'Anywhere with lots of colour.', items: lib('red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink') },
-  { id: 'woods', emoji: '🌲', title: 'Forest Hunt', where: 'A trail in the woods.', items: lib('big-tree', 'pinecone', 'mushroom', 'track', 'web', 'stick', 'hole', 'sound') },
+  { id: 'woods', emoji: '🌲', title: 'Forest Hunt', where: 'A trail in the woods.', items: lib('big-tree', 'pinecone', 'mushroom', 'lichen', 'fern', 'track', 'web', 'stick', 'hole', 'sound') },
   { id: 'pond', emoji: '🐸', title: 'Pond & Stream Hunt', where: 'Beside a pond, a stream or a wetland. Stay with a grown-up near water!', items: lib('water', 'bird', 'bug', 'plant', 'tiny-rock', 'animal', 'sound') },
   { id: 'tiny', emoji: '🔍', title: 'Tiny Things Hunt', where: 'Get down low and look closely.', items: lib('tiny-bug', 'tiny-rock', 'seed', 'tiny', 'web', 'lots') },
   { id: 'senses', emoji: '👃', title: 'Five Senses Hunt', where: 'Anywhere outside.', items: lib('smell', 'soft', 'rough', 'sound', 'sky', 'heart') },
@@ -114,7 +117,7 @@ export const HUNTS: Hunt[] = [
 export function meetsRule(it: HuntItem, f: BadgeFind): boolean {
   const r = it.rule;
   if (!r || (!r.category && !r.colour && !r.size && !r.count)) return false;
-  return (!r.category || f.category === r.category)
+  return (!r.category || isKind(f.category, r.category))
     && (!r.colour || f.colours.includes(r.colour))
     && (!r.size || f.size === r.size)
     && (!r.count || f.count === r.count);

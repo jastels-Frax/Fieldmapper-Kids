@@ -1,7 +1,19 @@
 /** How the app talks to whoever is holding it. */
 export type Mode = 'explorer' | 'together';
 
-export type CategoryId = 'bird' | 'bug' | 'plant' | 'tree' | 'flower' | 'animal' | 'mushroom' | 'sign' | 'rock' | 'water' | 'sky' | 'mystery';
+/**
+ * What a find is: a KIND within a group (categories.ts `GROUPS`). The first twelve are the kinds Scout had before the
+ * groups; they keep their ids and meaning, so every saved find, badge and hunt still reads the same.
+ */
+export type CategoryId = 'bird' | 'bug' | 'plant' | 'tree' | 'flower' | 'animal' | 'mushroom' | 'sign' | 'rock' | 'water' | 'sky' | 'mystery'
+  | 'shrub' | 'fern' | 'moss' | 'grass'
+  | 'mammal' | 'amphibian' | 'reptile' | 'fish' | 'snail'
+  | 'capstem' | 'shelf' | 'puffball'
+  | 'lichen' | 'crusty' | 'leafy' | 'bushy'
+  | 'forest' | 'meadow' | 'wetland' | 'beach' | 'habitat';
+
+/** The five groups the kinds are sorted into (categories.ts `GROUPS`). */
+export type GroupId = 'plants' | 'animals' | 'mushrooms' | 'lichens' | 'habitats';
 
 export type SizeId = 'tiny' | 'small' | 'medium' | 'big' | 'huge';
 export type CountId = 'one' | 'few' | 'lots';

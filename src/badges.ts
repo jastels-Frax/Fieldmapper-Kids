@@ -1,5 +1,6 @@
 import type { CategoryId, Find } from './types.ts';
 import { distanceM, localDay, localHour } from './geo.ts';
+import { isKind } from './categories.ts';
 
 /** What a badge needs to know about a find: no pixels, no sound. */
 export type BadgeFind = Pick<Find, 'createdAt' | 'category' | 'colours' | 'size' | 'count' | 'lat' | 'lon'> & {
@@ -31,7 +32,11 @@ export interface BadgeClock {
 
 const LOCAL_CLOCK: BadgeClock = { dayOf: localDay, hourOf: localHour };
 
-const count = (finds: BadgeFind[], cat: CategoryId) => finds.filter(f => f.category === cat).length;
+/** Finds of a kind, or of a kind of it (categories.isKind): a fern is a plant, a shelf a mushroom, a mammal an animal. */
+const count = (finds: BadgeFind[], cat: CategoryId) => finds.filter(f => isKind(f.category, cat)).length;
+
+/** The kinds of PLACE in the Habitats group (rock and sky are things in it, not places). */
+const PLACES: CategoryId[] = ['forest', 'meadow', 'wetland', 'water', 'beach', 'habitat'];
 
 /** What a badge may know beyond the finds themselves. */
 export interface BadgeExtras {
@@ -49,7 +54,11 @@ interface BadgeRule extends Badge {
   measure: (finds: BadgeFind[], clock: BadgeClock, extra: BadgeExtras) => number;
 }
 
-/** Categories that count towards "one of everything" (a mystery is not a kind of thing). */
+/**
+ * Categories that count towards "one of everything" (a mystery is not a kind of thing). Matched with `isKind`, so a
+ * kind added with the groups counts as the older kind it refines. Never add to it: the badge is derived, and a longer
+ * list would take it away from every explorer who has it.
+ */
 export const COLLECTABLE: CategoryId[] = ['bird', 'bug', 'plant', 'tree', 'flower', 'animal', 'sign', 'rock', 'water', 'sky'];
 
 const RULES: BadgeRule[] = [
@@ -63,6 +72,11 @@ const RULES: BadgeRule[] = [
   { id: 'rocks', emoji: '🪨', title: 'Rock Collector', how: 'Find 5 rocks.', target: 5, measure: f => count(f, 'rock') },
   { id: 'animals', emoji: '🐿️', title: 'Animal Tracker', how: 'Find 5 animals.', target: 5, measure: f => count(f, 'animal') },
   { id: 'mushrooms', emoji: '🍄', title: 'Mushroom Spotter', how: 'Find 3 mushrooms. Look, but never eat them!', target: 3, measure: f => count(f, 'mushroom') },
+  { id: 'lichens', emoji: '🍃', title: 'Lichen Looker', how: 'Find 3 lichens on rocks, trees or the ground.', target: 3, measure: f => count(f, 'lichen') },
+  {
+    id: 'places', emoji: '🏞️', title: 'Habitat Explorer', how: 'Find 3 different kinds of place: a forest, a meadow, a wetland, water or a beach.', target: 3,
+    measure: f => new Set(f.map(x => x.category).filter(k => PLACES.includes(k))).size,
+  },
   { id: 'signs', emoji: '🐾', title: 'Track Detective', how: 'Find 3 animal tracks or other clues.', target: 3, measure: f => count(f, 'sign') },
   {
     id: 'species', emoji: '📚', title: 'Species Spotter', how: 'Name 5 different species.', target: 5,
@@ -76,7 +90,7 @@ const RULES: BadgeRule[] = [
   },
   {
     id: 'everything', emoji: '🧭', title: 'One of Everything', how: 'Find one of every kind of thing.', target: COLLECTABLE.length,
-    measure: f => COLLECTABLE.filter(c => f.some(x => x.category === c)).length,
+    measure: f => COLLECTABLE.filter(c => f.some(x => isKind(x.category, c))).length,
   },
   { id: 'artist', emoji: '🎨', title: 'Nature Artist', how: 'Draw 3 pictures of your finds.', target: 3, measure: f => f.filter(x => x.hasDrawing).length },
   { id: 'story', emoji: '🎤', title: 'Storyteller', how: 'Record 3 voice notes.', target: 3, measure: f => f.reduce((n, x) => n + (x.voiceCount ?? (x.hasVoice ? 1 : 0)), 0) },

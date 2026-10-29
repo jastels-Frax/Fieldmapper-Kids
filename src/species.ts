@@ -16,17 +16,36 @@ export interface Species {
   x?: boolean;
 }
 
-/** Which taxa answer "what is it?" for each kind of find. Absent = no species step. */
+/**
+ * Which taxa answer "what is it?" for each kind of find. Absent = no species step: a habitat is a place, not a species
+ * (water keeps its own, from before the groups: what lives in it).
+ */
 export const CATEGORY_TAXA: Partial<Record<CategoryId, string[]>> = {
   bird: ['Bird'],
   animal: ['Mammal', 'Amphibian', 'Reptile', 'Fish'],
+  mammal: ['Mammal'],
+  amphibian: ['Amphibian'],
+  reptile: ['Reptile'],
+  fish: ['Fish'],
+  snail: ['Mollusc'],
   sign: ['Mammal', 'Bird', 'Amphibian', 'Reptile'],
-  bug: ['Insect', 'Arthropod', 'Mollusc', 'Crustacean', 'Invertebrate'],
-  plant: ['Vascular Plant', 'Fern / Fern Ally', 'Conifer', 'Moss', 'Liverwort', 'Hornwort', 'Lichen'],
-  mushroom: ['Fungus'],
+  bug: ['Insect', 'Arthropod', 'Crustacean', 'Invertebrate'],
+  plant: ['Vascular Plant', 'Fern / Fern Ally', 'Conifer', 'Moss', 'Liverwort', 'Hornwort'],
   tree: ['Conifer', 'Vascular Plant'],
+  shrub: ['Vascular Plant', 'Conifer'],
   flower: ['Vascular Plant'],
-  water: ['Fish', 'Amphibian', 'Insect', 'Mollusc', 'Crustacean'],
+  fern: ['Fern / Fern Ally'],
+  moss: ['Moss', 'Liverwort', 'Hornwort'],
+  grass: ['Vascular Plant'],
+  mushroom: ['Fungus'],
+  capstem: ['Fungus'],
+  shelf: ['Fungus'],
+  puffball: ['Fungus'],
+  lichen: ['Lichen'],
+  crusty: ['Lichen'],
+  leafy: ['Lichen'],
+  bushy: ['Lichen'],
+  water: ['Fish', 'Amphibian', 'Reptile', 'Bird', 'Insect', 'Mollusc', 'Crustacean'],
   mystery: [],
 };
 

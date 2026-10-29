@@ -1,7 +1,7 @@
 import { zipSync, strToU8 } from 'fflate';
 import type { Find, FindMedia, PhotoSpot, Profile, Sketch, SpotMedia } from './types.ts';
 import { spotBearing, viewWedge } from './photoSpots.ts';
-import { categoryOf } from './categories.ts';
+import { categoryOf, fullName, groupOf } from './categories.ts';
 import { csvCell } from './csv.ts';
 import { walkGeoJSON, type Walk } from './walk.ts';
 
@@ -43,11 +43,11 @@ export async function buildExport(finds: Find[], profiles: Profile[], walks: Wal
   const files: Record<string, Uint8Array> = {};
   const features = [];
   const who = new Map(profiles.map(p => [p.id, p.name || 'Explorer'] as const));
-  const rows = [['id', 'explorer', 'when', 'changed', 'kind', 'sign', 'species', 'species_own_name', 'scientific_name', 'name', 'colours', 'size', 'count',
+  const rows = [['id', 'explorer', 'when', 'changed', 'group', 'kind', 'sign', 'species', 'species_own_name', 'scientific_name', 'name', 'colours', 'size', 'count',
     'latitude', 'longitude', 'accuracy_m', 'note', 'pictures', 'voice']];
   for (const [i, f] of finds.slice().reverse().entries()) {
     const n = String(i + 1).padStart(3, '0');
-    const kind = categoryOf(f.category).label.toLowerCase().replace(/[^a-z]+/g, '-');
+    const kind = fullName(categoryOf(f.category)).toLowerCase().replace(/[^a-z]+/g, '-');
     const pictures: string[] = [];
     const m = await media(f.id);
     for (const [k, p] of m.pictures.entries()) {
@@ -64,7 +64,7 @@ export async function buildExport(finds: Find[], profiles: Profile[], walks: Wal
     const voice = voicePaths.join(';');
     const props = {
       id: f.id, explorer: (f.profileId && who.get(f.profileId)) || '', when: f.createdAt, changed: f.editedAt ?? '',
-      kind: categoryOf(f.category).label, sign: f.sign ?? '', species: f.species?.name ?? '', species_own_name: !!f.species?.own, scientific_name: f.species?.scientific ?? '',
+      group: groupOf(f.category)?.label ?? '', kind: fullName(categoryOf(f.category)), sign: f.sign ?? '', species: f.species?.name ?? '', species_own_name: !!f.species?.own, scientific_name: f.species?.scientific ?? '',
       name: f.nickname ?? '', colours: f.colours.join(';'), size: f.size ?? '', count: f.count ?? '',
       accuracy_m: f.accuracy ?? null, note: f.note ?? '', favourite: !!f.favourite, pictures: pictures.join(';'), voice,
     };
@@ -73,7 +73,7 @@ export async function buildExport(finds: Find[], profiles: Profile[], walks: Wal
       geometry: typeof f.lat === 'number' && typeof f.lon === 'number' ? { type: 'Point', coordinates: [place(f.lon), place(f.lat)] } : null,
       properties: props,
     });
-    rows.push([f.id, props.explorer, f.createdAt, props.changed, props.kind, props.sign, props.species, props.species_own_name ? 'yes' : '', props.scientific_name, props.name,
+    rows.push([f.id, props.explorer, f.createdAt, props.changed, props.group, props.kind, props.sign, props.species, props.species_own_name ? 'yes' : '', props.scientific_name, props.name,
       props.colours, props.size, props.count, placeText(f.lat), placeText(f.lon), String(f.accuracy ?? ''),
       props.note, props.pictures, voice]);
   }

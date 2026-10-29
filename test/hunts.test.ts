@@ -61,3 +61,15 @@ test('custom hunts are refused when empty and capped', () => {
   assert.equal(h.emoji, '🗺️');
   assert.equal(h.custom, true);
 });
+
+test('an item for an older kind is ticked by the kinds that refine it', () => {
+  const animal = ITEM_LIBRARY.find(i => i.id === 'animal')!;
+  const mushroom = ITEM_LIBRARY.find(i => i.id === 'mushroom')!;
+  const plant = ITEM_LIBRARY.find(i => i.id === 'plant')!;
+  const lichen = ITEM_LIBRARY.find(i => i.id === 'lichen')!;
+  assert.equal(meetsRule(animal, find({ category: 'mammal' })), true);
+  assert.equal(meetsRule(mushroom, find({ category: 'shelf' })), true);
+  assert.equal(meetsRule(plant, find({ category: 'moss' })), true);
+  assert.equal(meetsRule(lichen, find({ category: 'bushy' })), true);
+  assert.equal(meetsRule(animal, find({ category: 'bird' })), false);
+});

@@ -18,7 +18,7 @@ is not zero). Moving back down loses nothing either.
 | Roughly | 4–6, pre-readers | 7–9, early readers | 10–12, confident readers |
 | Reading | Everything spoken; words are labels on pictures | Short sentences, read aloud by default | Full sentences; read aloud optional |
 | Typing | None | Optional (a name, a search) | Expected (notes, measurements) |
-| "I found something!" | 3 taps: picture → what is it → done (place automatic) | Today's flow | Today's flow + field-notebook questions |
+| "I found something!" | 3 taps: picture → what is it (the group only: plant, animal, mushroom, lichen, habitat) → done (place automatic) | Today's flow (a group, then a kind in it) | Today's flow + field-notebook questions |
 | Naming species | Big picture buttons for ~20 familiar species, no search | Familiar buttons + search (today) | Search with scientific names, look-alikes, provincial rank explained |
 | Place | Automatic GPS; no choice shown | GPS / tap the map / none (today) | Plus accuracy in metres, coordinates, compass bearing |
 | Map | Me and my stickers; no style switch | Today's map | Plus measure-a-distance, coordinates readout, study plots |

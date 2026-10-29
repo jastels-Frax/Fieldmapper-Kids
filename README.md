@@ -25,11 +25,12 @@ It is an offline-capable web app (PWA): open it in a browser on a phone or table
 - **Photo spots** (📷, new in 2.4): take a picture of a view; the compass remembers which way you looked, and the
   map shows a camera dot with a wedge pointing that way (or tap an arrow yourself). Come back another day and 🔁 take it again to see
   what changed — then and now.
-- **"I found something!"**: add as many photos and drawings as you like, pick what it is (bird, bug, plant,
-  tree, flower, animal, mushroom, tracks & scat, rock, water, sky, mystery), and ✨ Save now — or go on: name it
+- **"I found something!"**: add as many photos and drawings as you like, pick what it is — a plant, an animal, a
+  mushroom, a lichen or a habitat (new in 2.5), then its kind (a fern, a frog, a shelf mushroom, a crusty lichen, a
+  wetland…), or ❓ not sure — and ✨ Save now — or go on: name it
   (type your own words, like "little plant", or pick a species), tap its colours, size and how many on one screen,
   and record as many voice notes as you like. It goes where you stood by GPS; you are only asked where when the
-  GPS is unsure. Sprouts get three screens: picture, kind, save. The celebration goes back to the map by itself.
+  GPS is unsure. Sprouts get three screens: picture, group, save. The celebration goes back to the map by itself.
   Every find can be changed later.
 - **Species names** come from the Nova Scotia ACCDC lists in Fraxinus Field Mapper (about 6,400 species,
   with big buttons for familiar ones). Grown-ups can import more lists from Field Mapper or a CSV.
