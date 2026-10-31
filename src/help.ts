@@ -35,7 +35,9 @@ const PARTS: { emoji: string; title: string; lines: string[] }[] = [
   ] },
   { emoji: '🗺️', title: 'The map buttons', lines: [
     ...TOOLS.map(t => `${t.emoji} ${t.word}: ${t.what}.`),
-    'Choose your own buttons, and their order, in 🔧 My buttons. The arrow at the top folds them away.',
+    'Choose your buttons in 🔧 My buttons: the two beside "I found something!" (📖 My Finds and 📷 Photo to start) and the ones down the side, in your order.',
+    'Put a button beside "I found something!" and the one there swaps places with it, so no button is lost.',
+    'The arrow at the top folds the side buttons away.',
   ] },
   { emoji: '📖', title: 'My finds, badges and hunts', lines: [
     '📖 My Finds is your sticker book. Tap a find to see it, listen to it, or change it.',

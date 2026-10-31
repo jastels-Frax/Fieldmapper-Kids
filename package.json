@@ -1,6 +1,6 @@
 {
   "name": "fieldmapper-kids",
-  "version": "2.11.0",
+  "version": "2.12.0",
   "description": "Scout by Fraxinus - a child-friendly app for exploring and observing the world around you",
   "private": true,
   "type": "module",

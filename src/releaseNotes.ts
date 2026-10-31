@@ -12,6 +12,13 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.12.0', date: '2026-10-31', title: 'Your buttons, your bar',
+    notes: [
+      'Choose the two buttons beside I found something! in 🔧 My buttons. 📷 Photo is there now, beside 📖 My Finds.',
+      '🏅 Badges moved to the side buttons.',
+    ],
+  },
+  {
     version: '2.11.0', date: '2026-10-29', title: 'Rare finds',
     notes: ['Found a rare species? The crew throws a party and Hoot tells you why it is rare.'],
   },

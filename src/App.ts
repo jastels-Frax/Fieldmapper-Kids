@@ -51,7 +51,7 @@ import { MAX_QUICK, quickFace, quickFor, quickKinds } from './quickFinds.ts';
 import { closeDrawTool, openDrawTool, type DrawHost, type DrawMode } from './drawTool.ts';
 import { closeShapeCard, openShapeCard } from './shapeCard.ts';
 import { SHAPE_TAP_PX, metresPerPixel, pickShape } from './mapShapes.ts';
-import { TOOLS, railFor, type ToolId } from './railTools.ts';
+import { TOOLS, barFor, railFor, toolOf, type RailTool, type ToolId } from './railTools.ts';
 import { categoryOf } from './categories.ts';
 import { mapFinds, observerOf } from './findModel.ts';
 import { favouriteFinds, isFavourite, lovedBy, migrateFavourites, toggleFavourite } from './favourites.ts';
@@ -89,9 +89,12 @@ export class App {
   private walks: Walk[] = [];
   private everySketch: Sketch[] = [];
   private sketches: Sketch[] = [];
-  /** Every rail button, made once; `paintRail` shows the explorer's own choice of them. */
+  /** Every map button, made once; `paintRail` seats the explorer's own choice of them on the rail and in the bar. */
   private toolBtns = new Map<ToolId, HTMLElement>();
   private railBody!: HTMLElement;
+  /** The bottom bar: the explorer's two chosen buttons with "I found something!" between them (`paintRail`). */
+  private bottomBar!: HTMLElement;
+  private foundBtn!: HTMLElement;
   private drawing: DrawMode | null = null;
   /** The drawing being changed in ✏️ Draw: left off the map while its dots are drawn as the draft (paintSketches). */
   private editingSketchId: string | null = null;
@@ -525,6 +528,8 @@ export class App {
       measure: () => this.toggleDraw('measure'),
       path: () => void this.toggleRecording(),
       hunts: () => this.openHuntsScreen(),
+      finds: () => openBook(this.screenHost()),
+      badges: () => openBadges(this.screenHost()),
       done: () => void this.endAdventure(),
     };
     for (const t of TOOLS) this.toolBtns.set(t.id, railButton(t.emoji, t.word, t.what, act[t.id], `${t.id}-btn`));
@@ -534,6 +539,9 @@ export class App {
     this.meBtn = this.toolBtns.get('me')!;
     this.quickRow = h('div', { class: 'quick-row', role: 'group', 'aria-label': 'Quick finds: take a photo and save' });
     window.addEventListener('resize', () => fitQuickWords(this.quickRow));
+    this.foundBtn = h('button', { class: 'found-btn', onclick: () => void this.capture() }, h('span', { class: 'found-emoji' }, '✨'), h('span', {}, 'I found something!'));
+    // "I found something!" between the explorer's two chosen buttons (railTools.barFor; paintRail seats them).
+    this.bottomBar = h('nav', { class: 'bottom-bar' }, this.foundBtn);
     app.append(
       h('div', { id: 'map' }),
       h('header', { class: 'top-bar' }, this.hello, this.starBtn, this.huntChip, lock),
@@ -545,11 +553,7 @@ export class App {
       this.gpsNote,
       this.walkNote,
       this.quickRow,
-      h('nav', { class: 'bottom-bar' },
-        h('button', { class: 'nav-btn', onclick: () => openBook(this.screenHost()) }, h('span', { class: 'nav-emoji' }, '📖'), 'My Finds'),
-        h('button', { class: 'found-btn', onclick: () => void this.capture() }, h('span', { class: 'found-emoji' }, '✨'), h('span', {}, 'I found something!')),
-        h('button', { class: 'nav-btn', onclick: () => openBadges(this.screenHost()) }, h('span', { class: 'nav-emoji' }, '🏅'), 'Badges'),
-      ),
+      this.bottomBar,
     );
     this.applySettingsToChrome();
     this.applyAudio();
@@ -610,15 +614,30 @@ export class App {
     return rail;
   }
 
-  /** The explorer's own buttons, in their order (absent: their tier's). Path also needs the grown-ups' switch. */
+  /**
+   * The explorer's own buttons: their two beside "I found something!" (absent: My Finds and Photo) and the rest of
+   * theirs down the rail, in their order (absent: their tier's). Each is ONE element, moved between the two places,
+   * so whatever lights it (following, recording, a tool open) lights it wherever it sits. Path also needs the
+   * grown-ups' switch; in the bar its place is kept empty, so "I found something!" stays in the middle.
+   */
   private paintRail(): void {
     if (!this.railBody) return;
-    const ids = railFor(this.profile.tools, tierOf(this.profile.tier).id)
-      .filter(id => id !== 'path' || this.settings.pathRecording || this.recorder.recording);
+    const allowed = (id: ToolId) => id !== 'path' || this.settings.pathRecording || this.recorder.recording;
+    const bar = barFor(this.profile.bar);
+    const ids = railFor(this.profile, tierOf(this.profile.tier).id).filter(allowed);
+    for (const id of ids) seatTool(this.toolBtns.get(id)!, toolOf(id), false);
+    const slot = (id: ToolId) => {
+      if (!allowed(id)) return h('span', { class: 'nav-btn bar-gap', 'aria-hidden': 'true' });
+      const b = this.toolBtns.get(id)!;
+      seatTool(b, toolOf(id), true);
+      return b;
+    };
+    this.bottomBar.replaceChildren(slot(bar[0]), this.foundBtn, slot(bar[1]));
     this.railBody.replaceChildren(...ids.map(id => this.toolBtns.get(id)!));
     this.railBody.dataset.count = String(ids.length);
-    if (this.drawing && !ids.includes(this.drawing === 'sketch' ? 'draw' : 'measure')) closeDrawTool();
-    if (spotToolOpen() && !ids.includes('photo')) closeSpotTool();
+    const shown = [...ids, ...bar.filter(allowed)];
+    if (this.drawing && !shown.includes(this.drawing === 'sketch' ? 'draw' : 'measure')) closeDrawTool();
+    if (spotToolOpen() && !shown.includes('photo')) closeSpotTool();
   }
 
   /** ✏️ Draw and 📏 Measure: one at a time; tapping the lit button again puts it away. */
@@ -1261,6 +1280,18 @@ export class App {
       },
     });
   }
+}
+
+/**
+ * Seats a map button on the rail (a round button, its short word) or in the bottom bar (a bar button like the old
+ * fixed ones, its whole word). Only the look changes: the element, its listener and its lit state stay.
+ */
+function seatTool(btn: HTMLElement, t: RailTool, inBar: boolean): void {
+  btn.classList.toggle('round-btn', !inBar);
+  btn.classList.toggle('rail-btn', !inBar);
+  btn.classList.toggle('nav-btn', inBar);
+  btn.classList.toggle('bar-btn', inBar);
+  if (t.short) railWord(btn, inBar ? t.word : t.short);
 }
 
 /** A side-rail button: its picture and, under it, its word (Field Mapper's `tool-btn-label`). */

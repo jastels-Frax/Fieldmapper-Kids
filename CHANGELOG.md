@@ -5,6 +5,28 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.12.0 — 2026-10-31
+
+- **The two buttons beside "I found something!" are the explorer's choice** (`Profile.bar`, left then right;
+  `railTools.barFor`, tested). Absent a choice they are 📖 My Finds on the left and 📷 Photo on the right. Any map
+  button can go there, and My Finds and Badges are now map buttons like the rest (`TOOLS` rows `finds`, `badges`), so
+  either can go on the rail too. A button is in one place or the other, never both: the rail is the explorer's list
+  less the bar's two (`railFor`).
+- **Putting a button in the bar swaps out the one there** (`placeInBar`, tested): it takes the new one's spot on the
+  rail, or the other side of the bar, or the end of the rail when the new one was in neither, so no button is lost.
+  🔧 My buttons shows the bar as it looks on the map: tap a side, then the button to put there.
+- **🏅 Badges moved to the rail in 📷 Photo's place**, in every tier's default (`TIER_TOOLS`). A rail an explorer chose
+  before 2.12 (`Profile.tools`) is read with the same swap (`railFromOld`: Badges where Photo was, else at the end), so
+  nothing that was on their screen leaves it; their next change in My buttons saves it the new way (`Profile.rail`) and
+  drops the old field. "Back to the … buttons" resets the rail and the bar.
+- **One element per button, moved between the two places** (`App.paintRail`, `seatTool`): it takes the bar's look in
+  the bar and the round look on the rail, and whatever lights it (following, recording, a tool open) lights it in
+  either. My Finds says "Finds" on the narrow rail. 👣 Path in the bar while the grown-ups have it off keeps its place
+  empty, so "I found something!" stays in the middle.
+- **The bar fits a 320 px phone with the biggest words and Chunky letters.** Zoomed 1.1, its right-hand button ran
+  off the screen (Badges did in 2.11): below 380 px the bar's gaps, side padding and the buttons' least width give way,
+  since "something!" cannot break. My buttons' copy of the bar shows the pill's ✨ alone on a phone.
+
 ## 2.11.0 — 2026-10-29
 
 - **A rare find gets the crew's party** (`rarity.ts`, tested). A species picked from the list counts as rare when it is a

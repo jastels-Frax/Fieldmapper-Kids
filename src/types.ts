@@ -186,8 +186,12 @@ export interface Profile {
   tickChecks?: string[];
   /** How Scout looks for this explorer (look.ts); absent = the default look. */
   look?: Partial<import('./look.ts').Look>;
-  /** Their map buttons, in order ("My buttons", railTools.ts); absent = their age tier's default. */
+  /** Their side-rail buttons, in order ("My buttons", railTools.ts `railFor`); absent = `tools`, else their age tier's default. */
+  rail?: string[];
+  /** Their rail as stored before 2.12, read by `railTools.railFromOld` until they next change their buttons. */
   tools?: string[];
+  /** The two buttons beside "I found something!", left then right (railTools.ts `barFor`); absent = My Finds and Photo. */
+  bar?: string[];
   /** A storybook portrait (avatars.ts) for their card, used when there is no photo. */
   art?: string;
   /** Their marker on the map; absent = the same picture as their card. */

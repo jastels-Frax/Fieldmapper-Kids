@@ -560,6 +560,13 @@ html[data-mode="explorer"] .choice-emoji { font-size: 60px; }
 @media (max-width: 420px) {
   .nav-btn { min-width: 72px; font-size: 12px; }
   .found-btn { font-size: 16px; }
+}
+/* A narrow phone with big words (bars zoomed 1.1): "something!" cannot break, so the bar's gaps and padding give way
+   instead, or the right-hand button ran off the screen (Badges did before 2.12, as Photo would). */
+@media (max-width: 380px) {
+  .bottom-bar { gap: 6px; padding-left: 6px; padding-right: 6px; }
+  .bottom-bar .nav-btn { min-width: 64px; }
+  .found-btn { padding: 4px 10px; }
   .choice-grid { grid-template-columns: repeat(2, 1fr); }
   .choice-grid.three { grid-template-columns: repeat(3, 1fr); }
   .choice-grid.three .choice { font-size: 15px; }
@@ -1090,6 +1097,29 @@ body.drawing .maplibregl-marker:not(.me-marker) { pointer-events: none; }
 .draw-foot .big-btn { flex: 1; margin: 0; min-height: 46px; padding: 6px 10px; font-size: 16px; }
 .draw-save[disabled] { opacity: 0.45; }
 .rail-btn.on { background: var(--good-soft); outline: 3px solid var(--green); }
+/* A map button seated in the bottom bar (App.paintRail): the bar's look, its picture above its whole word. */
+.bar-btn .rail-emoji { font-size: 26px; line-height: 1.1; }
+.bar-btn .rail-word { line-height: 1.15; }
+.bar-btn.on { background: var(--good-soft); outline: 3px solid var(--green); }
+/* Path's place in the bar while the grown-ups have it off: kept, so "I found something!" stays in the middle. */
+.bar-gap { visibility: hidden; }
+
+/* My buttons ▸ Beside I found something! */
+.bar-pick { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px; }
+.bar-pick .nav-btn { flex: 0 0 auto; }
+.bar-slot.on { background: var(--good-soft); outline: 3px solid var(--green); }
+.bar-pick-found {
+  flex: 0 1 160px; min-width: 56px; min-height: 56px; display: flex; align-items: center; justify-content: center; gap: 4px; text-align: center;
+  padding: 4px 10px; background: var(--orange); color: var(--on-accent); border: var(--bw) solid var(--line); border-radius: 999px;
+  font-weight: 900; font-size: 14px; line-height: 1.15;
+}
+.bar-pick-emoji { font-size: 24px; line-height: 1; }
+/* A phone: the copy of the bar has no room for the words ("something!" cannot break), so the pill shows its ✨. */
+@media (max-width: 420px) {
+  .bar-pick-found { flex: 0 0 56px; padding: 4px; }
+  .bar-pick-words { display: none; }
+}
+.bar-choices { margin-bottom: 4px; }
 
 /* "My buttons" (buttonsScreen.ts) */
 .tool-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
