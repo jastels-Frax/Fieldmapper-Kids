@@ -9,8 +9,11 @@
     if (text) e.textContent = text;
     return e;
   }
-  function fail(why) {
+  // `publisher` false: Scout itself stopped while starting (main.ts), so the advice is to open it again, and the
+  // reason is shown small for whoever looks into it. Otherwise the page could not load Scout at all.
+  function fail(why, publisher) {
     if (window.__scoutBooted || document.getElementById('boot-fail')) return;
+    var own = publisher === false;
     var d = el('div', 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;background:#fff9db;font:18px/1.45 system-ui,sans-serif;color:#212529;text-align:center');
     d.id = 'boot-fail';
     var box = el('div', 'max-width:440px');
@@ -19,8 +22,8 @@
     box.append(
       el('div', 'font-size:64px', '🧭'),
       el('h1', 'margin:8px 0', 'Scout could not start'),
-      el('p', '', 'Ask a grown-up to try again in a minute.'),
-      el('p', 'font-size:14px;color:#495057', 'For whoever published this page: ' + why),
+      el('p', '', own ? 'Tap Try again. If it happens again, close Scout and open it again. Your finds are safe.' : 'Ask a grown-up to try again in a minute.'),
+      el('p', 'font-size:14px;color:#495057', own ? 'What went wrong: ' + why : 'For whoever published this page: ' + why),
       again);
     d.appendChild(box);
     document.body.appendChild(d);

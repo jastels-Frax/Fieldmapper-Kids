@@ -25,6 +25,8 @@
   --radius-sm: 16px;
   --bw: 3px;
   --shadow: 0 4px 0 rgba(18, 21, 18, 0.9);
+  /* What a question or the tour dims the screen with. */
+  --scrim: rgba(18, 21, 18, 0.55);
   --shadow-big: 0 6px 0 var(--line);
   --ui-zoom: 1;
   --font: ui-rounded, "SF Pro Rounded", "Nunito", "Segoe UI Rounded", "Segoe UI", system-ui, sans-serif;
@@ -460,6 +462,7 @@ textarea.text-in { resize: vertical; }
   background: var(--card); border: var(--bw) solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); font-size: 21px; font-weight: 900;
 }
 .challenge-card.done { background: var(--good-soft); }
+.challenge-with { display: block; font-size: 14px; font-weight: 800; color: var(--green-dark); overflow-wrap: break-word; }
 .challenge-emoji { font-size: 42px; }
 .challenge-text { flex: 1; }
 .challenge-tick { font-size: 32px; }
@@ -475,11 +478,11 @@ textarea.text-in { resize: vertical; }
   display: flex; align-items: center; gap: 8px; padding: 10px; text-align: left; background: var(--card); border: var(--bw) solid var(--line);
   border-radius: var(--radius-sm); font-weight: 800; font-size: 16px;
 }
-.hunt-item.done { background: var(--good-soft); }
-.hunt-item.done .hunt-item-text { text-decoration: line-through; text-decoration-thickness: 3px; }
-.hunt-item-emoji { font-size: 32px; }
-.hunt-item-text { flex: 1; }
-.hunt-item-tick { font-size: 22px; }
+.hunt-item.done { background: var(--good-soft); outline: 3px solid var(--green); outline-offset: -3px; }
+.hunt-item-found { display: block; font-size: 14px; font-weight: 900; color: var(--green-dark); }
+.hunt-item-emoji { position: relative; flex: 0 0 auto; font-size: 32px; line-height: 1.1; }
+.hunt-item-text { flex: 1; min-width: 0; overflow-wrap: break-word; }
+.hunt-item-tick { position: absolute; right: -8px; bottom: -6px; font-size: 18px; line-height: 1; }
 .hunt-list { display: flex; flex-direction: column; gap: 10px; }
 .hunt-pick {
   display: flex; align-items: center; gap: 14px; padding: 12px 14px; text-align: left; background: var(--card);
@@ -494,6 +497,8 @@ textarea.text-in { resize: vertical; }
 .hunt-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .hunt-chip { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: var(--card); border: var(--bw) solid var(--line); border-radius: 999px; font-weight: 800; font-size: 16px; }
 .hunt-chip.on { background: var(--good-soft); outline: 3px solid var(--green); }
+/* An item this find cannot count for (another kind): greyed, dashed, last; a tap says why. */
+.hunt-chip.no { opacity: 0.55; border-style: dashed; box-shadow: none; }
 .hunt-chip-emoji { font-size: 22px; }
 .hunt-card { background: var(--cool-soft); }
 .trophy-shelf {
@@ -521,7 +526,7 @@ textarea.text-in { resize: vertical; }
 .mode-emoji { font-size: 38px; }
 
 /* Gate / dialogs */
-.gate-overlay { position: fixed; inset: 0; z-index: 90; background: rgba(18, 21, 18, 0.55); display: grid; place-items: center; padding: 16px; overflow-y: auto; overscroll-behavior: contain; }
+.gate-overlay { position: fixed; inset: 0; z-index: 90; background: var(--scrim); display: grid; place-items: center; padding: 16px; overflow-y: auto; overscroll-behavior: contain; }
 /* A short screen (a phone on its side, a keyboard open): the card starts at the top and scrolls, so Cancel and OK
    are never out of reach. */
 @media (max-height: 600px) { .gate-overlay { align-items: start; } }
@@ -593,6 +598,7 @@ html[data-mode="explorer"] .choice-emoji { font-size: 60px; }
 /* Tick check */
 .tick-status { text-align: center; font-weight: 900; font-size: 18px; }
 .tick-spots { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 10px; }
+.tick-pet-head { font-size: 17px; font-weight: 800; margin: 14px 0 8px; }
 .tick-spot {
   display: flex; align-items: center; gap: 8px; padding: 12px; text-align: left; background: var(--card);
   border: var(--bw) solid var(--line); border-radius: var(--radius-sm); font-weight: 800; font-size: 16px; min-height: 64px;
@@ -1297,3 +1303,43 @@ html .spot-place .chip { min-height: 40px; padding: 4px 12px; font-size: 15px; }
   .spot-hud .spot-arrow { width: 40px; height: 40px; }
   .spot-hud .spot-ghost { width: 64px; height: 64px; }
 }
+
+/* ── The guided tour (tour.ts, Field Mapper's TourRunner ported) ──────────────
+   Over the map, the screens and the opening screen; under a grown-up question (90), confetti and toasts. The
+   spotlight is a box whose huge outer shadow is the dim; with no target the catch layer dims instead. */
+.tour-root { position: fixed; inset: 0; z-index: 85; }
+.tour-catch { position: absolute; inset: 0; background: transparent; }
+.tour-root.tour-dim .tour-catch { background: var(--scrim); }
+.tour-spot {
+  position: fixed; border-radius: var(--radius-sm); pointer-events: none;
+  box-shadow: 0 0 0 9999px var(--scrim), 0 0 0 4px var(--yellow);
+  transition: left 0.25s ease, top 0.25s ease, width 0.25s ease, height 0.25s ease;
+}
+.tour-spot[hidden] { display: none; }
+.tour-card {
+  position: fixed; width: min(380px, calc(100vw - 24px)); padding: 12px 14px; zoom: var(--ui-zoom);
+  background: var(--card); color: var(--ink); border: var(--bw) solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow-big); display: flex; flex-direction: column; gap: 8px; animation: pop 0.2s ease-out;
+}
+.tour-card.crew { background: var(--warm-soft); }
+.tour-head { display: flex; align-items: center; gap: 10px; }
+.tour-fig { width: 76px; height: 76px; }
+.tour-titles { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tour-who { font-size: 14px; font-weight: 800; color: var(--soft-ink); overflow-wrap: break-word; }
+.tour-title { font-size: 21px; font-weight: 900; line-height: 1.2; overflow-wrap: break-word; }
+.tour-hear { flex: 0 0 auto; }
+.tour-body { margin: 0; font-size: 18px; font-weight: 700; line-height: 1.4; overflow-wrap: break-word; }
+.tour-dots { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; }
+.tour-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted-soft); border: 1px solid var(--line); }
+.tour-dot.on { background: var(--green); }
+.tour-foot { display: flex; align-items: center; gap: 8px; }
+.tour-gap { flex: 1 1 auto; }
+.tour-skip { display: inline-block; margin: 0; min-height: 48px; padding: 0 8px; }
+.tour-back { width: 48px; height: 48px; flex: 0 0 auto; }
+.tour-back:disabled { opacity: 0.35; }
+.tour-next { width: auto; margin: 0; padding: 10px 18px; min-height: 52px; display: inline-flex; align-items: center; gap: 6px; }
+.tour-next .ic { width: 22px; height: 22px; }
+.tour-card.tour-sheet, .tour-card.tour-sheet-top { left: 8px; right: 8px; width: auto; }
+.tour-card.tour-sheet { bottom: calc(8px + var(--safe-b)); }
+.tour-card.tour-sheet-top { top: calc(8px + var(--safe-t)); }
+@media (prefers-reduced-motion: reduce) { .tour-spot { transition: none; } .tour-card { animation: none; } }

@@ -1,5 +1,5 @@
 import { icon, labelled } from './icons.ts';
-import type { ColourId, Find, FullFind, Picture, Profile, Settings, SpeciesPick } from './types.ts';
+import type { ColourId, CountId, Find, FullFind, Picture, Profile, SizeId, Settings, SpeciesPick } from './types.ts';
 import { COLOURS, COUNTS, GROUPS, SIGNS, SIZES, categoryOf, fullName, groupOf, kindWords, kindsOf, type Category, type Group } from './categories.ts';
 import { kindForSpecies, kindToOffer } from './speciesKind.ts';
 import { kindIcon } from './kindIcon.ts';
@@ -11,11 +11,15 @@ import { drawPad } from './drawPad.ts';
 import { voiceNotes } from './voice.ts';
 import { askGrownUp } from './gateView.ts';
 import { tierOf } from './tiers.ts';
-import { accuracyWords, bestFix, steadiedFix, steadyNow, type Fix } from './gps.ts';
+import { accuracyWords, bestFix, fixProblem, steadiedFix, steadyNow, type Fix } from './gps.ts';
+
+/** How long the Where step looks for a position before saying it could not find one. */
+const LOOK_MS = 15000;
 import { buddySays } from './buddyView.ts';
 import { stepLine } from './buddyLines.ts';
 import type { Expression } from './buddies.ts';
-import { meetsRule, type HuntItem } from './hunts.ts';
+import { itemFit, needWords, plainMatches, worthAsking, type HuntItem } from './hunts.ts';
+import { outOfSpace } from './dbRetry.ts';
 import { toBadgeFind } from './badges.ts';
 import { hasSpeciesStep, searchSpecies, type Species } from './species.ts';
 import { isRare, statusOf } from './rarity.ts';
@@ -208,9 +212,25 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
    */
   const typeRow = (input: HTMLInputElement, clear: () => void) => h('div', { class: 'type-row' }, input,
     h('button', { class: 'big-btn soft not-sure', onclick: () => { clear(); commit = null; say('Not sure. That is okay!'); next(); } }, '🤷 Not sure'));
-  /** ✨ Save now: on every new find's step after the kind, so the rest is optional on a trail. */
+  /** The find as the badges, challenges and hunts read it, as it stands now. */
+  const probe = () => toBadgeFind({ id: '', createdAt: '', ...draft, category: draft.category! } as Find);
+  /**
+   * ✨ Save now: on every new find's step after the kind, so the rest is optional on a trail. With a hunt on, it
+   * ticks what the find plainly counts for, and when the explorer could still tick something only they can say
+   * ("something soft", or "something red" for a find with no colours picked), it goes to the save screen, which asks
+   * — 2.12 saved straight away and a fast find never counted for a hunt.
+   */
   const saveNow = () => (editing || detour || !draft.category ? null
-    : h('button', { class: 'big-btn soft save-now', onclick: () => void finish() }, '✨ Save now'));
+    : h('button', { class: 'big-btn soft save-now', onclick: () => {
+      const hunt = host.hunt();
+      if (hunt && hunt.open.length && huntPicks === null && worthAsking(hunt.open, probe())) {
+        leave();
+        goStep('tell');
+        say(`Does it count for your ${hunt.title}?`);
+        return;
+      }
+      void finish();
+    } }, '✨ Save now'));
   /** Opens the Where question from the save screen, and comes back to it. */
   const changePlace = () => {
     leave();
@@ -604,15 +624,46 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
     where() {
       const cards = h('div', { class: 'choice-list' });
       const note = h('p', { class: 'hint center' });
+      /**
+       * With no position yet, the GPS choice LOOKS for one for `LOOK_MS` and then says it could not, and why (location
+       * not allowed, or none found), with a tap to look again. Before 2.13 it said "Looking for where you are…" for as
+       * long as the screen was open.
+       */
+      let looking = false;
+      let gaveUp = false;
+      const look = () => {
+        if (looking) return;
+        looking = true;
+        gaveUp = false;
+        paint();
+        void bestFix(LOOK_MS, 30).then(f => {
+          looking = false;
+          if (f) {
+            fix = f;
+            // Placed where they stand once found, unless they chose another place meanwhile.
+            if (place.kind === 'none' && !chose) place = { kind: 'gps' };
+          } else gaveUp = true;
+          if (showing === 'where') paint();
+        });
+      };
+      let chose = false;
       const paint = () => {
         const opt = (kind: Place['kind'], emoji: string, label: string, sub: string, onclick: () => void, extraClass = '') =>
-          h('button', { class: `choice wide ${place.kind === kind ? 'on' : ''} ${extraClass}`, onclick }, h('span', { class: 'choice-emoji' }, emoji),
+          h('button', { class: `choice wide ${place.kind === kind ? 'on' : ''} ${extraClass}`, onclick: () => { chose = true; onclick(); } }, h('span', { class: 'choice-emoji' }, emoji),
             h('span', { class: 'where-text' }, h('strong', {}, label), h('span', {}, sub)));
         const acc = fix ? accuracyWords(fix.accuracy) : null;
+        const gpsSub = acc ? acc.text
+          : looking ? 'Looking for where you are…'
+          : gaveUp ? `${fixProblem() ?? 'I could not find where you are.'} Tap to try again.`
+          : 'Tap to find where you are';
         cards.replaceChildren(
           ...(editing && typeof existing!.lat === 'number' ? [opt('keep', '📌', 'Keep it where it is', 'Where you put it before', () => { place = { kind: 'keep' }; sounds.pick(); paint(); })] : []),
-          opt('gps', '📍', editing ? 'Where I am now' : 'Where I was standing', acc ? acc.text : 'Looking for where you are…', () => {
-            if (!fix) { say('I am still looking for where you are.'); return; }
+          opt('gps', '📍', editing ? 'Where I am now' : 'Where I was standing', gpsSub, () => {
+            if (!fix) {
+              if (looking) say('I am still looking for where you are.');
+              else { say('Looking for where you are.'); look(); }
+              return;
+            }
             place = { kind: 'gps' }; sounds.pick(); say(acc!.text); paint();
           }, acc ? `acc-${acc.level}` : 'acc-none'),
           opt('map', '🗺️', 'Tap the map', place.kind === 'map' ? 'Spot chosen! Tap to move it' : 'Put it exactly where it was', async () => {
@@ -638,7 +689,7 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
       if (editing) fix = steadyNow() ?? fix;
       put(title(), cards, note, h('button', { class: 'big-btn', onclick: next }, nextLabel()), saveNow());
       paint();
-      if (!fix && !editing) void bestFix(8000, 30).then(f => { if (f) { fix = f; if (place.kind === 'none') place = { kind: 'gps' }; paint(); } });
+      if (!fix) look();
     },
 
     tell() {
@@ -656,19 +707,52 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
       }
       const hunt = editing ? null : host.hunt();
       if (hunt && hunt.open.length) {
-        const probe = toBadgeFind({ id: '', createdAt: '', ...draft, category: draft.category! } as Find);
-        huntPicks ??= new Set(hunt.open.filter(i => meetsRule(i, probe)).map(i => i.id));
-        const chips = h('div', { class: 'hunt-chips' }, ...hunt.open.map(i => {
-          const b = h('button', { class: `hunt-chip ${huntPicks!.has(i.id) ? 'on' : ''}`, 'aria-pressed': String(huntPicks!.has(i.id)) },
-            h('span', { class: 'hunt-chip-emoji' }, i.emoji), i.text);
-          b.addEventListener('click', () => {
-            const on = !huntPicks!.has(i.id);
-            if (on) { huntPicks!.add(i.id); say(`${i.text}. Yes!`); sounds.pick(); } else huntPicks!.delete(i.id);
-            b.classList.toggle('on', on);
-            b.setAttribute('aria-pressed', String(on));
-          });
-          return b;
-        }));
+        huntPicks ??= new Set(plainMatches(hunt.open, probe()));
+        const chips = h('div', { class: 'hunt-chips' });
+        /** What ticking an item added to the find (a colour, a size, a count), taken back if it is unticked. */
+        const added = new Map<string, { colour?: ColourId; size?: SizeId; count?: CountId }>();
+        const paintChips = () => {
+          const f = probe();
+          // An item the find cannot count for comes last, greyed, and says why when tapped.
+          const rows = hunt.open.map(i => ({ i, fit: huntPicks!.has(i.id) ? { fit: 'meets' as const } : itemFit(i, f) }));
+          rows.sort((a, b) => Number(a.fit.fit === 'no') - Number(b.fit.fit === 'no'));
+          chips.replaceChildren(...rows.map(({ i, fit }) => {
+            const on = huntPicks!.has(i.id);
+            const no = fit.fit === 'no';
+            const b = h('button', { class: `hunt-chip ${on ? 'on' : ''} ${no ? 'no' : ''}`, 'aria-pressed': String(on), ...(no ? { 'aria-disabled': 'true' } : {}) },
+              h('span', { class: 'hunt-chip-emoji' }, i.emoji), i.text);
+            b.addEventListener('click', () => {
+              if (fit.fit === 'no') {
+                const words = `That one needs ${needWords(fit.why)}, so this find does not count for it.`;
+                sounds.oops(); say(words); toast(words);
+                return;
+              }
+              if (!on) {
+                huntPicks!.add(i.id);
+                if (fit.fit === 'add') {
+                  const a = fit.adds;
+                  if (a.colour) draft.colours = [...draft.colours, a.colour];
+                  if (a.size) draft.size = a.size;
+                  if (a.count) draft.count = a.count;
+                  added.set(i.id, a);
+                }
+                say(`${i.text}. Yes!`); sounds.pick();
+              } else {
+                huntPicks!.delete(i.id);
+                const a = added.get(i.id);
+                if (a) {
+                  if (a.colour) draft.colours = draft.colours.filter(c => c !== a.colour);
+                  if (a.size && draft.size === a.size) draft.size = undefined;
+                  if (a.count && draft.count === a.count) draft.count = undefined;
+                  added.delete(i.id);
+                }
+              }
+              paintChips();
+            });
+            return b;
+          }));
+        };
+        paintChips();
         parts.push(h('div', { class: 'talk-card hunt-card' }, h('h3', {}, `${hunt.emoji} Does it count for your ${hunt.title}?`), chips));
       }
       // Save sits right under what most finds need; the name and the grown-up note are extras below it.
@@ -733,13 +817,21 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
         say('Saved!');
         toast('✅ Find changed');
       } else {
-        await host.save(find, [...(huntPicks ?? [])]);
+        // Not asked (Save now, a Sprout's save): what it plainly counts for, as a quick find does.
+        const hunt = host.hunt();
+        const picks = huntPicks ?? new Set(hunt ? plainMatches(hunt.open, toBadgeFind(find)) : []);
+        await host.save(find, [...picks]);
         sheet.remove();
       }
-    } catch {
+    } catch (err) {
+      // The find stays on screen, so Save can be tapped again. Only a full device is blamed on space: before 2.13
+      // every failure said so, and most were a lost database connection (dbRetry.ts), not space.
+      console.error(err);
       saving = false;
       sounds.oops();
-      toast('Oh no, it did not save. Ask a grown-up to check there is space on this device.', 5000);
+      toast(outOfSpace(err)
+        ? 'Oh no, this device is full, so it did not save. Ask a grown-up to make some room.'
+        : 'Oh no, it did not save. Tap Save to try again.', 5000);
     }
   }
 

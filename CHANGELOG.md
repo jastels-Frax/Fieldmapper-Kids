@@ -5,6 +5,55 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.13.0 — 2026-11-04
+
+- **A guided tour** (`tourSteps.ts`, pure and tested; `tour.ts`, the runner), Field Mapper's tour ported: the steps
+  as data with a `rev` each, a spotlight that dims the rest, a card beside the target (a sheet on a phone), Back /
+  Next / Skip, keys, every word through `textContent`. Scout's departure: each step has a SPEAKER — the explorer's
+  guide shows the map (I found something!, holding the map, Me, the map buttons, Photo, Path) and each of the crew
+  explains their own part: Acorn the sticker book, Hoot the facts, Maple the badges, Bandit the challenges, Fern the
+  hunts, Bramble staying safe and the 🔒. Read aloud in the speaker's voice when reading aloud is on, with 🔊 on the
+  card. It starts by itself for an explorer who has not had it (the first explorer straight after the welcome, a new
+  explorer when they first start exploring, and every explorer once after this update), waiting while a screen, a
+  question or a toast is up; ❓ How to use ▸ 🧭 Take the tour runs it all again from anywhere, the opening screen
+  included. What each explorer has seen is kept per explorer (`localStorage` `scout.tour.<id>`), so a later release
+  that bumps a step's `rev` shows only that step ("Some things are new!"). A map button the explorer took off the map
+  is skipped (and stays unseen); a crew member's part is explained anyway, centred.
+- **"Scout could not start" and "check there is space", fixed.** WebKit can drop a page's database connection while
+  the app is asleep (WebKit bugs 197050, 235579, 273827); Scout kept the dead connection, and a failed open, for the
+  life of the page, so every read and save failed until a reload. Now a connection that fails to open, is ended by
+  the browser, or fails mid-request is forgotten and opened again, and the request runs again (`dbRetry.ts`, tested:
+  twice more, after 250 ms and 1 s; only for a lost connection — UnknownError, InvalidStateError, AbortError — never
+  for a real failure). A save that touches two stores is all-or-nothing (`writeAll` aborts on a thrown step), so a
+  find is never left saved without its pictures. A failed save blames space only when the device IS full
+  (QuotaExceededError); otherwise it says "Tap Save to try again", with the find still on screen. Once Scout is up,
+  an extra that fails (today's trail) no longer puts "could not start" over a working app, and that screen, when it
+  does show, says to close and reopen Scout rather than addressing whoever published the page.
+- **Hunts.** ✨ Save now with a hunt on ticks what the find plainly counts for, and goes to the save screen first when
+  the explorer could still tick something only they can say ("something soft"), so a fast find can count for a hunt
+  (2.12 saved straight away and never credited one). On the save screen each item is judged against the find
+  (`hunts.itemFit`, tested): ticked for them when it meets the rule; tickable when it has no rule; tickable when the
+  find would meet it with something not described — ticking "Something red" for a squirrel with no colours adds red
+  to the find, and unticking takes it back; and greyed, last, when it cannot count (another kind, or a size or count
+  described otherwise): a tap says "That one needs a bug, so this find does not count for it." 2.12 credited a red
+  squirrel for "A bug". A found item says "Found it!" on green with its tick on the picture's corner, instead of
+  struck through, and long words wrap inside the box (the tick ran past it); tapping an item still to find starts
+  "I found something!".
+- **Today's challenges do something when tapped**: an open one starts "I found something!", a done one says which
+  find did it and opens it. In 2.12 a tap only read the words aloud, which with reading aloud off (the default) was
+  nothing. The challenges tick themselves when a fitting find is saved; a brown, huge tree completed "Find a tree"
+  and "Find something brown" in Chromium both saved new and changed afterwards, so the 0/3 reported is most likely
+  the failed saves above.
+- **The tick check counts the 10 places on you** ("3 of 10 places on you checked, and your pet"), with the pet under
+  its own heading, "Did a pet come along? Check them too." 2.12 said "0 of 10" over 11 boxes.
+- **Where I was standing gives up.** With no position yet the Where step looks for 15 s, then says why ("Ask a
+  grown-up to let this app use your location." or "I cannot find where you are yet…") with a tap to look again;
+  2.12 said "Looking for where you are…" for as long as the screen was open. A late position no longer moves a find
+  to GPS when the explorer chose another place meanwhile.
+- **One location banner.** The map's note under the top bar is the one place that says the explorer cannot be found
+  (`App.locationNote`); 📍 Me no longer adds a toast saying much the same just below it, and toasts show one at a
+  time. The GPS error text no longer says "Looking for where you are…" after the search has stopped.
+
 ## 2.12.0 — 2026-10-31
 
 - **The two buttons beside "I found something!" are the explorer's choice** (`Profile.bar`, left then right;

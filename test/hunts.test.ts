@@ -73,3 +73,30 @@ test('an item for an older kind is ticked by the kinds that refine it', () => {
   assert.equal(meetsRule(lichen, find({ category: 'bushy' })), true);
   assert.equal(meetsRule(animal, find({ category: 'bird' })), false);
 });
+
+test('how a find stands against an item: meets, free, add or no — a squirrel is never a bug', async () => {
+  const { itemFit, plainMatches, worthAsking } = await import('../src/hunts.ts');
+  const item = (id: string) => ITEM_LIBRARY.find(i => i.id === id)!;
+  const squirrel = find({ category: 'mammal', colours: [] });
+  assert.deepEqual(itemFit(item('bug'), squirrel), { fit: 'no', why: { category: 'bug' } });
+  assert.deepEqual(itemFit(item('animal'), squirrel), { fit: 'meets' }, 'a mammal is an animal (isKind)');
+  assert.deepEqual(itemFit(item('red'), squirrel), { fit: 'add', adds: { colour: 'red' } });
+  assert.deepEqual(itemFit(item('soft'), squirrel), { fit: 'free' });
+  assert.deepEqual(itemFit(item('huge'), find({ category: 'tree', colours: [], size: 'small' })), { fit: 'no', why: { size: 'huge' } });
+  assert.deepEqual(itemFit(item('big-tree'), find({ category: 'tree', colours: [] })), { fit: 'add', adds: { size: 'huge' } });
+  assert.deepEqual(itemFit(item('lots'), find({ category: 'flower', colours: [], count: 'one' })), { fit: 'no', why: { count: 'lots' } });
+  // What Save now ticks, and when it asks first.
+  const backyard = HUNTS.find(h => h.id === 'backyard')!.items;
+  assert.deepEqual(plainMatches(backyard, squirrel), []);
+  assert.ok(worthAsking(backyard, squirrel), 'Something soft could count');
+  const birdOnly = [item('bird'), item('bug')];
+  assert.deepEqual(plainMatches(birdOnly, find({ category: 'bird', colours: [] })), ['bird']);
+  assert.equal(worthAsking(birdOnly, find({ category: 'bird', colours: [] })), false);
+});
+
+test('what an item is for, in words', async () => {
+  const { needWords } = await import('../src/hunts.ts');
+  assert.equal(needWords({ category: 'bug' }), 'a bug');
+  assert.equal(needWords({ size: 'huge' }), 'something huge');
+  assert.equal(needWords({ count: 'lots' }), 'lots of the same thing');
+});

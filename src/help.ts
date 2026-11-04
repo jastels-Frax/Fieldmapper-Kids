@@ -42,8 +42,8 @@ const PARTS: { emoji: string; title: string; lines: string[] }[] = [
   { emoji: '📖', title: 'My finds, badges and hunts', lines: [
     '📖 My Finds is your sticker book. Tap a find to see it, listen to it, or change it.',
     'Tap ❤️ Favourite on any find, yours or another explorer\'s on this tablet. Your favourites show on your card in "Who\'s exploring?", and ❤️ in My Finds shows just them.',
-    '🏅 Badges are earned by finding things. ⭐ at the top shows today\'s challenges.',
-    '🔎 Hunts are scavenger hunts: find everything on the list to win a trophy.',
+    '🏅 Badges are earned by finding things. ⭐ at the top shows today\'s challenges: tap one to go and find it. It ticks itself when you save a find that fits.',
+    '🔎 Hunts are scavenger hunts: find everything on the list to win a trophy. When you save a find, Scout asks which things on the list it counts for. A thing it cannot count for (a squirrel is not a bug) is greyed.',
     "More than one explorer on this tablet? Their finds are on your map too, each pin with its finder's picture. Tap one to look at it; only its finder can change it. Just want yours? Turn off 🗺️ Map ▸ Everyone's finds.",
     'In My Finds, tap 👫 Everyone or an explorer to see whose finds you want.',
     "Pins too busy? 🗺️ Map ▸ On each pin chooses what they show: the picture, the kind, who found it, or any mix.",
@@ -68,7 +68,11 @@ const PARTS: { emoji: string; title: string; lines: string[] }[] = [
 
 export function openHelp(guide: GuideId): void {
   const { body } = openSheet({ title: 'How to use Scout', emoji: '❓', className: 'help' });
-  body.append(buddySays(guide, { text: 'Tap a part to read about it!', pose: 'point' }));
+  body.append(
+    buddySays(guide, { text: 'Tap a part to read about it, or take the tour and the crew will show you around!', pose: 'point' }),
+    // The guided tour (tour.ts), from wherever How to use was opened: App goes back to the map and runs it.
+    h('button', { class: 'big-btn tour-start', onclick: () => window.dispatchEvent(new Event('scout-tour')) }, '🧭 Take the tour'),
+  );
   for (const part of PARTS) {
     const d = h('details', { class: 'help-part' },
       h('summary', {}, h('span', { class: 'help-emoji', 'aria-hidden': 'true' }, part.emoji), part.title),

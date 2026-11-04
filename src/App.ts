@@ -19,6 +19,7 @@ import { askYesNo, h, toast, uid } from './ui.ts';
 import { say, setNarrator, setReadAloud, setVoice, setVoiceMode } from './speech.ts';
 import { setSounds, sounds } from './sound.ts';
 import { startCapture } from './capture.ts';
+import { requestTour, type TourHost } from './tour.ts';
 import { FINDS_CHANGED, celebrate, openCrew, openBadges, openBook, openChallenges, openFind, todaysChallenges, type ScreenHost } from './screens.ts';
 import { newlyEarned, toBadgeFind } from './badges.ts';
 import { askGrownUp } from './gateView.ts';
@@ -128,6 +129,8 @@ export class App {
     this.profile = first ?? { id: '', name: '', avatar: '🦊', mode: 'explorer', guide: 'frog', createdAt: '' };
     this.scopeToProfile();
     this.buildChrome();
+    // Before the opening screen: its How to use can ask for the tour.
+    window.addEventListener('scout-tour', () => this.takeTour());
     await this.map.mount(document.getElementById('map')!, this.mapFace(), this.settings.basemap);
     this.map.onFindTap = id => this.openFindFromMap(id);
     // Press and hold the map: a find already placed on that spot. Not while a spot is being picked for a find.
@@ -169,12 +172,35 @@ export class App {
     }
     if (this.map.offline) toast('🌧️ No internet, so the map is plain today. Your finds still work!', 4500);
     this.startLocation();
-    const t = await loadToday();
-    this.map.setTrail(t.points, this.settings.trail);
-    this.paintWalk(t.points.length ? trailLengthM(t) : 0);
+    // Scout is on screen and working from here: what is left is extras, and one that fails must not put "Scout could
+    // not start" over an app that did (2.12 did, on the first tap after the opening screen).
+    try {
+      const t = await loadToday();
+      this.map.setTrail(t.points, this.settings.trail);
+      this.paintWalk(t.points.length ? trailLengthM(t) : 0);
+    } catch (err) {
+      console.error(err);
+    }
     this.drawWalks();
     const hi = greet(this.profile.guide);
     this.dock.speak({ ...hi, text: this.profile.name ? `Hi ${this.profile.name}! ${hi.text}` : hi.text });
+    // The guided tour: an explorer who has not had it gets it on the map (the first explorer straight after the
+    // welcome; everyone else after the opening screen). How to use asks for it again (`scout-tour`).
+    requestTour(() => this.tourHost());
+  }
+
+  private tourHost(): TourHost {
+    return { profileId: this.profile.id, name: this.profile.name, guide: this.profile.guide };
+  }
+
+  /** "Take the tour" (How to use): back to the map — the screens closed, the opening screen started — and the whole tour. */
+  private takeTour(): void {
+    for (const s of [...document.querySelectorAll<HTMLElement>('.sheet')].reverse()) {
+      if (s.classList.contains('capture')) continue;
+      s.querySelector<HTMLButtonElement>('.close-btn')?.click();
+    }
+    window.dispatchEvent(new Event('scout-launch-start'));
+    requestTour(() => this.tourHost(), { all: true });
   }
 
   /**
@@ -221,6 +247,8 @@ export class App {
     this.applySettingsToChrome();
     this.refresh();
     window.dispatchEvent(new Event('scout-profiles-changed'));
+    // A new explorer gets the tour when they start exploring (it waits for the screens to close).
+    requestTour(() => this.tourHost());
   }
 
   /**
@@ -579,10 +607,20 @@ export class App {
         if (!known) say('Here you are!');
       }
     } else if (!known) {
-      const why = fixProblem();
-      say(why ?? 'I cannot find you yet. Try again outside, away from tall buildings.');
-      toast(`📍 ${why ?? 'Still looking for where you are'}`);
+      const why = fixProblem() ?? 'I cannot find where you are yet. Outside, away from tall buildings, works best.';
+      say(why);
+      this.locationNote(why);
     }
+  }
+
+  /**
+   * The ONE place the map says it cannot find the explorer: the note under the top bar, shown until a position
+   * comes. Before 2.13 the 📍 button also put up a toast saying much the same just below it, so the screen showed
+   * two location banners, one or none depending on what had happened when.
+   */
+  private locationNote(text: string | null): void {
+    this.gpsNote.hidden = !text;
+    this.gpsNote.textContent = text ? `📍 ${text}` : '';
   }
 
   /**
@@ -945,11 +983,10 @@ export class App {
   private startLocation(): void {
     onFix(async (fix, error) => {
       if (!fix) {
-        this.gpsNote.hidden = !error;
-        this.gpsNote.textContent = `📍 ${error ?? ''}`;
+        if (error) this.locationNote(error);
         return;
       }
-      this.gpsNote.hidden = true;
+      this.locationNote(null);
       this.map.showMe(fix);
       // Not while a spot is being picked: the target sits at the map's centre, and following would move it.
       if (this.settings.follow && !document.body.classList.contains('picking')) this.map.follow(fix);

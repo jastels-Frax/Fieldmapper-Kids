@@ -40,9 +40,11 @@ export function openTickCheck(host: TickHost, summary?: string): void {
 
   const status = h('p', { class: 'tick-status', role: 'status' });
   const finish = h('button', { class: 'big-btn', hidden: true }, '✅ All clear!');
+  // The count is of the places on YOU, which are what "All clear!" needs; the pet is listed apart, under its own
+  // heading, and said only once ticked (2.12 counted 10 while showing 11 boxes).
   const paint = () => {
     const n = TICK_SPOTS.filter(s => checked.has(s.id)).length;
-    status.textContent = `${n} of ${TICK_SPOTS.length} places checked`;
+    status.textContent = `${n} of ${TICK_SPOTS.length} places on you checked${checked.has(PET_SPOT.id) ? ', and your pet' : ''}`;
     finish.hidden = !allClear(checked);
   };
 
@@ -90,6 +92,7 @@ export function openTickCheck(host: TickHost, summary?: string): void {
   body.append(
     status,
     h('div', { class: 'tick-spots' }, ...TICK_SPOTS.map(spot)),
+    h('h3', { class: 'tick-pet-head' }, '🐾 Did a pet come along? Check them too.'),
     h('div', { class: 'tick-spots' }, spot(PET_SPOT)),
     finish,
     found,

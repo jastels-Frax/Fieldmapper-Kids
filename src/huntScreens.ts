@@ -26,13 +26,21 @@ export function activeRun(runs: HuntRun[]): HuntRun | undefined {
   return runs.find(r => r.status === 'active');
 }
 
-function itemGrid(run: HuntRun | null, hunt: Hunt, live: Set<string>): HTMLElement {
+/**
+ * The hunt's list. A found item says "Found it!" under its words, on green, with its tick — not struck through,
+ * which read as crossed OUT (2.12). On a hunt under way, tapping one still to find starts "I found something!".
+ */
+function itemGrid(run: HuntRun | null, hunt: Hunt, live: Set<string>, go?: (text: string) => void): HTMLElement {
   return h('div', { class: 'hunt-items' }, ...hunt.items.map(i => {
     const done = !!run && !!run.found[i.id] && live.has(run.found[i.id]);
-    return h('button', { class: `hunt-item ${done ? 'done' : ''}`, onclick: () => say(done ? `${i.text}. Found it!` : i.text) },
-      h('span', { class: 'hunt-item-emoji' }, i.emoji),
-      h('span', { class: 'hunt-item-text' }, i.text),
-      h('span', { class: 'hunt-item-tick' }, done ? '✅' : '⬜'),
+    return h('button', {
+      class: `hunt-item ${done ? 'done' : ''}`,
+      'aria-label': done ? `${i.text}: found it` : go ? `${i.text}: go and find it` : i.text,
+      onclick: () => (done ? say(`${i.text}. Found it!`) : go ? go(i.text) : say(i.text)),
+    },
+      // The tick sits on the picture's corner, so the words have the width (a tick beside them ran past the box).
+      h('span', { class: 'hunt-item-emoji' }, i.emoji, h('span', { class: 'hunt-item-tick', 'aria-hidden': 'true' }, done ? '✅' : '⬜')),
+      h('span', { class: 'hunt-item-text' }, i.text, done ? h('span', { class: 'hunt-item-found' }, 'Found it!') : null),
     );
   }));
 }
@@ -56,7 +64,8 @@ export function openHunts(host: HuntHost): void {
         h('section', { class: 'hunt-now' },
           h('h2', {}, `${run.hunt.emoji} ${run.hunt.title}`),
           progressBar(p.done, p.total),
-          itemGrid(run, run.hunt, live),
+          itemGrid(run, run.hunt, live, text => { say(`${text}! Go and look.`); close(); host.startCapture(); }),
+          h('p', { class: 'hint' }, 'Tap one to go and find it. It ticks itself when you save a find that counts.'),
           h('div', { class: 'ask-row' },
             h('button', { class: 'big-btn', onclick: () => { close(); host.startCapture(); } }, '✨ I found something!'),
             h('button', { class: 'big-btn soft', onclick: async () => {

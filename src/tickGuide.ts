@@ -24,7 +24,7 @@ export const TICK_SPOTS: TickSpot[] = [
 ];
 
 /** Optional: not every family has one, so it never blocks "all clear". */
-export const PET_SPOT: TickSpot = { id: 'pet', emoji: '🐕', text: 'Your pet, if one came along' };
+export const PET_SPOT: TickSpot = { id: 'pet', emoji: '🐕', text: 'Your pet' };
 
 export interface GuideSection {
   emoji: string;

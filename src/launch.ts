@@ -76,9 +76,12 @@ export function openLaunch(host: LaunchHost): Promise<void> {
       sounds.save();
       root.classList.add('leaving');
       window.removeEventListener('scout-profiles-changed', paint);
+      window.removeEventListener('scout-launch-start', start);
       setTimeout(() => root.remove(), 260);
       resolve();
     };
+    // "Take the tour" from How to use: the tour is of the map, so the adventure starts.
+    window.addEventListener('scout-launch-start', start);
     // Explorers added, renamed or restyled from a screen opened here show at once.
     window.addEventListener('scout-profiles-changed', paint);
     paint();

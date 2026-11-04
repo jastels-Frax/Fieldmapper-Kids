@@ -42,6 +42,8 @@ export function openSheet(opts: { title: string; emoji?: string; onClose?: () =>
 }
 
 export function toast(text: string, ms = 2600): void {
+  // One at a time: a new toast replaces the one still showing, so two never sit stacked on each other.
+  document.querySelectorAll('.toast').forEach(old => old.remove());
   const t = h('div', { class: 'toast', role: 'status' }, text);
   document.body.append(t);
   setTimeout(() => t.classList.add('leaving'), ms);

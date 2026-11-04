@@ -52,9 +52,11 @@ const accept = (p: GeolocationPosition) => {
 };
 
 const problem = (err: GeolocationPositionError) => {
+  // Said where the search has stopped (the map's location note, the Where step after it gives up), so it says what
+  // happened and what helps, never "Looking for where you are…", which read as a search that never ends.
   const msg = err.code === err.PERMISSION_DENIED
     ? 'Ask a grown-up to let this app use your location.'
-    : 'Looking for where you are…';
+    : 'I cannot find where you are yet. Outside, away from tall buildings, works best.';
   lastError = msg;
   listeners.forEach(l => l(null, msg));
 };

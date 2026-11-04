@@ -22,7 +22,8 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 
 new App().init().catch(err => {
   console.error(err);
-  const w = window as unknown as { __scoutBooted?: boolean; __scoutFail?: (why: string) => void };
+  const w = window as unknown as { __scoutBooted?: boolean; __scoutFail?: (why: string, publisher?: boolean) => void };
   w.__scoutBooted = false;
-  w.__scoutFail?.(`the app stopped while starting (${err instanceof Error ? err.message : String(err)}).`);
+  // Scout's own failure, not the page's: the screen says to close it and open it again, not to fix the publishing.
+  w.__scoutFail?.(err instanceof Error ? `${err.name}: ${err.message}` : String(err), false);
 });

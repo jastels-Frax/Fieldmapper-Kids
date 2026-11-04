@@ -1,6 +1,6 @@
 import type { CategoryId, ColourId, CountId, SizeId } from './types.ts';
 import type { BadgeFind } from './badges.ts';
-import { isKind } from './categories.ts';
+import { categoryOf, isKind, oneOf } from './categories.ts';
 
 /**
  * Scavenger hunts: a themed list of things to find. An item with a RULE is
@@ -113,14 +113,55 @@ export const HUNTS: Hunt[] = [
   { id: 'flowers', emoji: '🌼', title: 'Flower Hunt', where: 'A meadow, a park or a garden.', items: lib('yellow-flower', 'purple-flower', 'flower', 'bug', 'lots', 'smell') },
 ];
 
-/** Does this find meet the item's rule? An item with no rule is never auto-ticked. */
-export function meetsRule(it: HuntItem, f: BadgeFind): boolean {
+/**
+ * How a find stands against an item:
+ * - `meets`: it meets the rule as described (ticked for them);
+ * - `free`: the item has no rule ("something soft"), so it counts if the explorer says so;
+ * - `add`: it would meet the rule with something they did not describe (a red squirrel described with no colours,
+ *   for "Something red") — ticking it ADDS that to the find, so the find says what it was credited for;
+ * - `no`: it cannot count — another kind (a squirrel for "A bug"), or a size or count described otherwise. 2.12
+ *   ticked any item tapped, with no warning; `why` is what the item is for, to say so.
+ */
+export type ItemFit =
+  | { fit: 'meets' }
+  | { fit: 'free' }
+  | { fit: 'add'; adds: { colour?: ColourId; size?: SizeId; count?: CountId } }
+  | { fit: 'no'; why: { category?: CategoryId; size?: SizeId; count?: CountId } };
+
+export function itemFit(it: HuntItem, f: BadgeFind): ItemFit {
   const r = it.rule;
-  if (!r || (!r.category && !r.colour && !r.size && !r.count)) return false;
-  return (!r.category || isKind(f.category, r.category))
-    && (!r.colour || f.colours.includes(r.colour))
-    && (!r.size || f.size === r.size)
-    && (!r.count || f.count === r.count);
+  if (!r || (!r.category && !r.colour && !r.size && !r.count)) return { fit: 'free' };
+  if (r.category && !isKind(f.category, r.category)) return { fit: 'no', why: { category: r.category } };
+  if (r.size && f.size && f.size !== r.size) return { fit: 'no', why: { size: r.size } };
+  if (r.count && f.count && f.count !== r.count) return { fit: 'no', why: { count: r.count } };
+  const adds: { colour?: ColourId; size?: SizeId; count?: CountId } = {};
+  if (r.colour && !f.colours.includes(r.colour)) adds.colour = r.colour;
+  if (r.size && !f.size) adds.size = r.size;
+  if (r.count && !f.count) adds.count = r.count;
+  return Object.keys(adds).length ? { fit: 'add', adds } : { fit: 'meets' };
+}
+
+/** What an item is for, said when a find cannot count for it: "a bug", "something huge", "lots of the same thing". */
+export function needWords(why: { category?: CategoryId; size?: SizeId; count?: CountId }): string {
+  if (why.category) return oneOf(categoryOf(why.category));
+  if (why.size) return `something ${why.size}`;
+  if (why.count) return why.count === 'lots' ? 'lots of the same thing' : why.count === 'few' ? 'a few of the same thing' : 'just one thing';
+  return 'something else';
+}
+
+/** Does this find meet the item's rule as it is described? An item with no rule is never auto-ticked. */
+export function meetsRule(it: HuntItem, f: BadgeFind): boolean {
+  return itemFit(it, f).fit === 'meets';
+}
+
+/** The items a find counts for with no question asked: the ones it plainly meets (Save now, quick finds). */
+export function plainMatches(open: HuntItem[], f: BadgeFind): string[] {
+  return open.filter(i => meetsRule(i, f)).map(i => i.id);
+}
+
+/** Whether the explorer could still tick an item for this find that the rules cannot tick for them. */
+export function worthAsking(open: HuntItem[], f: BadgeFind): boolean {
+  return open.some(i => { const k = itemFit(i, f).fit; return k === 'free' || k === 'add'; });
 }
 
 /** The still-open items this find would tick on its own. */

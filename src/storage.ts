@@ -1,4 +1,4 @@
-import { openDB, type IDBPDatabase } from 'idb';
+import { openDB, type IDBPDatabase, type IDBPTransaction } from 'idb';
 import type { Find, FindMedia, FullFind, LegacySettings, PhotoSpot, Picture, Profile, Settings, SpotMedia } from './types.ts';
 import { normalizeFind } from './findModel.ts';
 import { uid } from './ids.ts';
@@ -8,6 +8,7 @@ import type { Sketch } from './types.ts';
 import { DEFAULT_SETTINGS } from './types.ts';
 import { revive, toBytes, fromBytes, type StoredBytes } from './storedBytes.ts';
 import { holdsMedia, splitStoredFind, type StoredMedia } from './findSplit.ts';
+import { withRetry } from './dbRetry.ts';
 
 export interface TrailDay {
   day: string;
@@ -29,9 +30,26 @@ const DB_NAME = 'FieldMapperKids';
  */
 const DB_VERSION = 6;
 
-let dbp: Promise<IDBPDatabase> | null = null;
-function db(): Promise<IDBPDatabase> {
-  dbp ??= openDB(DB_NAME, DB_VERSION, {
+let conn: Promise<IDBPDatabase> | null = null;
+
+/**
+ * The one connection, opened when first wanted. It is FORGOTTEN — never kept as a dead or failed promise — whenever
+ * it fails to open, the browser ends it (`terminated`), or a newer Scout in another window needs it (`blocking`), so
+ * the next request opens a fresh one; a connection that fails mid-request is forgotten by `withDb` (dbRetry.ts).
+ * Before 2.13 a failed open and a lost connection were kept for the life of the page, so every read and save after
+ * it failed until a reload: "Scout could not start" on the first tap, and a find that "did not save".
+ */
+function open(): Promise<IDBPDatabase> {
+  if (conn) return conn;
+  const p: Promise<IDBPDatabase> = openDB(DB_NAME, DB_VERSION, {
+    blocking() {
+      // A newer Scout (another window, after an update) wants to upgrade: let it, and stop using this one.
+      if (conn === p) conn = null;
+      void p.then(d => d.close());
+    },
+    terminated() {
+      if (conn === p) conn = null;
+    },
     async upgrade(d, oldVersion, _newVersion, tx) {
       if (oldVersion < 1) {
         const finds = d.createObjectStore('finds', { keyPath: 'id' });
@@ -71,32 +89,68 @@ function db(): Promise<IDBPDatabase> {
       }
     },
   });
-  return dbp;
+  conn = p;
+  p.catch(() => { if (conn === p) conn = null; });
+  return p;
 }
+
+/** Every request goes through here: a lost connection is forgotten, closed and opened again (dbRetry.ts). */
+function withDb<T>(fn: (d: IDBPDatabase) => Promise<T>): Promise<T> {
+  return withRetry(open, used => {
+    if (conn === used) conn = null;
+    used.then(d => d.close(), () => {});
+  }, fn);
+}
+
+/**
+ * A transaction that writes ALL or NOTHING: if a step throws (a value that cannot be stored throws at once, before
+ * the transaction can abort itself), it is aborted, so a find is never left saved without its pictures.
+ */
+async function writeAll(d: IDBPDatabase, stores: string[], fn: (tx: IDBPTransaction<unknown, string[], 'readwrite'>) => Promise<void>): Promise<void> {
+  const tx = d.transaction(stores, 'readwrite');
+  try {
+    await fn(tx);
+    await tx.done;
+  } catch (err) {
+    try { tx.abort(); } catch { /* already finished */ }
+    throw err;
+  }
+}
+
+/** One request on its own, through `withDb`. */
+const idb = {
+  get: (store: string, key: IDBValidKey) => withDb(d => d.get(store, key)),
+  getAll: (store: string) => withDb(d => d.getAll(store)),
+  getAllFromIndex: (store: string, index: string) => withDb(d => d.getAllFromIndex(store, index)),
+  getAllKeys: (store: string) => withDb(d => d.getAllKeys(store)),
+  put: (store: string, value: unknown, key?: IDBValidKey) => withDb(d => d.put(store, value, key)),
+  delete: (store: string, key: IDBValidKey) => withDb(d => d.delete(store, key)),
+  clear: (store: string) => withDb(d => d.clear(store)),
+};
 
 /**
  * Every find on the device, every explorer's, newest first: LIGHT — which pictures each has, never their bytes
  * (findMedia; `getFindMedia` reads them when a find is opened). The small thumbnail comes along for the map.
  */
 export async function allFinds(): Promise<Find[]> {
-  const raw = (await (await db()).getAllFromIndex('finds', 'createdAt')) as Record<string, unknown>[];
+  const raw = (await idb.getAllFromIndex('finds', 'createdAt')) as Record<string, unknown>[];
   const out: Find[] = [];
   for (const r of raw.reverse()) {
     const { find, migrate } = await reviveLight(r);
-    if (migrate) await (await db()).put('finds', await packLight(find));
+    if (migrate) await idb.put('finds', await packLight(find));
     out.push(find);
   }
   return out;
 }
 
 export async function getFind(id: string): Promise<Find | undefined> {
-  const raw = (await (await db()).get('finds', id)) as Record<string, unknown> | undefined;
+  const raw = (await idb.get('finds', id)) as Record<string, unknown> | undefined;
   return raw && (await reviveLight(raw)).find;
 }
 
 /** A find's pictures and voice note, as in-memory Blobs (storedBytes.ts). */
 export async function getFindMedia(id: string): Promise<FindMedia> {
-  const raw = (await (await db()).get('findMedia', id)) as StoredMedia | undefined;
+  const raw = (await idb.get('findMedia', id)) as StoredMedia | undefined;
   if (!raw) return { pictures: [], voices: [] };
   let legacy = false, lost = false;
   const one = async (v: unknown) => { const r = await revive(v); legacy ||= r.legacy; lost ||= r.lost; return r.blob; };
@@ -112,7 +166,7 @@ export async function getFindMedia(id: string): Promise<FindMedia> {
   }
   const media: FindMedia = { pictures, voices };
   // Moved here from a find stored before pictures were bytes: rewrite as bytes, once, while it can still be read.
-  if (legacy && !lost) await (await db()).put('findMedia', await packMedia(id, media));
+  if (legacy && !lost) await idb.put('findMedia', await packMedia(id, media));
   return media;
 }
 
@@ -159,10 +213,10 @@ function lightOf(f: FullFind): Find {
 export async function saveFind(f: FullFind): Promise<Find> {
   const light = await packLight(lightOf(f));
   const media = await packMedia(f.id, f);
-  const tx = (await db()).transaction(['finds', 'findMedia'], 'readwrite');
-  await tx.objectStore('finds').put(light);
-  await tx.objectStore('findMedia').put(media);
-  await tx.done;
+  await withDb(d => writeAll(d, ['finds', 'findMedia'], async tx => {
+    await tx.objectStore('finds').put(light);
+    await tx.objectStore('findMedia').put(media);
+  }));
   return (await reviveLight(light)).find;
 }
 
@@ -172,58 +226,57 @@ export async function saveFind(f: FullFind): Promise<Find> {
  */
 export async function saveFindInfo(f: Find): Promise<Find> {
   const light = await packLight(f);
-  await (await db()).put('finds', light);
+  await idb.put('finds', light);
   return (await reviveLight(light)).find;
 }
 
 export async function deleteFind(id: string): Promise<void> {
-  const tx = (await db()).transaction(['finds', 'findMedia'], 'readwrite');
-  await tx.objectStore('finds').delete(id);
-  await tx.objectStore('findMedia').delete(id);
-  await tx.done;
+  await withDb(d => writeAll(d, ['finds', 'findMedia'], async tx => {
+    await tx.objectStore('finds').delete(id);
+    await tx.objectStore('findMedia').delete(id);
+  }));
 }
 
 export async function deleteAllFinds(): Promise<void> {
-  const d = await db();
-  await d.clear('finds');
-  await d.clear('findMedia');
-  await d.clear('trails');
-  await d.clear('huntRuns');
-  await d.clear('walks');
-  await d.clear('sketches');
-  await d.clear('photoSpots');
-  await d.clear('spotMedia');
+  await idb.clear('finds');
+  await idb.clear('findMedia');
+  await idb.clear('trails');
+  await idb.clear('huntRuns');
+  await idb.clear('walks');
+  await idb.clear('sketches');
+  await idb.clear('photoSpots');
+  await idb.clear('spotMedia');
 }
 
 export async function allWalks(): Promise<Walk[]> {
-  const list = (await (await db()).getAll('walks')) as Walk[];
+  const list = (await idb.getAll('walks')) as Walk[];
   return list.sort((a, b) => b.startedAt.localeCompare(a.startedAt));
 }
 
 export async function saveWalk(w: Walk): Promise<void> {
-  await (await db()).put('walks', w);
+  await idb.put('walks', w);
 }
 
 export async function deleteWalk(id: string): Promise<void> {
-  await (await db()).delete('walks', id);
+  await idb.delete('walks', id);
 }
 
 export async function allSketches(): Promise<Sketch[]> {
-  const list = (await (await db()).getAll('sketches')) as Sketch[];
+  const list = (await idb.getAll('sketches')) as Sketch[];
   return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export async function saveSketch(s: Sketch): Promise<void> {
-  await (await db()).put('sketches', s);
+  await idb.put('sketches', s);
 }
 
 export async function deleteSketch(id: string): Promise<void> {
-  await (await db()).delete('sketches', id);
+  await idb.delete('sketches', id);
 }
 
 /** Every photo spot on the device, every explorer's, newest first: light (the thumbnail, never the pictures). */
 export async function allSpots(): Promise<PhotoSpot[]> {
-  const raw = (await (await db()).getAll('photoSpots')) as Record<string, unknown>[];
+  const raw = (await idb.getAll('photoSpots')) as Record<string, unknown>[];
   const out: PhotoSpot[] = [];
   for (const r of raw) out.push(await reviveSpot(r));
   return out.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -231,7 +284,7 @@ export async function allSpots(): Promise<PhotoSpot[]> {
 
 /** A photo spot's pictures, as in-memory Blobs; a picture that cannot be read is left out. */
 export async function getSpotMedia(id: string): Promise<SpotMedia> {
-  const raw = (await (await db()).get('spotMedia', id)) as { photos?: { id: string; blob: unknown }[] } | undefined;
+  const raw = (await idb.get('spotMedia', id)) as { photos?: { id: string; blob: unknown }[] } | undefined;
   const photos: SpotMedia['photos'] = [];
   for (const p of raw?.photos ?? []) {
     const { blob } = await revive(p.blob);
@@ -251,18 +304,18 @@ export async function saveSpot(spot: PhotoSpot, media?: SpotMedia): Promise<Phot
   // Packed BEFORE the transaction opens: reading a Blob is not a database request, and a transaction left waiting
   // on one commits early (as saveFind packs first).
   const pics = media && { id: spot.id, photos: await Promise.all(media.photos.map(async p => ({ id: p.id, blob: await toBytes(p.blob) }))) };
-  const tx = (await db()).transaction(['photoSpots', 'spotMedia'], 'readwrite');
-  await tx.objectStore('photoSpots').put(light);
-  if (pics) await tx.objectStore('spotMedia').put(pics);
-  await tx.done;
+  await withDb(d => writeAll(d, ['photoSpots', 'spotMedia'], async tx => {
+    await tx.objectStore('photoSpots').put(light);
+    if (pics) await tx.objectStore('spotMedia').put(pics);
+  }));
   return reviveSpot(light);
 }
 
 export async function deleteSpot(id: string): Promise<void> {
-  const tx = (await db()).transaction(['photoSpots', 'spotMedia'], 'readwrite');
-  await tx.objectStore('photoSpots').delete(id);
-  await tx.objectStore('spotMedia').delete(id);
-  await tx.done;
+  await withDb(d => writeAll(d, ['photoSpots', 'spotMedia'], async tx => {
+    await tx.objectStore('photoSpots').delete(id);
+    await tx.objectStore('spotMedia').delete(id);
+  }));
 }
 
 async function reviveSpot(raw: Record<string, unknown>): Promise<PhotoSpot> {
@@ -282,19 +335,19 @@ export interface StoredSpeciesList {
 }
 
 export async function allSpeciesLists(): Promise<StoredSpeciesList[]> {
-  return (await (await db()).getAll('speciesLists')) as StoredSpeciesList[];
+  return (await idb.getAll('speciesLists')) as StoredSpeciesList[];
 }
 
 export async function saveSpeciesList(l: StoredSpeciesList): Promise<void> {
-  await (await db()).put('speciesLists', l);
+  await idb.put('speciesLists', l);
 }
 
 export async function deleteSpeciesList(id: string): Promise<void> {
-  await (await db()).delete('speciesLists', id);
+  await idb.delete('speciesLists', id);
 }
 
 export async function loadSettings(): Promise<Settings> {
-  const s = (await (await db()).get('settings', 'settings')) as (Partial<Settings> & LegacySettings) | undefined;
+  const s = (await idb.get('settings', 'settings')) as (Partial<Settings> & LegacySettings) | undefined;
   return {
     activeProfileId: s?.activeProfileId,
     // Reading aloud used to be on by default, and saved settings say so; now it is on only where a grown-up chose it.
@@ -325,7 +378,7 @@ export async function loadSettings(): Promise<Settings> {
 }
 
 export async function allProfiles(): Promise<Profile[]> {
-  const raw = (await (await db()).getAll('profiles')) as Record<string, unknown>[];
+  const raw = (await idb.getAll('profiles')) as Record<string, unknown>[];
   const list: Profile[] = [];
   for (const r of raw) {
     const { blob, legacy, lost } = await revive(r.photo);
@@ -340,7 +393,7 @@ export async function allProfiles(): Promise<Profile[]> {
 export async function saveProfile(p: Profile): Promise<Profile> {
   const stored: Record<string, unknown> = { ...p };
   if (p.photo) stored.photo = await toBytes(p.photo); else delete stored.photo;
-  await (await db()).put('profiles', stored);
+  await idb.put('profiles', stored);
   const copy: Profile = { ...p };
   if (p.photo) copy.photo = fromBytes(stored.photo as StoredBytes);
   return copy;
@@ -348,23 +401,22 @@ export async function saveProfile(p: Profile): Promise<Profile> {
 
 /** Deletes an explorer and everything that was theirs: finds and hunt runs. */
 export async function deleteProfile(id: string): Promise<void> {
-  const d = await db();
-  const tx = d.transaction(['profiles', 'finds', 'findMedia', 'huntRuns', 'walks', 'sketches', 'photoSpots', 'spotMedia'], 'readwrite');
-  await tx.objectStore('profiles').delete(id);
-  for (const store of ['finds', 'huntRuns', 'walks', 'sketches', 'photoSpots'] as const) {
-    let cur = await tx.objectStore(store).openCursor();
-    while (cur) {
-      const v = cur.value as { id: string; profileId?: string };
-      if (v.profileId === id) {
-        // A find's pictures go with it, and a photo spot's.
-        if (store === 'finds') await tx.objectStore('findMedia').delete(v.id);
-        if (store === 'photoSpots') await tx.objectStore('spotMedia').delete(v.id);
-        await cur.delete();
+  await withDb(d => writeAll(d, ['profiles', 'finds', 'findMedia', 'huntRuns', 'walks', 'sketches', 'photoSpots', 'spotMedia'], async tx => {
+    await tx.objectStore('profiles').delete(id);
+    for (const store of ['finds', 'huntRuns', 'walks', 'sketches', 'photoSpots'] as const) {
+      let cur = await tx.objectStore(store).openCursor();
+      while (cur) {
+        const v = cur.value as { id: string; profileId?: string };
+        if (v.profileId === id) {
+          // A find's pictures go with it, and a photo spot's.
+          if (store === 'finds') await tx.objectStore('findMedia').delete(v.id);
+          if (store === 'photoSpots') await tx.objectStore('spotMedia').delete(v.id);
+          await cur.delete();
+        }
+        cur = await cur.continue();
       }
-      cur = await cur.continue();
     }
-  }
-  await tx.done;
+  }));
 }
 
 /**
@@ -374,10 +426,9 @@ export async function deleteProfile(id: string): Promise<void> {
  * Returns the profiles after the move. Runs once: afterwards profiles exist.
  */
 export async function migrateToProfiles(): Promise<Profile[]> {
-  const d = await db();
   const existing = await allProfiles();
   if (existing.length) return existing;
-  const legacy = (await d.get('settings', 'settings')) as (LegacySettings & Partial<Settings>) | undefined;
+  const legacy = (await idb.get('settings', 'settings')) as (LegacySettings & Partial<Settings>) | undefined;
   if (!legacy?.mode) return [];
   const p: Profile = {
     id: uid(),
@@ -388,58 +439,57 @@ export async function migrateToProfiles(): Promise<Profile[]> {
     tickChecks: legacy.tickChecks,
     createdAt: new Date().toISOString(),
   };
-  const tx = d.transaction(['profiles', 'finds', 'huntRuns', 'settings'], 'readwrite');
-  await tx.objectStore('profiles').put(p);
-  let fc = await tx.objectStore('finds').openCursor();
-  while (fc) {
-    await fc.update({ ...fc.value, profileId: p.id });
-    fc = await fc.continue();
-  }
-  let rc = await tx.objectStore('huntRuns').openCursor();
-  while (rc) {
-    await rc.update({ ...rc.value, profileId: p.id });
-    rc = await rc.continue();
-  }
   const { mode, name, avatar, buddy, tickChecks, ...rest } = legacy;
-  await tx.objectStore('settings').put({ ...rest, activeProfileId: p.id }, 'settings');
-  await tx.done;
+  await withDb(d => writeAll(d, ['profiles', 'finds', 'huntRuns', 'settings'], async tx => {
+    await tx.objectStore('profiles').put(p);
+    let fc = await tx.objectStore('finds').openCursor();
+    while (fc) {
+      await fc.update({ ...fc.value, profileId: p.id });
+      fc = await fc.continue();
+    }
+    let rc = await tx.objectStore('huntRuns').openCursor();
+    while (rc) {
+      await rc.update({ ...rc.value, profileId: p.id });
+      rc = await rc.continue();
+    }
+    await tx.objectStore('settings').put({ ...rest, activeProfileId: p.id }, 'settings');
+  }));
   return [p];
 }
 
 export async function saveSettings(s: Settings): Promise<void> {
-  await (await db()).put('settings', s, 'settings');
+  await idb.put('settings', s, 'settings');
 }
 
 export async function getTrail(day: string): Promise<TrailDay | undefined> {
-  return (await db()).get('trails', day) as Promise<TrailDay | undefined>;
+  return idb.get('trails', day) as Promise<TrailDay | undefined>;
 }
 
 export async function saveTrail(t: TrailDay): Promise<void> {
-  const d = await db();
-  await d.put('trails', t);
+  await idb.put('trails', t);
   // Keep a month of walks; older ones are not shown anywhere.
   const cutoff = new Date(Date.now() - 31 * 86400000).toISOString().slice(0, 10);
-  for (const key of await d.getAllKeys('trails')) {
-    if (String(key) < cutoff) await d.delete('trails', key);
+  for (const key of await idb.getAllKeys('trails')) {
+    if (String(key) < cutoff) await idb.delete('trails', key);
   }
 }
 
 export async function allHuntRuns(): Promise<HuntRun[]> {
-  return (await (await db()).getAll('huntRuns')) as HuntRun[];
+  return (await idb.getAll('huntRuns')) as HuntRun[];
 }
 
 export async function saveHuntRun(r: HuntRun): Promise<void> {
-  await (await db()).put('huntRuns', r);
+  await idb.put('huntRuns', r);
 }
 
 export async function allCustomHunts(): Promise<Hunt[]> {
-  return (await (await db()).getAll('customHunts')) as Hunt[];
+  return (await idb.getAll('customHunts')) as Hunt[];
 }
 
 export async function saveCustomHunt(h: Hunt): Promise<void> {
-  await (await db()).put('customHunts', h);
+  await idb.put('customHunts', h);
 }
 
 export async function deleteCustomHunt(id: string): Promise<void> {
-  await (await db()).delete('customHunts', id);
+  await idb.delete('customHunts', id);
 }

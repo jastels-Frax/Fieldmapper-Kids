@@ -432,29 +432,48 @@ export function openBadges(host: ScreenHost): void {
   body.append(grid);
 }
 
-export function todaysChallenges(finds: Find[]): { list: Challenge[]; done: Set<string> } {
+export function todaysChallenges(finds: Find[]): { list: Challenge[]; done: Set<string>; by: Map<string, Find> } {
   const day = localDay(new Date().toISOString());
   const list = challengesFor(day);
-  const done = completedChallenges(list, finds.filter(f => localDay(f.createdAt) === day).map(toBadgeFind));
-  return { list, done };
+  const today = finds.filter(f => localDay(f.createdAt) === day);
+  const done = completedChallenges(list, today.map(toBadgeFind));
+  // The find that did each one (the newest), so a done challenge can show it.
+  const by = new Map<string, Find>();
+  for (const c of list) {
+    const f = today.find(x => c.test(toBadgeFind(x)));
+    if (f) by.set(c.id, f);
+  }
+  return { list, done, by };
 }
 
 export function openChallenges(host: ScreenHost): void {
   const { body, close } = openSheet({ title: "Today's Adventure", emoji: '⭐', className: 'challenges' });
-  const { list, done } = todaysChallenges(host.finds());
+  const { list, done, by } = todaysChallenges(host.finds());
   body.append(crewSays('raccoon', done.size === list.length
     ? { text: 'You did them all! Amazing!', pose: 'success' }
     : { text: `Bandit here! I hid three challenges for you today. ${list.map(c => c.text).join('. ')}.`, pose: 'point' }));
+  // A challenge ticks itself when a find that fits is saved (they are worked out from the finds, never stored), so a
+  // tap does something useful instead: an open one goes to "I found something!", a done one shows the find that did
+  // it. In 2.12 a tap only read the words aloud, which is nothing at all with reading aloud off.
   for (const c of list) {
-    const isDone = done.has(c.id);
-    body.append(h('button', { class: `challenge-card ${isDone ? 'done' : ''}`, onclick: () => say(isDone ? `Done! ${c.text}` : c.text) },
+    const f = by.get(c.id);
+    body.append(h('button', {
+      class: `challenge-card ${f ? 'done' : ''}`,
+      'aria-label': f ? `${c.text}: done with ${findName(f)}` : `${c.text}: go and find it`,
+      onclick: () => {
+        if (f) { say(`Done! ${c.text}`); openFind(host, f.id); return; }
+        say(`${c.text}! Go and look.`);
+        close();
+        host.startCapture();
+      },
+    },
       h('span', { class: 'challenge-emoji' }, c.emoji),
-      h('span', { class: 'challenge-text' }, c.text),
-      h('span', { class: 'challenge-tick' }, isDone ? '✅' : '⬜'),
+      h('span', { class: 'challenge-text' }, c.text, f ? h('span', { class: 'challenge-with' }, `Done with: ${findName(f)}`) : null),
+      h('span', { class: 'challenge-tick' }, f ? '✅' : '⬜'),
     ));
   }
   body.append(
-    h('p', { class: 'hint' }, '🌙 New challenges come every day.'),
+    h('p', { class: 'hint' }, 'Tap one to go and find it. It ticks itself when you save a find that fits. 🌙 New challenges come every day.'),
     h('button', { class: 'big-btn', onclick: () => { close(); host.startCapture(); } }, '✨ I found something!'),
     h('button', { class: 'big-btn soft', onclick: () => { close(); host.openHunts(); } }, '🔎 Go on a scavenger hunt'),
   );

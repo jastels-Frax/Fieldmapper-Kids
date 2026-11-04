@@ -12,6 +12,16 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.13.0', date: '2026-11-04', title: 'A tour with the crew',
+    notes: [
+      'A guided tour: your guide and the crew show you around. Take it again any time from ❓ How to use.',
+      'Scout no longer stops with "could not start" or "check there is space" after the tablet has been asleep.',
+      'Hunts: ✨ Save now asks which hunt things your find counts for, and things it cannot count for say why.',
+      "Tap a challenge or a hunt thing to go and find it. A finished challenge shows the find that did it.",
+      'The tick check counts the 10 places on you, and your pet has its own spot.',
+    ],
+  },
+  {
     version: '2.12.0', date: '2026-10-31', title: 'Your buttons, your bar',
     notes: [
       'Choose the two buttons beside I found something! in 🔧 My buttons. 📷 Photo is there now, beside 📖 My Finds.',
