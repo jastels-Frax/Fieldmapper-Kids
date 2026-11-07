@@ -6,7 +6,7 @@ export type Mode = 'explorer' | 'together';
  * groups; they keep their ids and meaning, so every saved find, badge and hunt still reads the same.
  */
 export type CategoryId = 'bird' | 'bug' | 'plant' | 'tree' | 'flower' | 'animal' | 'mushroom' | 'sign' | 'rock' | 'water' | 'sky' | 'mystery'
-  | 'shrub' | 'fern' | 'moss' | 'grass'
+  | 'shrub' | 'fern' | 'moss' | 'grass' | 'houseplant'
   | 'mammal' | 'amphibian' | 'reptile' | 'fish' | 'snail'
   | 'capstem' | 'shelf' | 'puffball'
   | 'lichen' | 'crusty' | 'leafy' | 'bushy'

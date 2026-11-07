@@ -12,6 +12,13 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.14.0', date: '2026-11-07', title: 'Bigger buttons, houseplants',
+    notes: [
+      'Bigger buttons for a find\'s colours, size and how many.',
+      '🪴 Houseplant is a kind of plant now. Look and smell, but never taste one!',
+    ],
+  },
+  {
     version: '2.13.0', date: '2026-11-04', title: 'A tour with the crew',
     notes: [
       'A guided tour: your guide and the crew show you around. Take it again any time from ❓ How to use.',

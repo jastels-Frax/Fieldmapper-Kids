@@ -5,6 +5,18 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.14.0 — 2026-11-07
+
+- **Bigger buttons on "What does it look like?"** The colours are 72 px circles with 13 px words (they were 50 px
+  with 10 px words, `colour-grid roomy`), and size and count are tiles, a 38 px picture over 18 px words, at least
+  92 px tall (`tile-choices`; they were 44 px chips). The rule that kept them chips in every look now keeps the
+  other small chips (My buttons) as they were. Nothing runs past its box at 320 px with the biggest words.
+- **🪴 Houseplant, a kind of plant** (`houseplant`, `refines: 'plant'`, short word "Indoor"), between Grass and
+  "Just a plant" in "What kind of plant?". It counts wherever a plant counts (badges, challenges, hunts), and its
+  cheer and facts say never to taste a houseplant. It has no name search yet: Scout's species list is Nova Scotia's
+  wild species, and a list of houseplant names needs a source this build could not reach, so a houseplant goes from
+  its kind straight to "What does it look like?"; its own name can be given on the save screen.
+
 ## 2.13.0 — 2026-11-04
 
 - **A guided tour** (`tourSteps.ts`, pure and tested; `tour.ts`, the runner), Field Mapper's tour ported: the steps

@@ -587,8 +587,9 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
     },
 
     describe() {
-      // Colours, size and count on one screen: three rows to tap, all optional.
-      const grid = h('div', { class: 'colour-grid compact' });
+      // Colours, size and count on one screen: three sets of big buttons to tap, all optional (2.14 made them bigger:
+      // 72 px colours with their words, and size and count as tiles, a picture over its words).
+      const grid = h('div', { class: 'colour-grid roomy' });
       for (const col of COLOURS) {
         const on0 = draft.colours.includes(col.id);
         const b = h('button', { class: `colour ${on0 ? 'on' : ''}`, style: `--sw:${col.hex}`, 'aria-label': col.label, 'aria-pressed': String(on0) }, h('span', {}, col.label));
@@ -603,7 +604,7 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
         grid.append(b);
       }
       const pickRow = <T extends string>(items: { id: T; emoji: string; label: string }[], get: () => T | undefined, set: (v: T | undefined) => void) => {
-        const row = h('div', { class: 'mini-choices' });
+        const row = h('div', { class: 'mini-choices tile-choices' });
         const paint = () => row.replaceChildren(...items.map(it => h('button', {
           class: `mini-choice ${get() === it.id ? 'on' : ''}`, 'aria-pressed': String(get() === it.id),
           onclick: () => { const off = get() === it.id; set(off ? undefined : it.id); sounds.pick(); if (!off) say(it.label); paint(); },

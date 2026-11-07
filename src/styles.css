@@ -647,10 +647,12 @@ html[data-mode="explorer"] .choice-emoji { font-size: 60px; }
 .save-now { margin-top: 10px; }
 .describe-head { margin: 14px 0 8px; font-size: 18px; }
 .describe-head:first-of-type { margin-top: 4px; }
-.colour-grid.compact { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 8px 6px; }
-.colour-grid.compact .colour { width: 50px; height: 50px; padding-bottom: 4px; }
-.colour-grid.compact .colour span { padding: 0 3px; font-size: 10px; }
-.colour-grid.compact .colour.on::after { width: 26px; height: 26px; font-size: 15px; top: -5px; right: -5px; }
+/* The describe step's colours: big enough for a small finger, with words that can be read. */
+.colour-grid.roomy { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 12px 8px; }
+.colour-grid.roomy .colour { width: 72px; height: 72px; padding-bottom: 6px; }
+.colour-grid.roomy .colour span { padding: 0 5px; font-size: 13px; }
+.colour-grid.roomy .colour.on::after { width: 30px; height: 30px; font-size: 17px; top: -6px; right: -6px; }
+
 .mini-choices { display: flex; flex-wrap: wrap; gap: 8px; }
 .mini-choice { display: flex; align-items: center; gap: 6px; padding: 8px 12px; min-height: 48px; background: var(--card); border: var(--bw) solid var(--line); border-radius: 999px; font-weight: 800; font-size: 16px; }
 .mini-choice.on { background: var(--good-soft); outline: 3px solid var(--green); }
@@ -1073,9 +1075,17 @@ html[data-motion="calm"] *, html[data-motion="calm"] *::before, html[data-motion
 .detail-emoji.art-pic { height: 260px; display: grid; place-items: center; }
 .detail-emoji.art-pic svg { width: 220px; height: 220px; }
 
-/* "Describe it": the size and count chips stay chips in every look (after the looks, so their padding wins). */
+/* Small choice chips stay chips in every look (after the looks, so their padding wins)… */
 html .mini-choices .mini-choice { padding: 5px 10px; min-height: 44px; font-size: 15px; }
 html .mini-choices .mini-emoji { font-size: 20px; }
+/* …except "Describe it"'s size and count, which are TILES since 2.14, a picture over its words, big enough for a
+   small finger (the chips were 44 px tall). In every look, so here too. */
+html .mini-choices.tile-choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(136px, 1fr)); gap: 10px; }
+html .mini-choices.tile-choices .mini-choice {
+  flex-direction: column; justify-content: center; text-align: center; gap: 4px; min-height: 92px; min-width: 0;
+  padding: 10px 8px; font-size: 18px; line-height: 1.2; overflow-wrap: break-word;
+}
+html .mini-choices.tile-choices .mini-emoji { font-size: 38px; line-height: 1.1; }
 
 /* ✏️ Draw / 📏 Measure (drawTool.ts): a short card at the foot of the map; the bottom bar and quick row step aside. */
 body:is(.drawing, .shape-open) :is(.bottom-bar, .quick-row, .buddy-dock, .walk-note) { visibility: hidden; }

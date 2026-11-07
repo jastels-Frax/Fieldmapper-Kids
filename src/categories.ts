@@ -107,6 +107,15 @@ export const CATEGORIES: Category[] = [
     talk: ['Is it soft or prickly?', 'Is it growing on a rock, a log or the ground?', 'Is it wet or dry?'],
     facts: ['Moss has no roots. It holds on with tiny hairs.', 'Moss soaks up water like a sponge.', 'Peat moss can hold many times its own weight in water.'],
   },
+  // Added in 2.14: a plant growing indoors in a pot. It is a plant (`refines`), so it counts wherever a plant counts.
+  // Its names come from a houseplant list of their own (public/species/ns.json is wild Nova Scotia species), so it has
+  // no CATEGORY_TAXA and no species step until that list is added: an own name goes on the save screen.
+  {
+    id: 'houseplant', group: 'plants', refines: 'plant', emoji: '🪴', label: 'Houseplant', short: 'Indoor', hint: 'One that lives indoors', colour: '#0ca678',
+    cheer: 'A houseplant! Look and smell, but never taste it.',
+    talk: ['Where in the house does it live?', 'Does it sit in a sunny window or a shady corner?', 'How often does someone water it?'],
+    facts: ['Many houseplants first came from warm rainforests far away.', 'Never eat or taste a houseplant. Some are poisonous, and some make your mouth sore.', 'Plants grow toward the light. Watch one lean toward a window.'],
+  },
   {
     id: 'grass', one: 'some grass', group: 'plants', refines: 'plant', emoji: '🌾', label: 'Grass', hint: 'Reeds and cattails too', colour: '#94a83a',
     cheer: 'Grass! Swish, swish!',
@@ -256,7 +265,7 @@ export interface Group {
 
 export const GROUPS: Group[] = [
   { id: 'plants', emoji: '🌿', label: 'Plant', colour: '#40c057', ask: 'What kind of plant?', generic: 'plant',
-    kinds: ['tree', 'shrub', 'flower', 'fern', 'moss', 'grass', 'plant'] },
+    kinds: ['tree', 'shrub', 'flower', 'fern', 'moss', 'grass', 'houseplant', 'plant'] },
   { id: 'animals', emoji: '🐾', label: 'Animal', colour: '#e8590c', ask: 'What kind of animal?', generic: 'animal',
     kinds: ['bird', 'mammal', 'bug', 'amphibian', 'reptile', 'fish', 'snail', 'sign', 'animal'] },
   { id: 'mushrooms', emoji: '🍄', label: 'Mushroom', colour: '#c92a2a', ask: 'What shape is the mushroom?', generic: 'mushroom',
