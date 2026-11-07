@@ -20,6 +20,13 @@ export interface Species {
   x?: boolean;
   /** The province its ranks are for, set when the list is loaded (speciesStore.ts); never stored in a list file. */
   w?: string;
+  /**
+   * An animal that is not wild here, by its everyday name rather than its species (farAnimals.ts): `away` lives wild
+   * somewhere else (the zoo's kangaroo), `pet` is a pet or farm animal. Absent = a species from a list.
+   */
+  o?: 'away' | 'pet';
+  /** An emoji that pictures it (farAnimals.ts); absent = its kind's. */
+  e?: string;
 }
 
 /**
@@ -84,7 +91,8 @@ const fold = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,
 /**
  * Species matching what was typed, from the WHOLE list: a find's kind does not limit what can be named (a child who
  * picked Plant and types "turkey tail" finds the mushroom; capture.ts then offers to change the kind). A name starting
- * with the words beats one merely containing them; within that, the find's own kind first; then commoner first.
+ * with the words beats one merely containing them; within that, the find's own kind first, and the very name typed
+ * first in it ("cat" is Cat before Feral Cat); then commoner first.
  */
 export function searchSpecies(list: Species[], cat: CategoryId, query: string, limit = 40): Species[] {
   const q = fold(query.trim());
@@ -97,7 +105,10 @@ export function searchSpecies(list: Species[], cat: CategoryId, query: string, l
     else if (s.startsWith(q)) score = 1;
     else if (n.includes(q) || s.includes(q)) score = 2;
     else continue;
-    scored.push([score * 20 + (belongsTo(cat, sp.t) ? 0 : 10) + rankWeight(sp.r), sp]);
+    // The very name typed edges ahead within its kind, never past the find's own kind: a child under Shelf typing
+    // "turkey" on the way to Turkey Tail still sees Turkey Tail before the farm Turkey.
+    const exact = q && n === q ? 5 : 0;
+    scored.push([score * 20 + (belongsTo(cat, sp.t) ? 0 : 10) + rankWeight(sp.r) - exact, sp]);
   }
   scored.sort((a, b) => a[0] - b[0] || a[1].n.localeCompare(b[1].n));
   return scored.slice(0, limit).map(x => x[1]);

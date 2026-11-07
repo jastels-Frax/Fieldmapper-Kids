@@ -12,6 +12,12 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.15.0', date: '2026-11-07', title: 'Kangaroos, dogs and cows',
+    notes: [
+      '🦘 Name animals that do not live wild here: zoo animals like a kangaroo, and pets and farm animals like a dog or a cow.',
+    ],
+  },
+  {
     version: '2.14.0', date: '2026-11-07', title: 'Bigger buttons, houseplants',
     notes: [
       'Bigger buttons for a find\'s colours, size and how many.',

@@ -629,6 +629,7 @@ html[data-mode="explorer"] .choice-emoji { font-size: 60px; }
 
 /* Species */
 .species-box { display: flex; flex-direction: column; gap: 10px; }
+.species-tabs { padding-bottom: 10px; border-bottom: var(--bw) dashed var(--line); }
 .species-results { display: flex; flex-direction: column; gap: 6px; max-height: 46vh; overflow-y: auto; }
 .species-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; text-align: left; padding: 10px 12px; background: var(--card); border: var(--bw) solid var(--line); border-radius: var(--radius-sm); font-size: 17px; }
 .species-type { font-size: 22px; font-weight: 800; padding: 14px 16px; margin: 4px 0 12px; border-width: calc(var(--bw) + 1px); }

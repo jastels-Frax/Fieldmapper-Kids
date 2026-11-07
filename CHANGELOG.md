@@ -5,6 +5,27 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.15.0 — 2026-11-07
+
+- **Animals that are not wild in Nova Scotia can be named** (`farAnimals.ts`, pure, tested). Ninety animals by their
+  everyday names, not species: 60 wild somewhere else (Kangaroo, Elephant, Penguin, Crocodile, Axolotl, Clownfish,
+  Tarantula…) and 30 pets and farm animals (Dog, Cat, Horse, Cow, Chicken, Budgie, Bearded Dragon, Guppy…). They are
+  merged after the province's list and any imported list (`speciesStore.loadSpecies`), so search finds them under any
+  kind and the usual question offers to change the kind (a Penguin picked for an Animal find asks to make it a Bird).
+  Each carries `o` (`away` or `pet`), an emoji where one exists (`e`), `x: true`, and no scientific name, rank or
+  status, so none is ever rare. None shares a name with `ns.json`, whose introduced animals (House Sparrow, Feral Cat,
+  Red-eared Slider, Goldfish) stay the list's; animals whose wild range includes Nova Scotia or its waters (seals,
+  whales, sharks, sea turtles) and those once wild here (wolf, caribou, cougar, walrus) are left out of "far away".
+- **The species step has tabs** for an animal kind that has any of them: 🌲 Wild here (the familiar buttons, as
+  before) · 🌍 Far away · 🐶 Pets & farm, each animal a chip with its picture (a 🐾 where no emoji draws it). A find
+  already named as one opens on its tab. "Other" gets no tabs (it names anything: too many), and search still reaches
+  them. A search result for one says "From far away" or "Pet or farm animal" in place of its taxon.
+- **The very name typed comes first within the find's kind** (`searchSpecies`): "cat" lists Cat before Feral Cat,
+  and "dog" lists Dog before Spreading Dogbane under "Other". It never jumps the find's own kind: a Shelf find typing
+  "turkey" on the way to Turkey Tail still sees the mushroom first.
+- The species count on the step and in the grown-up corner counts list species only, and the grown-up corner lists
+  the built-in animals as their own list; the export's README names them as a source of species names.
+
 ## 2.14.0 — 2026-11-07
 
 - **Bigger buttons on "What does it look like?"** The colours are 72 px circles with 13 px words (they were 50 px

@@ -21,7 +21,8 @@ import type { Expression } from './buddies.ts';
 import { itemFit, needWords, plainMatches, worthAsking, type HuntItem } from './hunts.ts';
 import { outOfSpace } from './dbRetry.ts';
 import { toBadgeFind } from './badges.ts';
-import { hasSpeciesStep, searchSpecies, type Species } from './species.ts';
+import { belongsTo, hasSpeciesStep, searchSpecies, taxaFor, type Species } from './species.ts';
+import { FAR_WORDS } from './farAnimals.ts';
 import { isRare, statusOf } from './rarity.ts';
 import { habitatKindToOffer, habitatNamed, habitatsFor, hasPlaceStep, searchHabitats, type HabitatType } from './habitats.ts';
 import { FAMILIAR } from './familiar.ts';
@@ -458,6 +459,9 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
         draft.species = typed ? { name: typed, own: true } : undefined;
       };
       const results = h('div', { class: 'species-results' });
+      // Which big buttons show: the wild ones here (FAMILIAR), or animals that are not wild here (farAnimals.ts) —
+      // far away, or pets and farm animals. The tabs show only for a kind that has some of the second kind.
+      const shelves = h('div', { class: 'hunt-chips species-tabs', role: 'group', 'aria-label': 'Which animals' });
       const familiar = h('div', { class: 'hunt-chips' });
       const status = h('p', { class: 'hint' }, 'Loading the species list…');
       let list: Species[] = [];
@@ -465,15 +469,19 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
         const q = search.value.trim();
         results.replaceChildren();
         familiar.hidden = !!q;
+        shelves.hidden = !!q || !shelves.childElementCount;
         if (!q || (draft.species && !draft.species.own && draft.species.name === q)) return;
         results.append(h('button', { class: 'species-row own-name', onclick: () => { commit?.(); sounds.pick(); say(`${q}!`); next(); } },
           h('strong', {}, `✏️ Call it “${q}”`), h('span', { class: 'species-taxon' }, 'my own name')));
         for (const sp of searchSpecies(list, draft.category!, q, 30)) {
-          // What kind it is, so a species from outside this find's kind is plain to see before it is picked.
+          // What kind it is, so a species from outside this find's kind is plain to see before it is picked; an
+          // animal that is not wild here says so ("From far away") with its own picture.
           const k = kindForSpecies(sp);
+          // An animal not wild here with no emoji of its own gets a paw print, not its kind's (a platypus is no deer).
+          const pic = sp.e ?? (sp.o ? '🐾' : k ? categoryOf(k).emoji : '');
           results.append(h('button', { class: 'species-row', onclick: () => void choose(sp) },
             h('strong', {}, sp.n), sp.s ? h('span', { class: 'latin' }, sp.s) : null,
-            h('span', { class: 'species-taxon' }, k ? `${categoryOf(k).emoji} ${sp.t}` : sp.t)));
+            h('span', { class: 'species-taxon' }, `${pic ? `${pic} ` : ''}${sp.o ? FAR_WORDS[sp.o].tag : sp.t}`)));
         }
       };
       search.addEventListener('input', () => {
@@ -483,27 +491,54 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
       search.addEventListener('keydown', e => { if (e.key === 'Enter') { search.blur(); next(); } });
       void loadSpecies().then(({ list: l, source }) => {
         list = l;
-        status.textContent = l.length ? `${l.length.toLocaleString()} species to choose from${source ? ` · ${source}` : ''}.` : 'No species list on this device yet.';
+        // The count is of species on the lists; the everyday animals that are not wild here are not species-level.
+        const listed = l.filter(sp => !sp.o).length;
+        status.textContent = listed ? `${listed.toLocaleString()} species to choose from${source ? ` · ${source}` : ''}.` : 'No species list on this device yet.';
         const names = new Map(l.map(sp => [sp.n, sp] as const));
         const known = (FAMILIAR[cat] ?? []).map(n => names.get(n)).filter((sp): sp is Species => !!sp);
-        // Species with a drawing come first, as big picture buttons; the rest stay word chips. A tap picks and moves on.
-        const drawn = known.filter(sp => artFor(sp.n));
-        familiar.replaceChildren(
-          ...drawn.map(sp => {
-            const art = artFor(sp.n)!;
-            const fig = h('span', { class: 'art-fig', 'aria-hidden': 'true' });
-            fig.innerHTML = art.svg();
-            return h('button', { class: 'art-chip', onclick: () => { say(art.tell); void choose(sp, true); } }, fig, h('strong', {}, art.label));
-          }),
-          ...known.filter(sp => !artFor(sp.n)).map(sp => h('button', { class: 'hunt-chip', onclick: () => void choose(sp, true) }, sp.n)),
-        );
-        paintResults();
+        // Animals not wild here, for a kind that names them (never for "Other", which names anything: too many).
+        const farFor = (o: 'away' | 'pet') => taxaFor(cat) ? l.filter(sp => sp.o === o && belongsTo(cat, sp.t)) : [];
+        const far = { away: farFor('away'), pet: farFor('pet') };
+        type Shelf = 'here' | 'away' | 'pet';
+        // A find already named as one of them opens on its tab.
+        const named = draft.species && !draft.species.own ? names.get(draft.species.name) : undefined;
+        let shelf: Shelf = named?.o && far[named.o].length ? named.o : known.length ? 'here' : far.away.length ? 'away' : 'pet';
+        const paintShelf = () => {
+          if (shelf === 'here') {
+            // Species with a drawing come first, as big picture buttons; the rest stay word chips. A tap picks and moves on.
+            const drawn = known.filter(sp => artFor(sp.n));
+            familiar.replaceChildren(
+              ...drawn.map(sp => {
+                const art = artFor(sp.n)!;
+                const fig = h('span', { class: 'art-fig', 'aria-hidden': 'true' });
+                fig.innerHTML = art.svg();
+                return h('button', { class: 'art-chip', onclick: () => { say(art.tell); void choose(sp, true); } }, fig, h('strong', {}, art.label));
+              }),
+              ...known.filter(sp => !artFor(sp.n)).map(sp => h('button', { class: 'hunt-chip', onclick: () => void choose(sp, true) }, sp.n)),
+            );
+          } else {
+            familiar.replaceChildren(...far[shelf].map(sp => {
+              const pic = sp.e ?? '🐾';
+              return h('button', { class: 'hunt-chip', onclick: () => void choose(sp, true) }, h('span', { class: 'hunt-chip-emoji', 'aria-hidden': 'true' }, pic), sp.n);
+            }));
+          }
+          const tabs: [Shelf, string, string][] = [
+            ...(known.length ? [['here', '🌲', 'Wild here'] as [Shelf, string, string]] : []),
+            ...(['away', 'pet'] as const).filter(o => far[o].length).map(o => [o, FAR_WORDS[o].emoji, FAR_WORDS[o].tab] as [Shelf, string, string]),
+          ];
+          shelves.replaceChildren(...(tabs.length > 1 ? tabs.map(([id, emoji, word]) => h('button', {
+            class: `hunt-chip ${shelf === id ? 'on' : ''}`, 'aria-pressed': String(shelf === id),
+            onclick: () => { shelf = id; sounds.pick(); say(id === 'here' ? 'Wild here' : id === 'away' ? 'Animals from far away' : 'Pets and farm animals'); paintShelf(); },
+          }, h('span', { class: 'hunt-chip-emoji', 'aria-hidden': 'true' }, emoji), word)) : []));
+          paintResults();
+        };
+        paintShelf();
       });
       put(
         title(),
         typeRow(search, () => { search.value = ''; draft.species = undefined; }),
         chosen,
-        h('div', { class: 'species-box' }, familiar, results, status),
+        h('div', { class: 'species-box' }, shelves, familiar, results, status),
         h('button', { class: 'big-btn', onclick: next }, nextLabel()),
         saveNow(),
       );
