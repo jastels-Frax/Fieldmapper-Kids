@@ -1,13 +1,13 @@
 import type { Species } from './species.ts';
 import { mergeLists } from './species.ts';
 import { allSpeciesLists } from './storage.ts';
-import { FAR_ANIMALS } from './farAnimals.ts';
+import { BUILT_IN } from './builtIns.ts';
 
 /**
  * The species a find can be named from: the Nova Scotia list copied from Field
  * Mapper (public/species/ns.json, precached) plus any list a grown-up imported,
- * then the animals that are not wild here (farAnimals.ts, built in, so they work
- * even before the list has loaded once). Loaded on first use and kept for the
+ * then Scout's own names (builtIns.ts: sea animals, houseplants, animals not wild
+ * here; built in, so they work even before the list has loaded once). Loaded on first use and kept for the
  * session; `invalidate` after an import.
  */
 let cache: Promise<{ list: Species[]; source: string }> | null = null;
@@ -32,7 +32,7 @@ export function loadSpecies(): Promise<{ list: Species[]; source: string }> {
       }
     } catch { /* offline before the first load: imported lists still work */ }
     const imported = await allSpeciesLists().catch(() => []);
-    return { list: mergeLists(...imported.map(l => l.species), base, [...FAR_ANIMALS]), source };
+    return { list: mergeLists(...imported.map(l => l.species), base, [...BUILT_IN]), source };
   })();
   return cache;
 }

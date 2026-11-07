@@ -146,7 +146,7 @@ export async function buildExport(finds: Find[], profiles: Profile[], walks: Wal
     `photo-spots/   every picture taken at a photo spot, named by spot and date\n` +
     `photos/, drawings/, voices/  the pictures and recordings, named as in the table\n` +
     `species        names chosen from ACCDC species lists (via Fraxinus Field Mapper), a list a grown-up imported, or Scout's\n` +
-    `               built-in animals that are not wild in Nova Scotia (zoo, pet and farm animals, by everyday name)\n`,
+    `               own built-in names (sea and shore animals, houseplants, zoo, pet and farm animals), compiled for Scout\n`,
   );
   // Pictures and sound are already compressed; storing them is faster and no bigger.
   const zipped = zipSync(Object.fromEntries(Object.entries(files).map(([k, v]) => [k, [v, { level: /\.(geojson|csv|txt)$/.test(k) ? 6 : 0 }]])));

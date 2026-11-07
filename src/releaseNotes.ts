@@ -12,6 +12,13 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.16.0', date: '2026-11-07', title: 'Lobsters and houseplants',
+    notes: [
+      '🦀 Sea animal is a kind of animal now: name a lobster, a crab, a sea star or a jellyfish. Put them back gently!',
+      '🪴 Houseplants have names to pick from, like Spider Plant, Snake Plant and Monstera.',
+    ],
+  },
+  {
     version: '2.15.0', date: '2026-11-07', title: 'Kangaroos, dogs and cows',
     notes: [
       '🦘 Name animals that do not live wild here: zoo animals like a kangaroo, and pets and farm animals like a dog or a cow.',

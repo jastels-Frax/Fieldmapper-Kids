@@ -108,8 +108,7 @@ export const CATEGORIES: Category[] = [
     facts: ['Moss has no roots. It holds on with tiny hairs.', 'Moss soaks up water like a sponge.', 'Peat moss can hold many times its own weight in water.'],
   },
   // Added in 2.14: a plant growing indoors in a pot. It is a plant (`refines`), so it counts wherever a plant counts.
-  // Its names come from a houseplant list of their own (public/species/ns.json is wild Nova Scotia species), so it has
-  // no CATEGORY_TAXA and no species step until that list is added: an own name goes on the save screen.
+  // Its names are Scout's own (houseplants.ts, 2.16; public/species/ns.json is wild Nova Scotia species).
   {
     id: 'houseplant', group: 'plants', refines: 'plant', emoji: '🪴', label: 'Houseplant', short: 'Indoor', hint: 'One that lives indoors', colour: '#0ca678',
     cheer: 'A houseplant! Look and smell, but never taste it.',
@@ -145,6 +144,14 @@ export const CATEGORIES: Category[] = [
     cheer: 'A fish! Stay with a grown-up near water.',
     talk: ['Was it big or small?', 'Was the water fast or slow?', 'What colours did you see?'],
     facts: ['Fish breathe with gills.', 'Salmon swim from the sea up rivers to lay their eggs.', 'Stay with a grown-up near water.'],
+  },
+  // Added in 2.16: crabs, lobsters, shells, sea stars and jellyfish. Their names are Scout's own (seaLife.ts), since the
+  // province's species list has almost no sea animals. It is an animal (`refines`), so it counts wherever an animal counts.
+  {
+    id: 'sea', group: 'animals', refines: 'animal', emoji: '🦀', label: 'Sea animal', short: 'Sea', hint: 'Crabs, shells, sea stars', colour: '#0b7285',
+    cheer: 'A sea animal! Look closely, then put it back gently.',
+    talk: ['Was it in a tide pool, on the sand or in the water?', 'Did it have a shell?', 'How many legs or arms could you count?'],
+    facts: ['Crabs and lobsters wear their hard skeleton on the outside.', 'A sea star can grow back an arm it has lost.', 'Some jellyfish can sting, even on the beach. Look, but do not touch. Stay with a grown-up near water.'],
   },
   {
     id: 'snail', group: 'animals', refines: 'animal', emoji: '🐌', label: 'Snail or slug', short: 'Snail', colour: '#ae3ec9',
@@ -267,7 +274,7 @@ export const GROUPS: Group[] = [
   { id: 'plants', emoji: '🌿', label: 'Plant', colour: '#40c057', ask: 'What kind of plant?', generic: 'plant',
     kinds: ['tree', 'shrub', 'flower', 'fern', 'moss', 'grass', 'houseplant', 'plant'] },
   { id: 'animals', emoji: '🐾', label: 'Animal', colour: '#e8590c', ask: 'What kind of animal?', generic: 'animal',
-    kinds: ['bird', 'mammal', 'bug', 'amphibian', 'reptile', 'fish', 'snail', 'sign', 'animal'] },
+    kinds: ['bird', 'mammal', 'bug', 'amphibian', 'reptile', 'fish', 'sea', 'snail', 'sign', 'animal'] },
   { id: 'mushrooms', emoji: '🍄', label: 'Mushroom', colour: '#c92a2a', ask: 'What shape is the mushroom?', generic: 'mushroom',
     kinds: ['capstem', 'shelf', 'puffball', 'mushroom'] },
   { id: 'lichens', emoji: '🍃', art: 'lichen', label: 'Lichen', colour: '#7c9a5a', ask: 'What does the lichen look like?', generic: 'lichen',

@@ -9,10 +9,10 @@ import { profileFace, openProfileEditor, newProfile, type ProfileHost } from './
 import { GUIDE_INFO, guideName } from './guides.ts';
 import { CRITTERS } from './critters.ts';
 import { tierOf } from './tiers.ts';
-import { parseFieldMapperList, parseSpeciesCsv } from './species.ts';
+import { SET_ORDER, SET_WORDS, parseFieldMapperList, parseSpeciesCsv } from './species.ts';
 import { allSpeciesLists, deleteSpeciesList, getFindMedia, getSpotMedia, saveSpeciesList } from './storage.ts';
 import { invalidateSpecies, loadSpecies } from './speciesStore.ts';
-import { FAR_ANIMALS } from './farAnimals.ts';
+import { BUILT_IN } from './builtIns.ts';
 import { photoCount } from './findModel.ts';
 import type { Walk } from './walk.ts';
 import { availableVoices, characterVoice, currentVoice, preview, previewCharacter } from './speech.ts';
@@ -103,9 +103,10 @@ export function openGrownUps(host: GrownUpHost): void {
     lists.replaceChildren(
       h('div', { class: 'maker-row' }, h('span', { class: 'hunt-item-emoji' }, '🌲'),
         h('span', { class: 'maker-text' }, h('strong', {}, 'Nova Scotia (built in)'), h('br'), h('span', { class: 'hint' }, source || 'From Fraxinus Field Mapper'))),
-      h('div', { class: 'maker-row' }, h('span', { class: 'hunt-item-emoji' }, '🌍'),
-        h('span', { class: 'maker-text' }, h('strong', {}, 'Animals not wild here (built in)'), h('br'),
-          h('span', { class: 'hint' }, `${FAR_ANIMALS.length} zoo, pet and farm animals, by their everyday names (Kangaroo, Dog), not species`))),
+      // Scout's own names (builtIns.ts), one row per set, said plainly as compiled for Scout rather than a published list.
+      ...SET_ORDER.map(o => h('div', { class: 'maker-row' }, h('span', { class: 'hunt-item-emoji' }, SET_WORDS[o].emoji),
+        h('span', { class: 'maker-text' }, h('strong', {}, `${SET_WORDS[o].list} (built in)`), h('br'),
+          h('span', { class: 'hint' }, `${BUILT_IN.filter(sp => sp.o === o).length} everyday names, compiled for Scout (not from a published list)`)))),
       ...imported.map(l => h('div', { class: 'maker-row' }, h('span', { class: 'hunt-item-emoji' }, '📄'),
         h('span', { class: 'maker-text' }, h('strong', {}, l.name), h('br'), h('span', { class: 'hint' }, `${l.species.length.toLocaleString()} species · imported ${l.importedAt.slice(0, 10)}`)),
         h('button', { class: 'round-btn small', 'aria-label': `Remove ${l.name}`, onclick: async () => {
@@ -114,7 +115,7 @@ export function openGrownUps(host: GrownUpHost): void {
           invalidateSpecies();
           void paintLists();
         } }, icon('close')))),
-      h('p', { class: 'hint' }, `${list.filter(sp => !sp.o).length.toLocaleString()} species to choose from in all, and ${FAR_ANIMALS.length} animals not wild here.`),
+      h('p', { class: 'hint' }, `${list.filter(sp => !sp.o).length.toLocaleString()} species to choose from in all, and ${list.filter(sp => sp.o).length} of Scout's own names.`),
     );
   };
   void paintLists();

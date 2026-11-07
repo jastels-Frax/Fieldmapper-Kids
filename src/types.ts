@@ -7,7 +7,7 @@ export type Mode = 'explorer' | 'together';
  */
 export type CategoryId = 'bird' | 'bug' | 'plant' | 'tree' | 'flower' | 'animal' | 'mushroom' | 'sign' | 'rock' | 'water' | 'sky' | 'mystery'
   | 'shrub' | 'fern' | 'moss' | 'grass' | 'houseplant'
-  | 'mammal' | 'amphibian' | 'reptile' | 'fish' | 'snail'
+  | 'mammal' | 'amphibian' | 'reptile' | 'fish' | 'snail' | 'sea'
   | 'capstem' | 'shelf' | 'puffball'
   | 'lichen' | 'crusty' | 'leafy' | 'bushy'
   | 'forest' | 'meadow' | 'wetland' | 'beach' | 'habitat'

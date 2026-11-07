@@ -14,13 +14,18 @@ export const TAXON_KIND: Readonly<Record<string, CategoryId>> = {
   Insect: 'bug', Arthropod: 'bug', Crustacean: 'bug', Invertebrate: 'bug',
   'Vascular Plant': 'plant', Conifer: 'tree', 'Fern / Fern Ally': 'fern', Moss: 'moss', Liverwort: 'moss', Hornwort: 'moss',
   Fungus: 'mushroom', Lichen: 'lichen',
+  // Scout's built-in sets (builtIns.ts): sea stars, urchins, jellyfish and anemones are Sea animals; a houseplant is one.
+  Echinoderm: 'sea', Cnidarian: 'sea', Houseplant: 'houseplant',
 };
 
 /**
- * A species' kind: the most particular kind in its group that names it among its familiar species (Red Maple → tree,
- * Turkey Tail → shelf, Map Lichen → crusty), else the kind of its taxon (an unfamiliar flowering plant → plant).
+ * A species' kind: the kind a built-in set names (`k`), else the most particular kind in its group that names it among
+ * its familiar species (Red Maple → tree, Turkey Tail → shelf, Map Lichen → crusty), else the kind of its taxon (an
+ * unfamiliar flowering plant → plant).
  */
-export function kindForSpecies(sp: Pick<Species, 'n' | 't'>): CategoryId | undefined {
+export function kindForSpecies(sp: Pick<Species, 'n' | 't' | 'k'>): CategoryId | undefined {
+  // A built-in set may name its kind outright: a lobster is a Sea animal, though its taxon (Crustacean) says Bug.
+  if (sp.k) return sp.k;
   const base = TAXON_KIND[sp.t];
   if (!base) return undefined;
   const group = groupOf(base);
@@ -36,7 +41,7 @@ export function kindForSpecies(sp: Pick<Species, 'n' | 't'>): CategoryId | undef
  * (a Red Fox for an animal or a track), or when its taxon names no kind. A mystery or "Other" find is offered the
  * species' kind: once it has a name, it is no longer a mystery.
  */
-export function kindToOffer(cat: CategoryId, sp: Pick<Species, 'n' | 't'>): CategoryId | undefined {
+export function kindToOffer(cat: CategoryId, sp: Pick<Species, 'n' | 't' | 'k'>): CategoryId | undefined {
   if (cat !== 'mystery' && cat !== 'other' && belongsTo(cat, sp.t)) return undefined;
   const k = kindForSpecies(sp);
   return k && k !== cat ? k : undefined;

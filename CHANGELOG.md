@@ -5,6 +5,40 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.16.0 — 2026-11-07
+
+- **Lobster can be named.** The Nova Scotia list (ACCDC through Field Mapper) carries almost no sea animals — the only
+  one was the Atlantic Mud-piddock — so "lobster" found nothing but the Lobster Mushroom. `seaLife.ts` adds 21 sea
+  and shore animals: American Lobster, four crabs, a barnacle, the beach hopper, seven shelled animals (mussel, clam, scallop,
+  oyster, periwinkle, whelk, moon snail), the sea star, urchin, sand dollar and sea cucumber, two jellyfish and an
+  anemone. A scientific name is given only where the name is one species; European Green Crab and Common Periwinkle
+  carry `x` (brought from Europe).
+- **🦀 Sea animal, a new kind** (`sea`, in the Animal group between Fish and Snail or slug, `refines: 'animal'`, so
+  it counts wherever an animal counts; short word "Sea"; hint "Crabs, shells, sea stars"). Its lines say to put
+  animals back gently, that some jellyfish sting even on the beach, and to stay with a grown-up near water. A sea
+  animal's kind comes from its record (`Species.k`), not its taxon, so a lobster is never offered as "a kind of bug"
+  (`kindForSpecies`); picked for an Animal find it asks "Make this find Sea animal?". `CATEGORY_TAXA.sea` is
+  Crustacean, Mollusc, Echinoderm and Cnidarian; `TAXON_KIND` gains Echinoderm and Cnidarian → sea.
+- **Houseplants have names** (`houseplants.ts`): 84, commonest first, with a scientific name where it is certain, a
+  genus where the name covers many plants (Peace Lily is Spathiphyllum), and none where the plant has moved between
+  genera (African Violet, Calathea, Dragon Tree, Umbrella Plant). English Ivy stays the province's list's entry. The
+  🪴 Houseplant kind now has its name step (`CATEGORY_TAXA.houseplant = ['Houseplant']`, `TAXON_KIND` Houseplant →
+  houseplant): 24 big buttons and ➕ More for the rest, and typing finds any of them by name or scientific name.
+- **Both lists were compiled for Scout from general knowledge**, not taken from a published list: the sources a list
+  would be checked against (Wikipedia, RHS, Kew) could not be reached from the build environment. The grown-up corner
+  and the export's README say so.
+- **Scout's own names are one mechanism** (`builtIns.ts` → `BUILT_IN`, merged after the lists by `speciesStore`):
+  `Species.o` names the set (`sea` · `home` · `away` · `pet`), and `species.SET_WORDS` how each is said (its tab, the
+  emoji a name without one gets, the words beside a search result, its name in the grown-up corner, and how many big
+  buttons before ➕ More). The name step's tabs cover every set whose names fit the find's kind — by taxon, or by a
+  kind that is this one or a kind of it — so "Just an animal" has 🌲 Wild here · 🌊 Sea & shore · 🌍 Far away ·
+  🐶 Pets & farm, "Just a plant" has 🌲 Wild here · 🪴 Houseplants, and a kind with only one set (Sea animal,
+  Houseplant) shows its buttons with no tabs. `farAnimals.FAR_WORDS` went into `SET_WORDS`.
+- Search ranks Scout's own names with the commonest species (`rankWeight`), so "lobster" lists American Lobster
+  before Lobster Mushroom for an Animal find; for a Mushroom find the mushroom stays first.
+- `test/builtIns.test.ts` replaces `test/farAnimals.test.ts` and covers every set: unique names, none on `ns.json`,
+  a kind for each that can name it, no rank or status, scientific names shaped as a genus or a species.
+
 ## 2.15.0 — 2026-11-07
 
 - **Animals that are not wild in Nova Scotia can be named** (`farAnimals.ts`, pure, tested). Ninety animals by their

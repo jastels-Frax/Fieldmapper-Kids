@@ -21,13 +21,33 @@ export interface Species {
   /** The province its ranks are for, set when the list is loaded (speciesStore.ts); never stored in a list file. */
   w?: string;
   /**
-   * An animal that is not wild here, by its everyday name rather than its species (farAnimals.ts): `away` lives wild
-   * somewhere else (the zoo's kangaroo), `pet` is a pet or farm animal. Absent = a species from a list.
+   * One of Scout's own built-in sets rather than a species list (builtIns.ts), by everyday name: `sea` a sea or shore
+   * animal (seaLife.ts), `home` a houseplant (houseplants.ts), `away` an animal wild somewhere else and `pet` a pet or
+   * farm animal (farAnimals.ts). Absent = a species from a list.
    */
-  o?: 'away' | 'pet';
-  /** An emoji that pictures it (farAnimals.ts); absent = its kind's. */
+  o?: BuiltInSet;
+  /** An emoji that pictures it (built-in sets); absent = its set's. */
   e?: string;
+  /** Its kind, where a built-in set says so whatever its taxon (a lobster is a Sea animal); absent = read from the taxon. */
+  k?: CategoryId;
 }
+
+export type BuiltInSet = 'sea' | 'home' | 'away' | 'pet';
+
+/**
+ * How each built-in set is said: its tab on the name step, the emoji a name without one of its own gets, the words
+ * beside a search result in place of the taxon, the set's name in the grown-up corner, and how many of it the name
+ * step shows as big buttons before ➕ More (absent = all).
+ */
+export const SET_WORDS: Readonly<Record<BuiltInSet, { tab: string; emoji: string; pic: string; tag: string; list: string; chips?: number }>> = {
+  sea: { tab: 'Sea & shore', emoji: '🌊', pic: '🌊', tag: 'Sea or shore animal', list: 'Sea and shore animals' },
+  home: { tab: 'Houseplants', emoji: '🪴', pic: '🪴', tag: 'Houseplant', list: 'Houseplants', chips: 24 },
+  away: { tab: 'Far away', emoji: '🌍', pic: '🐾', tag: 'From far away', list: 'Animals from far away' },
+  pet: { tab: 'Pets & farm', emoji: '🐶', pic: '🐾', tag: 'Pet or farm animal', list: 'Pets and farm animals' },
+};
+
+/** The order the sets' tabs come in, after the wild ones of the find's kind. */
+export const SET_ORDER: readonly BuiltInSet[] = ['sea', 'home', 'away', 'pet'];
 
 /**
  * Which taxa answer "what is it?" for each kind of find. Absent = no species step: a habitat is a place, not a species,
@@ -41,6 +61,7 @@ export const CATEGORY_TAXA: Partial<Record<CategoryId, string[]>> = {
   reptile: ['Reptile'],
   fish: ['Fish'],
   snail: ['Mollusc'],
+  sea: ['Crustacean', 'Mollusc', 'Echinoderm', 'Cnidarian'],
   sign: ['Mammal', 'Bird', 'Amphibian', 'Reptile'],
   bug: ['Insect', 'Arthropod', 'Crustacean', 'Invertebrate'],
   plant: ['Vascular Plant', 'Fern / Fern Ally', 'Conifer', 'Moss', 'Liverwort', 'Hornwort'],
@@ -50,6 +71,7 @@ export const CATEGORY_TAXA: Partial<Record<CategoryId, string[]>> = {
   fern: ['Fern / Fern Ally'],
   moss: ['Moss', 'Liverwort', 'Hornwort'],
   grass: ['Vascular Plant'],
+  houseplant: ['Houseplant'],
   mushroom: ['Fungus'],
   capstem: ['Fungus'],
   shelf: ['Fungus'],
@@ -77,8 +99,10 @@ export function belongsTo(cat: CategoryId, taxon: string): boolean {
   return !taxa || taxa.includes(taxon);
 }
 
-/** Commoner first: S5, S4, then introduced (SNA) species, then the rest. */
-function rankWeight(r?: string): number {
+/** Commoner first: Scout's own everyday names and S5, then S4, then introduced (SNA) species, then the rest. */
+function rankWeight(sp: Species): number {
+  const r = sp.r;
+  if (sp.o) return 0;
   if (!r) return 3;
   if (r.startsWith('S5')) return 0;
   if (r.startsWith('S4')) return 1;
@@ -108,7 +132,7 @@ export function searchSpecies(list: Species[], cat: CategoryId, query: string, l
     // The very name typed edges ahead within its kind, never past the find's own kind: a child under Shelf typing
     // "turkey" on the way to Turkey Tail still sees Turkey Tail before the farm Turkey.
     const exact = q && n === q ? 5 : 0;
-    scored.push([score * 20 + (belongsTo(cat, sp.t) ? 0 : 10) + rankWeight(sp.r) - exact, sp]);
+    scored.push([score * 20 + (belongsTo(cat, sp.t) ? 0 : 10) + rankWeight(sp) - exact, sp]);
   }
   scored.sort((a, b) => a[0] - b[0] || a[1].n.localeCompare(b[1].n));
   return scored.slice(0, limit).map(x => x[1]);
