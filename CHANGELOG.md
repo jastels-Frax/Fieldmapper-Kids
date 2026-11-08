@@ -5,6 +5,25 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.17.0 — 2026-11-08
+
+- **Named houseplant varieties** (`houseplants.ts` `VARIETIES`): 53 cultivars and close kin sold under their own
+  names, so the list is 137. Monstera (Thai Constellation, Albo, Swiss Cheese Vine, Mini Monstera), pothos (Golden,
+  Marble Queen, Neon, Manjula, Pearls and Jade, Cebu Blue), philodendron (Pink Princess, Brasil, Micans, Lemon Lime,
+  Birkin, Prince of Orange), snake plant (Laurentii, Bird's Nest, Moonshine, Cylindrical), spider plant, peace lily,
+  ZZ, rubber plant and fiddle-leaf fig, prayer plants and calatheas, hoyas, string plants, peperomias, begonia,
+  Chinese evergreen, dumb cane, corn plant, elephant ears, succulents, Thanksgiving cactus and ferns.
+- Each is named variety first, plant second ("Marble Queen Pothos"), so typing either word finds it. Its scientific
+  name is its parent's with the variety in quotes where that is a registered cultivar name ("Monstera deliciosa 'Thai
+  Constellation'"); a trade name that is not the cultivar name (Raven ZZ Plant) has the species alone; four whose
+  classification is unsettled (Rattlesnake Plant, Peacock Plant, Medallion Calathea, String of Dolphins) have none.
+  Compiled for Scout from general knowledge, as the rest of the list. They come after the plants, so the 24 big buttons
+  are unchanged and the varieties are under ➕ More or found by typing.
+- **Equal matches list the shorter name first** (`searchSpecies`), then A to Z, so a plant comes before its varieties:
+  "spider" is Spider Plant, then Bonnie Spider Plant and Variegated Spider Plant.
+- `test/builtIns.test.ts`: scientific names may carry `var.` and a quoted cultivar; names up to 30 letters (a chip
+  wraps its words; checked at 320 px with the biggest words); varieties are found by variety or plant, the plant first.
+
 ## 2.16.0 — 2026-11-07
 
 - **Lobster can be named.** The Nova Scotia list (ACCDC through Field Mapper) carries almost no sea animals — the only

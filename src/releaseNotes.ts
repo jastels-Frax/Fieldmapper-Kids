@@ -12,6 +12,12 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.17.0', date: '2026-11-08', title: 'Houseplant varieties',
+    notes: [
+      '🪴 Name houseplant varieties too, like Thai Constellation Monstera, Pink Princess Philodendron and Marble Queen Pothos.',
+    ],
+  },
+  {
     version: '2.16.0', date: '2026-11-07', title: 'Lobsters and houseplants',
     notes: [
       '🦀 Sea animal is a kind of animal now: name a lobster, a crab, a sea star or a jellyfish. Put them back gently!',

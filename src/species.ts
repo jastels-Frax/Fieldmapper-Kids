@@ -116,7 +116,7 @@ const fold = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,
  * Species matching what was typed, from the WHOLE list: a find's kind does not limit what can be named (a child who
  * picked Plant and types "turkey tail" finds the mushroom; capture.ts then offers to change the kind). A name starting
  * with the words beats one merely containing them; within that, the find's own kind first, and the very name typed
- * first in it ("cat" is Cat before Feral Cat); then commoner first.
+ * first in it ("cat" is Cat before Feral Cat); then commoner first; then the shorter name.
  */
 export function searchSpecies(list: Species[], cat: CategoryId, query: string, limit = 40): Species[] {
   const q = fold(query.trim());
@@ -134,7 +134,9 @@ export function searchSpecies(list: Species[], cat: CategoryId, query: string, l
     const exact = q && n === q ? 5 : 0;
     scored.push([score * 20 + (belongsTo(cat, sp.t) ? 0 : 10) + rankWeight(sp) - exact, sp]);
   }
-  scored.sort((a, b) => a[0] - b[0] || a[1].n.localeCompare(b[1].n));
+  // Equal matches: the shorter name first, so a plant comes before its named varieties (Spider Plant, then Bonnie
+  // Spider Plant), then A to Z.
+  scored.sort((a, b) => a[0] - b[0] || a[1].n.length - b[1].n.length || a[1].n.localeCompare(b[1].n));
   return scored.slice(0, limit).map(x => x[1]);
 }
 

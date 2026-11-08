@@ -45,6 +45,55 @@ const ROWS: Row[] = [
   ['Ti Plant', 'Cordyline fruticosa'], ['Living Stones', 'Lithops'], ['Satin Pothos', 'Scindapsus pictus'],
 ];
 
-export const HOUSEPLANTS: readonly Species[] = ROWS.map(([n, s, e]) => ({
+/**
+ * Named varieties (2.17): the cultivars and close kin sold under their own names, like the Thai Constellation Monstera.
+ * Each is named variety first, plant second ("Marble Queen Pothos"), so typing either word finds it, and its scientific
+ * name is its parent's with the variety in quotes where the variety is a registered cultivar name. A trade name that is
+ * not the cultivar name (Raven ZZ Plant) gets the species alone; a name whose classification is unsettled gets none.
+ * After the plants above, so they are found by typing or under ➕ More.
+ */
+const VARIETIES: Row[] = [
+  // Monstera and kin
+  ['Thai Constellation Monstera', "Monstera deliciosa 'Thai Constellation'"], ['Albo Monstera', "Monstera deliciosa 'Albo Variegata'"],
+  ['Swiss Cheese Vine', 'Monstera adansonii'], ['Mini Monstera', 'Rhaphidophora tetrasperma'],
+  // Pothos
+  ['Golden Pothos', 'Epipremnum aureum'], ['Marble Queen Pothos', "Epipremnum aureum 'Marble Queen'"],
+  ['Neon Pothos', "Epipremnum aureum 'Neon'"], ['Manjula Pothos', "Epipremnum aureum 'Manjula'"],
+  ['Pearls and Jade Pothos', "Epipremnum aureum 'Pearls and Jade'"], ['Cebu Blue Pothos', "Epipremnum pinnatum 'Cebu Blue'"],
+  // Philodendron
+  ['Pink Princess Philodendron', "Philodendron erubescens 'Pink Princess'"], ['Brasil Philodendron', "Philodendron hederaceum 'Brasil'"],
+  ['Micans Philodendron', "Philodendron hederaceum 'Micans'"], ['Lemon Lime Philodendron', "Philodendron hederaceum 'Lemon Lime'"],
+  ['Birkin Philodendron', "Philodendron 'Birkin'"], ['Prince of Orange Philodendron', "Philodendron 'Prince of Orange'"],
+  // Snake plant
+  ['Laurentii Snake Plant', "Dracaena trifasciata 'Laurentii'"], ["Bird's Nest Snake Plant", "Dracaena trifasciata 'Hahnii'"],
+  ['Moonshine Snake Plant', "Dracaena trifasciata 'Moonshine'"], ['Cylindrical Snake Plant', 'Dracaena angolensis'],
+  // Spider plant, peace lily, ZZ
+  ['Variegated Spider Plant', "Chlorophytum comosum 'Variegatum'"], ['Bonnie Spider Plant', "Chlorophytum comosum 'Bonnie'"],
+  ['Domino Peace Lily', "Spathiphyllum 'Domino'"], ['Raven ZZ Plant', 'Zamioculcas zamiifolia'],
+  // Figs
+  ['Burgundy Rubber Plant', "Ficus elastica 'Burgundy'"], ['Tineke Rubber Plant', "Ficus elastica 'Tineke'"],
+  ['Bambino Fiddle-leaf Fig', "Ficus lyrata 'Bambino'"],
+  // Prayer plants and calatheas (moved to Goeppertia, so no scientific name, as Calathea above)
+  ['Red Prayer Plant', 'Maranta leuconeura var. erythroneura'], ['Lemon Lime Prayer Plant', "Maranta leuconeura 'Lemon Lime'"],
+  ['Rattlesnake Plant', ''], ['Peacock Plant', ''], ['Medallion Calathea', ''],
+  // Hoyas and strings
+  ['Sweetheart Hoya', 'Hoya kerrii'], ['Krimson Queen Hoya', "Hoya carnosa 'Krimson Queen'"], ['Hindu Rope Hoya', "Hoya carnosa 'Compacta'"],
+  ['String of Turtles', 'Peperomia prostrata'], ['String of Bananas', 'Curio radicans'], ['String of Dolphins', ''],
+  // Peperomia, pilea, begonia
+  ['Watermelon Peperomia', 'Peperomia argyreia'], ['Ripple Peperomia', 'Peperomia caperata'], ['Friendship Plant', 'Pilea involucrata'],
+  ['Polka Dot Begonia', 'Begonia maculata'],
+  // Evergreens, canes and corn plants
+  ['Silver Bay Chinese Evergreen', "Aglaonema 'Silver Bay'"], ['Camille Dumb Cane', "Dieffenbachia 'Camille'"],
+  ['Janet Craig Corn Plant', "Dracaena fragrans 'Janet Craig'"], ['Lemon Lime Dracaena', "Dracaena fragrans 'Lemon Lime'"],
+  // Elephant ears
+  ['Polly Elephant Ear', "Alocasia 'Polly'"], ['Dragon Scale Elephant Ear', "Alocasia baginda 'Dragon Scale'"],
+  // Succulents and cacti
+  ['Gollum Jade', "Crassula ovata 'Gollum'"], ['Zebra Haworthia', 'Haworthiopsis attenuata'],
+  ['Thanksgiving Cactus', 'Schlumbergera truncata', '🌵'],
+  // Ferns
+  ['Kimberly Queen Fern', 'Nephrolepis obliterata', '🌿'], ['Blue Star Fern', 'Phlebodium aureum', '🌿'],
+];
+
+export const HOUSEPLANTS: readonly Species[] = [...ROWS, ...VARIETIES].map(([n, s, e]) => ({
   n, t: 'Houseplant', x: true, o: 'home' as const, ...(s ? { s } : {}), ...(e ? { e } : {}),
 }));

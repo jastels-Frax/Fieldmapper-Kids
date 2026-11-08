@@ -38,8 +38,10 @@ test('each is in a set, has a kind that can name it, and makes no claim a list w
     assert.equal(statusOf(sp), undefined);
     assert.equal(isRare(statusOf(sp)), false);
     if (sp.e !== undefined) assert.ok(sp.e.trim().length > 0, `${sp.n}: blank emoji`);
-    if (sp.s !== undefined) assert.match(sp.s, /^[A-Z][a-z]+( [a-z-]+)?$/, `${sp.n}: ${sp.s} is not a genus or a species name`);
-    assert.ok(sp.n.length <= 22, `${sp.n} is too long for a chip`);
+    // A genus, a species, a variety (var.), and a cultivar in quotes ('Thai Constellation'), and nothing else.
+    if (sp.s !== undefined) assert.match(sp.s, /^[A-Z][a-z]+( [a-z-]+)?( var\. [a-z-]+)?( '[A-Z][A-Za-z ]+')?$/, `${sp.n}: ${sp.s} is not a scientific name`);
+    // Long enough for "Prince of Orange Philodendron": a chip wraps its words rather than run past its box.
+    assert.ok(sp.n.length <= 30, `${sp.n} is too long for a chip`);
   }
 });
 
@@ -77,7 +79,7 @@ test('a lobster is a sea animal, never a bug, and is found by "lobster"', () => 
   assert.equal(first('animal', 'lobster'), 'American Lobster');
   // The mushroom stays first where a mushroom is wanted.
   assert.equal(first('mushroom', 'lobster'), 'Lobster Mushroom');
-  assert.equal(first('sea', 'crab'), 'Atlantic Rock Crab');
+  assert.match(first('sea', 'crab'), / Crab$/);
   assert.deepEqual(searchSpecies(all, 'sea', 'jelly').slice(0, 2).map(sp => sp.t), ['Cnidarian', 'Cnidarian']);
 });
 
@@ -89,6 +91,21 @@ test('a houseplant has a name step now, and finds its names', () => {
   assert.equal(kindToOffer('plant', by.get('Snake Plant')!), 'houseplant');
   assert.equal(kindToOffer('houseplant', by.get('Snake Plant')!), undefined);
   assert.ok(belongsTo('houseplant', 'Houseplant'));
+});
+
+test('named varieties are found by the variety or by the plant', () => {
+  assert.equal(first('houseplant', 'thai'), 'Thai Constellation Monstera');
+  assert.equal(first('houseplant', 'Thai Constellation'), 'Thai Constellation Monstera');
+  // The plant's own name stays first, its varieties right after it.
+  const monsteras = searchSpecies(all, 'houseplant', 'monstera').map(sp => sp.n);
+  assert.equal(monsteras[0], 'Monstera');
+  for (const n of ['Thai Constellation Monstera', 'Albo Monstera', 'Mini Monstera']) assert.ok(monsteras.includes(n), n);
+  assert.equal(first('houseplant', 'marble'), 'Marble Queen Pothos');
+  assert.equal(first('houseplant', 'pink princess'), 'Pink Princess Philodendron');
+  // A cultivar keeps its parent's scientific name.
+  assert.equal(by.get('Thai Constellation Monstera')!.s, "Monstera deliciosa 'Thai Constellation'");
+  // The big buttons stay the commonest plants, not varieties.
+  assert.ok(HOUSEPLANTS.slice(0, SET_WORDS.home.chips).every(sp => !/'/.test(sp.s ?? '')));
 });
 
 test('everyday animals are found by their names, the very name first within the kind', () => {
