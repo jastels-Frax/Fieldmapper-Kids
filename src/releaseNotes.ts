@@ -12,6 +12,10 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.18.0', date: '2026-11-08', title: 'Begonias',
+    notes: ['🪴 Lots of begonias to name: Angel Wing, Ferox, Iron Cross, Eyelash, Peacock and more.'],
+  },
+  {
     version: '2.17.0', date: '2026-11-08', title: 'Houseplant varieties',
     notes: [
       '🪴 Name houseplant varieties too, like Thai Constellation Monstera, Pink Princess Philodendron and Marble Queen Pothos.',

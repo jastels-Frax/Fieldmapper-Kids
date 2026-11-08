@@ -15,7 +15,7 @@ serves it as JavaScript, and precached — keep all three.
 
 ## Versions
 
-Scout is **2.17.0**. The version lives in `package.json` (shown on the opening screen and in the grown-up corner as
+Scout is **2.18.0**. The version lives in `package.json` (shown on the opening screen and in the grown-up corner as
 `__APP_VERSION__`); **every release bumps it and adds an entry to both `CHANGELOG.md` (detail, for us) and
 `src/releaseNotes.ts` (`RELEASES`, in the family's words, shown as "What's new")**. `test/releaseNotes.test.ts` fails
 when the three disagree. A patch (x.y.Z) for a fix, a minor (x.Y.0) for new things, a major for a new shape of app.

@@ -79,9 +79,17 @@ const VARIETIES: Row[] = [
   // Hoyas and strings
   ['Sweetheart Hoya', 'Hoya kerrii'], ['Krimson Queen Hoya', "Hoya carnosa 'Krimson Queen'"], ['Hindu Rope Hoya', "Hoya carnosa 'Compacta'"],
   ['String of Turtles', 'Peperomia prostrata'], ['String of Bananas', 'Curio radicans'], ['String of Dolphins', ''],
-  // Peperomia, pilea, begonia
+  // Peperomia, pilea
   ['Watermelon Peperomia', 'Peperomia argyreia'], ['Ripple Peperomia', 'Peperomia caperata'], ['Friendship Plant', 'Pilea involucrata'],
-  ['Polka Dot Begonia', 'Begonia maculata'],
+  // Begonias (2.18). A group of hybrids sold under one name (Angel Wing, Wax, Dragon Wing) gets the genus alone.
+  ['Polka Dot Begonia', 'Begonia maculata'], ['Angel Wing Begonia', 'Begonia'], ['Ferox Begonia', 'Begonia ferox'],
+  ['Iron Cross Begonia', 'Begonia masoniana'], ['Eyelash Begonia', 'Begonia bowerae'], ['Beefsteak Begonia', 'Begonia × erythrophylla'],
+  ['Peacock Begonia', 'Begonia pavonina'], ['Listada Begonia', 'Begonia listada'], ['Palm-leaf Begonia', 'Begonia luxurians'],
+  ['Escargot Begonia', "Begonia 'Escargot'"], ['Fireworks Begonia', "Begonia 'Fireworks'"], ['Gryphon Begonia', "Begonia 'Gryphon'"],
+  ['Marmaduke Begonia', "Begonia 'Marmaduke'"], ['Wax Begonia', 'Begonia'], ['Dragon Wing Begonia', 'Begonia'],
+  ['Tuberous Begonia', 'Begonia × tuberhybrida'],
+  // Called a begonia, and not one: a saxifrage that sends out runners like a strawberry.
+  ['Strawberry Begonia', 'Saxifraga stolonifera'],
   // Evergreens, canes and corn plants
   ['Silver Bay Chinese Evergreen', "Aglaonema 'Silver Bay'"], ['Camille Dumb Cane', "Dieffenbachia 'Camille'"],
   ['Janet Craig Corn Plant', "Dracaena fragrans 'Janet Craig'"], ['Lemon Lime Dracaena', "Dracaena fragrans 'Lemon Lime'"],

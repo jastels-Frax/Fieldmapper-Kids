@@ -5,6 +5,17 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.18.0 — 2026-11-08
+
+- **Begonias** (`houseplants.ts` `VARIETIES`): 16 more names beside Rex Begonia and Polka Dot Begonia, so the list is
+  153. Species: Ferox (*Begonia ferox*), Iron Cross (*B. masoniana*), Eyelash (*B. bowerae*), Peacock (*B. pavonina*),
+  Listada (*B. listada*), Palm-leaf (*B. luxurians*); hybrids: Beefsteak (*B. × erythrophylla*), Tuberous
+  (*B. × tuberhybrida*); cultivars: Escargot, Fireworks, Gryphon, Marmaduke; groups of hybrids sold under one name,
+  with the genus alone: Angel Wing, Wax, Dragon Wing. Strawberry Begonia is in too, and its scientific name says what
+  it is: a saxifrage (*Saxifraga stolonifera*), not a begonia. Compiled for Scout from general knowledge, as the rest.
+- `test/builtIns.test.ts`: a scientific name may be a hybrid (`×`); the begonias are found by "begonia" and by their
+  own names.
+
 ## 2.17.0 — 2026-11-08
 
 - **Named houseplant varieties** (`houseplants.ts` `VARIETIES`): 53 cultivars and close kin sold under their own

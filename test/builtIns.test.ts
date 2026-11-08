@@ -38,8 +38,8 @@ test('each is in a set, has a kind that can name it, and makes no claim a list w
     assert.equal(statusOf(sp), undefined);
     assert.equal(isRare(statusOf(sp)), false);
     if (sp.e !== undefined) assert.ok(sp.e.trim().length > 0, `${sp.n}: blank emoji`);
-    // A genus, a species, a variety (var.), and a cultivar in quotes ('Thai Constellation'), and nothing else.
-    if (sp.s !== undefined) assert.match(sp.s, /^[A-Z][a-z]+( [a-z-]+)?( var\. [a-z-]+)?( '[A-Z][A-Za-z ]+')?$/, `${sp.n}: ${sp.s} is not a scientific name`);
+    // A genus, a species or hybrid (×), a variety (var.), and a cultivar in quotes ('Thai Constellation'), and nothing else.
+    if (sp.s !== undefined) assert.match(sp.s, /^[A-Z][a-z]+( × [a-z-]+| [a-z-]+)?( var\. [a-z-]+)?( '[A-Z][A-Za-z ]+')?$/, `${sp.n}: ${sp.s} is not a scientific name`);
     // Long enough for "Prince of Orange Philodendron": a chip wraps its words rather than run past its box.
     assert.ok(sp.n.length <= 30, `${sp.n} is too long for a chip`);
   }
@@ -102,6 +102,12 @@ test('named varieties are found by the variety or by the plant', () => {
   for (const n of ['Thai Constellation Monstera', 'Albo Monstera', 'Mini Monstera']) assert.ok(monsteras.includes(n), n);
   assert.equal(first('houseplant', 'marble'), 'Marble Queen Pothos');
   assert.equal(first('houseplant', 'pink princess'), 'Pink Princess Philodendron');
+  // Begonias: by kind or by name, the plain Rex Begonia first among equals.
+  const begonias = searchSpecies(all, 'houseplant', 'begonia').map(sp => sp.n);
+  for (const n of ['Rex Begonia', 'Angel Wing Begonia', 'Ferox Begonia', 'Polka Dot Begonia', 'Iron Cross Begonia']) assert.ok(begonias.includes(n), n);
+  assert.equal(first('houseplant', 'angel'), 'Angel Wing Begonia');
+  assert.equal(first('houseplant', 'ferox'), 'Ferox Begonia');
+  assert.equal(by.get('Ferox Begonia')!.s, 'Begonia ferox');
   // A cultivar keeps its parent's scientific name.
   assert.equal(by.get('Thai Constellation Monstera')!.s, "Monstera deliciosa 'Thai Constellation'");
   // The big buttons stay the commonest plants, not varieties.
