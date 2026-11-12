@@ -1,5 +1,6 @@
 import type { CategoryId } from './types.ts';
 import { groupOf } from './categories.ts';
+import { TYPO_WHEN_FEWER, typoDistance } from './typos.ts';
 
 /**
  * Kinds of place, for a habitat find: a habitat is not a species, so instead of "What is it called?" the explorer is
@@ -116,12 +117,20 @@ export function searchHabitats(q: string, cat: CategoryId, limit = 12): HabitatT
   const s = q.trim().toLowerCase();
   if (!s) return [];
   const scored: { t: HabitatType; score: number }[] = [];
+  const misses: [HabitatType, number][] = [];
   HABITAT_TYPES.forEach((t, i) => {
     const name = t.name.toLowerCase();
     const tier = name.split(/[\s-]+/).some(w => w.startsWith(s)) ? 0 : name.includes(s) ? 1 : t.hint.toLowerCase().includes(s) ? 2 : -1;
-    if (tier < 0) return;
+    if (tier < 0) { misses.push([t, i]); return; }
     scored.push({ t, score: tier * 1000 + (t.kind === cat ? 0 : 500) + i });
   });
+  // Misspelt ("swomp", "medow")? A place's name a typo or two away comes after the exact matches (typos.ts).
+  if (scored.length < TYPO_WHEN_FEWER) {
+    for (const [t, i] of misses) {
+      const d = typoDistance(s, t.name.toLowerCase());
+      if (d !== undefined) scored.push({ t, score: (3 + d) * 1000 + (t.kind === cat ? 0 : 500) + i });
+    }
+  }
   return scored.sort((a, b) => a.score - b.score).slice(0, limit).map(x => x.t);
 }
 

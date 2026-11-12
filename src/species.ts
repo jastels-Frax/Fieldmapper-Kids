@@ -1,4 +1,5 @@
 import type { CategoryId } from './types.ts';
+import { TYPO_WHEN_FEWER, prepare, prepareQuery, typoDistanceTo, type Prepared } from './typos.ts';
 
 /** One species an explorer can name, from a list (ACCDC via Field Mapper, or imported). */
 export interface Species {
@@ -113,26 +114,55 @@ function rankWeight(sp: Species): number {
 const fold = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 /**
+ * Each species' name and scientific name folded once, and made ready for typo matching once (typos.ts), then kept for
+ * as long as the species record lives: a search runs on every keystroke over six thousand names.
+ */
+interface Folded { n: string; s: string; tn?: Prepared; ts?: Prepared | null }
+const foldedCache = new WeakMap<Species, Folded>();
+function folded(sp: Species): Folded {
+  let f = foldedCache.get(sp);
+  if (!f) { f = { n: fold(sp.n), s: fold(sp.s ?? '') }; foldedCache.set(sp, f); }
+  return f;
+}
+
+/**
  * Species matching what was typed, from the WHOLE list: a find's kind does not limit what can be named (a child who
  * picked Plant and types "turkey tail" finds the mushroom; capture.ts then offers to change the kind). A name starting
  * with the words beats one merely containing them; within that, the find's own kind first, and the very name typed
- * first in it ("cat" is Cat before Feral Cat); then commoner first; then the shorter name.
+ * first in it ("cat" is Cat before Feral Cat); then commoner first; then the shorter name. A misspelt name is still
+ * found, after the exact matches (typos.ts).
  */
 export function searchSpecies(list: Species[], cat: CategoryId, query: string, limit = 40): Species[] {
   const q = fold(query.trim());
   const scored: [number, Species][] = [];
+  const misses: Species[] = [];
   for (const sp of list) {
-    const n = fold(sp.n), s = fold(sp.s ?? '');
+    const { n, s } = folded(sp);
     let score: number;
     if (!q) score = 10;
     else if (n.startsWith(q) || n.includes(` ${q}`)) score = 0;
     else if (s.startsWith(q)) score = 1;
     else if (n.includes(q) || s.includes(q)) score = 2;
-    else continue;
+    else { misses.push(sp); continue; }
     // The very name typed edges ahead within its kind, never past the find's own kind: a child under Shelf typing
     // "turkey" on the way to Turkey Tail still sees Turkey Tail before the farm Turkey.
     const exact = q && n === q ? 5 : 0;
     scored.push([score * 20 + (belongsTo(cat, sp.t) ? 0 : 10) + rankWeight(sp) - exact, sp]);
+  }
+  // Misspelt? When the exact matches are few, names a typo or two away join them (typos.ts): "ferrox" finds the Ferox
+  // Begonia, "lobstr" the American Lobster. One of the find's own kind a typo away comes after its exact matches and
+  // before other kinds' ("robbin" on a Bird find is American Robin before Robbins' Pondweed); others' come last.
+  const pq = q ? prepareQuery(q) : undefined;
+  if (pq?.max && scored.length < TYPO_WHEN_FEWER) {
+    for (const sp of misses) {
+      const f = folded(sp);
+      f.tn ??= prepare(f.n);
+      if (f.ts === undefined) f.ts = f.s ? prepare(f.s) : null;
+      const dn = typoDistanceTo(pq, f.tn), ds = f.ts ? typoDistanceTo(pq, f.ts) : undefined;
+      const d = Math.min(dn ?? Infinity, ds ?? Infinity);
+      if (d === Infinity) continue;
+      scored.push([d * 5 + (belongsTo(cat, sp.t) ? 0 : 30) + rankWeight(sp), sp]);
+    }
   }
   // Equal matches: the shorter name first, so a plant comes before its named varieties (Spider Plant, then Bonnie
   // Spider Plant), then A to Z.

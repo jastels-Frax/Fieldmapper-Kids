@@ -5,6 +5,27 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.19.0 — 2026-11-12
+
+- **Misspelt names are found** (`typos.ts`, pure, tested), in the name search (`searchSpecies`) and the kind-of-place
+  search (`searchHabitats`). A departure from Field Mapper, whose species search matches exact substrings only:
+  Scout's explorers are still learning to spell. A typo is a letter added, left out, changed, or two neighbours
+  swapped (optimal string alignment distance), counted after spelling by sound — "ph" is "f", "ck" is "k", a doubled
+  letter is one — so "elefant" is Elephant, "racoon" Raccoon, "squirel" Squirrel. The typed words are matched
+  against the start of any word of a name, and only as far as they were typed, so "prinsess" finds Pink Princess
+  Philodendron and "thai constelation" the Thai Constellation Monstera. The scientific name counts too ("monstera
+  delicosa").
+- **How much is forgiven:** no typos under 4 letters (cat, bat and rat are different words), 1 up to 7 letters, 2
+  from 8. A word is tried only when it starts with the search's first letter, or the first two swapped.
+- **When and where they show:** only when the exact matches are fewer than 10 (`TYPO_WHEN_FEWER`), so a search that
+  already works is unchanged. A name of the find's own kind one typo away comes after that kind's exact matches and
+  before other kinds' ("robbin" on a Bird find is American Robin, then Robbins' Pondweed); other kinds' typo matches
+  come last.
+- **Speed:** each name is folded and prepared once and kept (`species.folded`, a WeakMap), so a search over the
+  6,500-odd names costs about 4 ms a keystroke in Node on the build machine.
+- Not covered: a different word for the same thing ("ladybug" for Seven-spotted Lady Beetle) is not a typo, and is
+  not found.
+
 ## 2.18.0 — 2026-11-08
 
 - **Begonias** (`houseplants.ts` `VARIETIES`): 16 more names beside Rex Begonia and Polka Dot Begonia, so the list is

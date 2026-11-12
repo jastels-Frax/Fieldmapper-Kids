@@ -12,6 +12,10 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '2.19.0', date: '2026-11-12', title: 'Spell it your way',
+    notes: ['🔤 Spelled it a bit wrong? Scout still finds it: "elefant" finds Elephant, "lobstr" finds American Lobster.'],
+  },
+  {
     version: '2.18.0', date: '2026-11-08', title: 'Begonias',
     notes: ['🪴 Lots of begonias to name: Angel Wing, Ferox, Iron Cross, Eyelash, Peacock and more.'],
   },
