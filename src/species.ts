@@ -1,5 +1,6 @@
 import type { CategoryId } from './types.ts';
 import { TYPO_WHEN_FEWER, prepare, prepareQuery, typoDistanceTo, type Prepared } from './typos.ts';
+import { nicknamesOf } from './nicknames.ts';
 
 /** One species an explorer can name, from a list (ACCDC via Field Mapper, or imported). */
 export interface Species {
@@ -117,20 +118,42 @@ const fold = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,
  * Each species' name and scientific name folded once, and made ready for typo matching once (typos.ts), then kept for
  * as long as the species record lives: a search runs on every keystroke over six thousand names.
  */
-interface Folded { n: string; s: string; tn?: Prepared; ts?: Prepared | null }
+interface Folded {
+  n: string;
+  s: string;
+  tn?: Prepared;
+  ts?: Prepared | null;
+  /** Its nicknames (nicknames.ts), as written and folded, and made ready for typo matching. */
+  kd?: string[];
+  k?: string[];
+  /** Named by the nickname (a headline member of its group), not just caught by its rule. */
+  kn?: boolean[];
+  tk?: Prepared[];
+}
 const foldedCache = new WeakMap<Species, Folded>();
 function folded(sp: Species): Folded {
   let f = foldedCache.get(sp);
   if (!f) { f = { n: fold(sp.n), s: fold(sp.s ?? '') }; foldedCache.set(sp, f); }
   return f;
 }
+function nicks(sp: Species, f: Folded): string[] {
+  if (!f.k) {
+    const all = nicknamesOf(sp);
+    f.kd = all.map(x => x.nick);
+    f.kn = all.map(x => x.named);
+    f.k = f.kd.map(fold);
+  }
+  return f.k;
+}
+/** Where a search falls in a name: 0 at the start of a word, 2 inside one, undefined not at all. */
+const place = (text: string, q: string) => text.startsWith(q) || text.includes(` ${q}`) ? 0 : text.includes(q) ? 2 : undefined;
 
 /**
  * Species matching what was typed, from the WHOLE list: a find's kind does not limit what can be named (a child who
  * picked Plant and types "turkey tail" finds the mushroom; capture.ts then offers to change the kind). A name starting
  * with the words beats one merely containing them; within that, the find's own kind first, and the very name typed
- * first in it ("cat" is Cat before Feral Cat); then commoner first; then the shorter name. A misspelt name is still
- * found, after the exact matches (typos.ts).
+ * first in it ("cat" is Cat before Feral Cat); then commoner first; then the shorter name. A nickname counts as a name
+ * ("ladybug" finds the lady beetles, nicknames.ts), and a misspelt name is still found (typos.ts).
  */
 export function searchSpecies(list: Species[], cat: CategoryId, query: string, limit = 40): Species[] {
   const q = fold(query.trim());
@@ -139,15 +162,29 @@ export function searchSpecies(list: Species[], cat: CategoryId, query: string, l
   for (const sp of list) {
     const { n, s } = folded(sp);
     let score: number;
+    let named = n;
+    // A nickname (nicknames.ts: "ladybug" for the lady beetles) counts as a name.
+    let behind = 0;
     if (!q) score = 10;
     else if (n.startsWith(q) || n.includes(` ${q}`)) score = 0;
     else if (s.startsWith(q)) score = 1;
     else if (n.includes(q) || s.includes(q)) score = 2;
-    else { misses.push(sp); continue; }
+    else {
+      const k = nicks(sp, folded(sp));
+      const at = k.map(x => place(x, q));
+      const best = Math.min(...at.map(x => x ?? Infinity));
+      if (best === Infinity) { misses.push(sp); continue; }
+      score = best;
+      const i = at.findIndex(x => x === best);
+      // A member the nickname names (the Seven-spotted Lady Beetle for "ladybug") ranks with a name; the rest of its
+      // group a few steps behind.
+      behind = folded(sp).kn![i] ? 0 : 4;
+      named = k[i];
+    }
     // The very name typed edges ahead within its kind, never past the find's own kind: a child under Shelf typing
     // "turkey" on the way to Turkey Tail still sees Turkey Tail before the farm Turkey.
-    const exact = q && n === q ? 5 : 0;
-    scored.push([score * 20 + (belongsTo(cat, sp.t) ? 0 : 10) + rankWeight(sp) - exact, sp]);
+    const exact = q && named === q ? 5 : 0;
+    scored.push([score * 20 + (belongsTo(cat, sp.t) ? 0 : 10) + rankWeight(sp) + behind - exact, sp]);
   }
   // Misspelt? When the exact matches are few, names a typo or two away join them (typos.ts): "ferrox" finds the Ferox
   // Begonia, "lobstr" the American Lobster. One of the find's own kind a typo away comes after its exact matches and
@@ -158,16 +195,42 @@ export function searchSpecies(list: Species[], cat: CategoryId, query: string, l
       const f = folded(sp);
       f.tn ??= prepare(f.n);
       if (f.ts === undefined) f.ts = f.s ? prepare(f.s) : null;
+      f.tk ??= nicks(sp, f).map(prepare);
       const dn = typoDistanceTo(pq, f.tn), ds = f.ts ? typoDistanceTo(pq, f.ts) : undefined;
-      const d = Math.min(dn ?? Infinity, ds ?? Infinity);
+      const dks = f.tk.map(t => typoDistanceTo(pq, t) ?? Infinity);
+      const dk = Math.min(...dks);
+      const d = Math.min(dn ?? Infinity, ds ?? Infinity, dk);
       if (d === Infinity) continue;
-      scored.push([d * 5 + (belongsTo(cat, sp.t) ? 0 : 30) + rankWeight(sp), sp]);
+      // Found only through a nickname that names it ("lady bug" → the Seven-spotted Lady Beetle)? Ahead of its group.
+      const named = d === dk && dn !== d && ds !== d && f.kn!.some((kn, i) => kn && dks[i] === d) ? 4 : 0;
+      scored.push([d * 5 + (belongsTo(cat, sp.t) ? 0 : 30) + rankWeight(sp) - named, sp]);
     }
   }
   // Equal matches: the shorter name first, so a plant comes before its named varieties (Spider Plant, then Bonnie
   // Spider Plant), then A to Z.
   scored.sort((a, b) => a[0] - b[0] || a[1].n.length - b[1].n.length || a[1].n.localeCompare(b[1].n));
   return scored.slice(0, limit).map(x => x[1]);
+}
+
+/**
+ * The nickname that found a search result, to show beside it ("Also called Ladybug"), or undefined when its own name
+ * or scientific name did (so "Seven-spotted Lady Beetle" found by "lady" says nothing more).
+ */
+export function nicknameFound(sp: Species, query: string): string | undefined {
+  const q = fold(query.trim());
+  if (!q) return undefined;
+  const f = folded(sp);
+  if (f.n.includes(q) || f.s.includes(q)) return undefined;
+  const k = nicks(sp, f);
+  const hit = k.findIndex(x => x.includes(q));
+  if (hit >= 0) return f.kd![hit];
+  const pq = prepareQuery(q);
+  if (!pq.max) return undefined;
+  f.tn ??= prepare(f.n);
+  if (typoDistanceTo(pq, f.tn) !== undefined) return undefined;
+  f.tk ??= k.map(prepare);
+  const typo = f.tk.findIndex(t => typoDistanceTo(pq, t) !== undefined);
+  return typo >= 0 ? f.kd![typo] : undefined;
 }
 
 /** Field Mapper's species files are ACCDC records; this reads one, or refuses with a reason. */

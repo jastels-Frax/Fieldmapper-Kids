@@ -5,6 +5,30 @@ releases in words for the family (shown as "What's new" on the opening screen), 
 holds the three together. **Every release bumps `package.json`, adds an entry here and one in `releaseNotes.ts`.**
 Versions before 2.0.0 were numbered when 2.0 started tracking them, from the git history.
 
+## 2.20.0 — 2026-11-12
+
+- **Everyday nicknames** (`nicknames.ts`, pure, tested): 51 words people use that are not a species' common name,
+  each pointing at the names it stands for. Ladybug and Ladybird (the lady beetles), Bumblebee, Honeybee, Butterfly
+  (every butterfly and skipper, by element code IILEP — their own names never say "butterfly"), Dragonfly and
+  Damselfly (IIODO, told apart by the damselflies' name endings: Jewelwing, Spreadwing, Dancer, Bluet, Forktail,
+  Sprite, Damsel), Lightning Bug, June Bug, Woolly Bear (Isabella Tiger Moth), Daddy Longlegs (the harvestmen and
+  the Harvestman Cellar Spider), Sow Bug, Groundhog and Whistle Pig (Woodchuck), Weasel (American Ermine), Bunny,
+  Seagull, Red Eft, Garter Snake, Snapper, Minnow (the shiners, chubs and daces), Starfish, Jellyfish, Sea Anemone,
+  Sand Flea, Christmas Tree (Balsam Fir), White Birch, Larch and Hackmatack (Tamarack), Dogberry and Rowan (mountain
+  ashes), Mayflower (Trailing Arbutus), Fiddlehead (Ostrich Fern), Lily Pad, Lady Slipper, Reindeer Moss (the
+  reindeer lichens), Old Man's Beard (*Usnea* and Methuselah's Beard Lichen), the pet and farm words (Kitten, Puppy,
+  Hen, Rooster, Lamb, Cattle, Parakeet, Budgerigar) and houseplant names (Mother-in-law's Tongue, Devil's Ivy, Swiss
+  Cheese Plant, Flamingo Flower, Succulent). Compiled for Scout from general knowledge.
+- A nickname points at a species by name, or at a group by what the list records: a name ending, a genus, or an
+  ACCDC element code. It never stands for something it is not: "pill bug" is left out because the list's woodlouse
+  (*Porcellio scaber*) does not roll into a ball, while "sow bug" is in.
+- **In the search** a nickname counts as a name. A group's nickname names its best-known members first (the
+  Seven-spotted Lady Beetle for "ladybug", the Monarch and the familiar butterflies for "butterfly", the Common Green
+  Darner for "dragonfly", the Herring Gull for "seagull"), and they come before the rest of the group. A real name
+  match is never pushed down by a nickname. Nicknames are typo-matched too ("lady bug").
+- **The result says which nickname found it** ("Also called Ladybug", `species.nicknameFound`, `.species-aka`), so a
+  list of lady beetles is not a puzzle; a result found by its own name says nothing more.
+
 ## 2.19.0 — 2026-11-12
 
 - **Misspelt names are found** (`typos.ts`, pure, tested), in the name search (`searchSpecies`) and the kind-of-place

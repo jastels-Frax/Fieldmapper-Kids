@@ -21,7 +21,7 @@ import type { Expression } from './buddies.ts';
 import { itemFit, needWords, plainMatches, worthAsking, type HuntItem } from './hunts.ts';
 import { outOfSpace } from './dbRetry.ts';
 import { toBadgeFind } from './badges.ts';
-import { SET_ORDER, SET_WORDS, belongsTo, hasSpeciesStep, searchSpecies, taxaFor, type BuiltInSet, type Species } from './species.ts';
+import { SET_ORDER, SET_WORDS, belongsTo, hasSpeciesStep, nicknameFound, searchSpecies, taxaFor, type BuiltInSet, type Species } from './species.ts';
 import { isRare, statusOf } from './rarity.ts';
 import { habitatKindToOffer, habitatNamed, habitatsFor, hasPlaceStep, searchHabitats, type HabitatType } from './habitats.ts';
 import { FAMILIAR } from './familiar.ts';
@@ -478,8 +478,11 @@ export function startCapture(host: CaptureHost, existing?: FullFind, at?: { lat:
           // platypus gets a paw print, not its kind's deer).
           const k = kindForSpecies(sp);
           const pic = sp.e ?? (sp.o ? SET_WORDS[sp.o].pic : k ? categoryOf(k).emoji : '');
+          // Found by a nickname ("ladybug")? Say so, or a list of lady beetles answers a word none of them contains.
+          const nick = nicknameFound(sp, q);
           results.append(h('button', { class: 'species-row', onclick: () => void choose(sp) },
             h('strong', {}, sp.n), sp.s ? h('span', { class: 'latin' }, sp.s) : null,
+            nick ? h('span', { class: 'species-aka' }, `Also called ${nick}`) : null,
             h('span', { class: 'species-taxon' }, `${pic ? `${pic} ` : ''}${sp.o ? SET_WORDS[sp.o].tag : sp.t}`)));
         }
       };
